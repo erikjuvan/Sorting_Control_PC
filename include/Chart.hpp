@@ -18,7 +18,7 @@ private slots:
 
 private:
 	int m_lines;
-	std::vector<QtCharts::QLineSeries*> m_series;		
+	std::vector<QtCharts::QXYSeries*> m_series;		
 	QTimer* m_timer;
 	QtCharts::QValueAxis* m_axisX;
 };
