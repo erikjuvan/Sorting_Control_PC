@@ -3,27 +3,25 @@ project(Sorting_Control_PC)
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release") 
 
-# Add user source files
-file(GLOB SOURCES "src/*")
-# Add user header files
-file(GLOB HEADERS "include/*")
-
-set(CMAKE_PREFIX_PATH "" CACHE PATH "Where is QT cmake?" ${CMAKE_PREFIX_PATH})
-
-# Instruct CMake to run moc automatically when needed.
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTORCC ON)
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
-#set(QT_USE_QTOPENGL TRUE)
-find_package(Qt5Widgets REQUIRED)
-find_package(Qt5Core REQUIRED)
-find_package(Qt5Charts REQUIRED)
-find_package(Qt5SerialPort REQUIRED)
+# Find SFML
+find_package(SFML 2.5 COMPONENTS graphics window system REQUIRED)
 
 # Tell CMake to create the executable
-add_executable(${PROJECT_NAME} WIN32 ${SOURCES} ${HEADERS})
+add_executable(${PROJECT_NAME})
 
+target_sources(${PROJECT_NAME} PRIVATE 
+	src/main.cpp
+	src/Chart.cpp
+	src/Communication.cpp
+	src/Window.cpp
+	)
+	
+target_sources(${PROJECT_NAME} PRIVATE 
+	include/Chart.hpp
+	include/Communication.hpp
+	include/Helpers.hpp
+	include/Window.hpp
+	)
+	
 target_include_directories(${PROJECT_NAME} PRIVATE include)
-target_link_libraries(${PROJECT_NAME} PRIVATE Qt5::Widgets Qt5::Charts Qt5::SerialPort)
+target_link_libraries(${PROJECT_NAME} PRIVATE sfml-graphics sfml-window sfml-system)
