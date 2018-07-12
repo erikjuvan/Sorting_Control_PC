@@ -289,7 +289,7 @@ public:
 
 	Chart(int x, int y, int w, int h, float max_val, const char* font_name = "arial.ttf") : 
 		m_max_val(max_val), m_background(sf::Vector2f(w, h)),
-		m_chart_region(sf::Vector2f(w - 6 * m_margin, h - 6 * m_margin)) {
+		m_chart_region(sf::Vector2f(w - 6 * m_margin, h - 5 * m_margin)) {
 
 		m_font.loadFromFile(font_name);		
 
@@ -297,7 +297,7 @@ public:
 		m_background.setOutlineColor(sf::Color::Black);
 		m_background.setOutlineThickness(1.f);
 
-		m_chart_region.setPosition(x + 4 * m_margin, y + 3 * m_margin);
+		m_chart_region.setPosition(x + 4 * m_margin, y + 2 * m_margin);
 		m_chart_region.setOutlineColor(sf::Color::Black);
 		m_chart_region.setOutlineThickness(1.f);
 		m_chart_rect = m_chart_region.getGlobalBounds();
@@ -312,14 +312,14 @@ public:
 		m_x_axis.setFillColor(sf::Color::Black);
 		m_x_axis.setCharacterSize(24);
 		m_x_axis.setString("Sample");
-		m_x_axis.setPosition(sf::Vector2f(x + w / 2 - m_x_axis.getLocalBounds().width / 2, h - 1.5  * m_margin));		
+		m_x_axis.setPosition(sf::Vector2f(x + w / 2 - m_x_axis.getLocalBounds().width / 2, h - 1.25  * m_margin));	
 
 		m_y_axis.setFont(m_font);		
 		m_y_axis.setFillColor(sf::Color::Black);
 		m_y_axis.setCharacterSize(24);
 		m_y_axis.setRotation(-90.f);
 		m_y_axis.setString("ADC value");
-		m_y_axis.setPosition(sf::Vector2f(x + 0.5 * m_margin, y + h / 2 + m_y_axis.getLocalBounds().width / 2));
+		m_y_axis.setPosition(sf::Vector2f(x + m_margin/4, y + h / 2 + m_y_axis.getLocalBounds().width / 2));
 	}
 
 	~Chart() {}
@@ -336,7 +336,15 @@ public:
 	}
 
 	virtual void Handle(const sf::Event& event) {
+		//  && m_chart_region.getGlobalBounds().contains(sf::Vector2f(event.mouseButton.x, event.mouseButton.y))
+		if (event.type == sf::Event::MouseWheelScrolled) {
+			if (event.mouseWheelScroll.wheel == sf::Mouse::VerticalWheel) {
 
+				m_max_val -= event.mouseWheelScroll.delta * 50;
+
+				std::cout << m_max_val << std::endl;
+			}
+		}
 	}
 
 	void AddCurve(int nPoints, const sf::Color& col) {

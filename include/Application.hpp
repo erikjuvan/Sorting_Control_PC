@@ -16,10 +16,10 @@ public:
 		communication = new Communication();				
 
 		// Chart
-		chart = new gui::Chart(200, 10, 1400, 700, 1000);
-		chart->CreateGrid(4);
+		chart = new gui::Chart(200, 10, 1640, 880, 1000);
+		chart->CreateGrid(10);
 		for (int i = 0; i < N_CHANNELS; ++i)
-			chart->AddCurve(20000, sf::Color(m_Colors[i]));
+			chart->AddCurve(5000, sf::Color(m_Colors[i]));
 
 		// Connect button
 		button_connect = new gui::Button(10, 50, "Connect", 120);
@@ -30,7 +30,7 @@ public:
 		label_info = new gui::Label(10, 100, "");
 
 		// Main window
-		mainWindow = new Window(1610, 720, "Sorting Control");
+		mainWindow = new Window(1850, 900, "Sorting Control");
 		mainWindow->Attach(chart);
 		mainWindow->Attach(button_connect);
 		mainWindow->Attach(textbox_comport);
@@ -101,7 +101,7 @@ private:
 					vec.insert(vec.begin(), &buf[ch*DATA_PER_CHANNEL], &buf[ch*DATA_PER_CHANNEL + DATA_PER_CHANNEL]);
 					chart->CurveEditPoints(ch, cntr * 100, 100, vec);
 				}
-				if (++cntr >= 200) {
+				if (++cntr >= 50) {
 					cntr = 0;
 				}
 			}
