@@ -1,8 +1,8 @@
 #include "Window.hpp"
 
 Window::Window(int w, int h, const char* title) {
-	m_window = new sf::RenderWindow(sf::VideoMode(w, h), title);
-	m_window->setFramerateLimit(60);
+	m_window = new sf::RenderWindow(sf::VideoMode(w, h), title, sf::Style::Close | sf::Style::Titlebar);
+	//m_window->setFramerateLimit(60);
 
 	m_event = new sf::Event();
 }
