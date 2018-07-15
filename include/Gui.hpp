@@ -283,6 +283,99 @@ private:
 	fptr m_onClick{ nullptr };
 };
 
+class Signal : public sf::Drawable {
+
+public:
+	Signal(int n, sf::Color col, const sf::FloatRect& region, float *max_val) :
+		m_curve(sf::PrimitiveType::LineStrip, n),
+		m_trigger_frame(sf::PrimitiveType::LineStrip, N_TRIGGER_FRAME_POINTS),
+		m_points(n), m_draw_trigger_frame(false), m_region(region), m_max_val(max_val) {	
+
+		for (int i = 0; i < n; ++i) {
+			m_curve[i].color = col;
+			m_curve[i].position.x = static_cast<float>(region.left + i * region.width / (n - 1));
+			m_points[i] = 0.f;
+		}
+
+		// Trigger Frame
+		col.a = 255;	// make it the same color but more transperant
+		for (int i = 0; i < N_TRIGGER_FRAME_POINTS; ++i)
+			m_trigger_frame[i].color = col;
+
+		const float y_zero = m_region.top + m_region.height;
+		m_trigger_frame[0].position.y = y_zero;
+		m_trigger_frame[1].position.y = m_region.top + 100;
+		m_trigger_frame[2].position.y = m_region.top + 100;
+		m_trigger_frame[3].position.y = y_zero;
+	}
+
+	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override {
+		target.draw(m_curve);
+		if (m_draw_trigger_frame)
+			target.draw(m_trigger_frame);
+	}
+
+	void EnableTriggerFrame() {
+		m_draw_trigger_frame = true;
+	}
+	
+	void DisableTriggerFrame() {
+		m_draw_trigger_frame = false;
+	}
+
+	void Edit(float* buf, unsigned int start, unsigned int size) {
+		float orig[100];		
+		memcpy(orig, buf, 100 * sizeof(float));
+
+		if (m_draw_trigger_frame) {
+
+			// Clear frame at start
+			if (start == 0)
+				for (int i = 0; i < N_TRIGGER_FRAME_POINTS; ++i)
+					m_trigger_frame[i].position.x = m_region.left;
+			
+			for (int i = 0, s = start; i < size; ++i, ++s) {
+				if ( (((uint32_t*)buf)[i] & 0x80000000) != 0) {	// trigger is active
+					if (!m_frame_found) {
+						m_trigger_frame[0].position.x = m_trigger_frame[1].position.x =
+							m_trigger_frame[2].position.x = m_trigger_frame[3].position.x = m_curve[s].position.x;
+
+						m_frame_found = true;;
+					}
+					else {
+						m_trigger_frame[2].position.x = m_trigger_frame[3].position.x = m_curve[s].position.x;
+					}
+					((uint32_t*)buf)[i] -= 0x80000000;
+				}
+				else if (m_frame_found) {
+					m_frame_found = false;
+				}
+			}
+		}
+
+		const float y_zero = m_region.top + m_region.height;
+		for (int i = 0, s = start; i < size; ++i, ++s) {
+			m_curve[s].position.y = y_zero - (buf[i] / *m_max_val) * m_region.height + 1;
+		}
+
+		memcpy(m_prev_buf, orig, 100 * sizeof(float));
+	}
+
+
+private:
+	static constexpr int N_TRIGGER_FRAME_POINTS = 4;
+
+	sf::VertexArray m_curve;	
+	sf::VertexArray m_trigger_frame;	
+	std::vector<float> m_points;
+	sf::FloatRect m_region;
+
+	float *m_max_val;
+	bool m_draw_trigger_frame{ false };
+	bool m_frame_found{ false };
+
+	float m_prev_buf[100];
+};
 
 class Chart : public Object {
 public:
@@ -331,8 +424,8 @@ public:
 		target.draw(m_y_axis);
 		target.draw(m_title);
 		target.draw(m_grid);
-		for (const auto& curve : m_curves)
-			target.draw(curve);
+		for (int i = 0; i < m_signals.size(); ++i)
+			target.draw(*m_signals[i]);
 	}
 
 	virtual void Handle(const sf::Event& event) {
@@ -340,30 +433,25 @@ public:
 		if (event.type == sf::Event::MouseWheelScrolled) {
 			if (event.mouseWheelScroll.wheel == sf::Mouse::VerticalWheel) {
 
-				m_max_val -= event.mouseWheelScroll.delta * 50;
+				if (m_max_val >= 100) {
+					m_max_val -= event.mouseWheelScroll.delta * 50;
+				}
+				else if (m_max_val > 5) {
+					m_max_val -= event.mouseWheelScroll.delta * 5;
+				}
+				else {
+					if (event.mouseWheelScroll.delta < 0)
+						m_max_val -= event.mouseWheelScroll.delta * 5;
+				}
+				
 
 				std::cout << m_max_val << std::endl;
 			}
 		}
 	}
 
-	void AddCurve(int nPoints, const sf::Color& col) {
-		m_curves.push_back(sf::VertexArray(sf::PrimitiveType::LineStrip, nPoints));
-		auto& curve = m_curves[m_curves.size() - 1];
-		for (int i = 0; i < nPoints; ++i) {
-			curve[i].color = col;
-			curve[i].position.x = static_cast<float>(m_chart_rect.left + i * m_chart_rect.width / (nPoints - 1));
-		}
-	}
-
-	void CurveEditPoints(unsigned int curve_idx, unsigned int start, unsigned int size, const std::vector<float>& points) {
-		if (curve_idx < m_curves.size()) {
-			auto& curve = m_curves[curve_idx];
-			float y_zero = m_chart_rect.top + m_chart_rect.height;
-			for (int i = 0; i < size ; ++i, ++start) {
-				curve[start].position.y = y_zero - (points[i] / m_max_val) * m_chart_rect.height;
-			}
-		}		
+	void AddSignal(Signal* signal) {
+		m_signals.push_back(signal);
 	}
 
 	// n_lines - number of one type of lines (vertical or horizontal), there are same number of other lines
@@ -388,6 +476,19 @@ public:
 		}
 	}
 
+	const sf::FloatRect GetGraphRegion() {
+		return m_chart_rect;
+	}
+
+	float* GetMaxVal() {
+		return &m_max_val;
+	}
+
+	void DrawTriggerFrame() {
+		for (const auto& s : m_signals)
+			s->EnableTriggerFrame();
+	}
+
 private:
 	static constexpr int m_margin{ 20 };
 
@@ -402,7 +503,7 @@ private:
 	sf::Text			m_title;
 	sf::Font			m_font;
 
-	std::vector<sf::VertexArray> m_curves;
+	std::vector<Signal*> m_signals;
 	float				m_max_val;
 };
 

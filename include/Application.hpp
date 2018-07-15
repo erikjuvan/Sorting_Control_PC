@@ -16,10 +16,14 @@ public:
 		communication = new Communication();				
 
 		// Chart
-		chart = new gui::Chart(200, 10, 1640, 880, 1000);
+		constexpr int max_val = 1000;
+		chart = new gui::Chart(200, 10, 1640, 880, max_val);
 		chart->CreateGrid(10);
-		for (int i = 0; i < N_CHANNELS; ++i)
-			chart->AddCurve(5000, sf::Color(m_Colors[i]));
+		signals.reserve(N_CHANNELS);
+		for (int i = 0; i < N_CHANNELS; ++i) {			
+			signals.push_back(gui::Signal(10000, sf::Color(m_Colors[i]), chart->GetGraphRegion(), chart->GetMaxVal()));
+			chart->AddSignal(&signals[signals.size() - 1]);
+		}					
 
 		// Connect button
 		button_connect = new gui::Button(10, 50, "Connect", 120);
@@ -54,7 +58,13 @@ private:
 			if (communication->Connect(textbox_comport->GetText())) {
 				button_connect->SetText("Disconnect");
 				communication->Write((uint8_t*)"USBY\n", 5);
+				communication->Write((uint8_t*)"CSETF,1000\n", 11);
 				communication->Write((uint8_t*)"VRBS,1\n", 7);
+				communication->Write((uint8_t*)"CFILTERED\n", 10);
+				//communication->Write((uint8_t*)"CRAW\n", 5);
+				communication->Write((uint8_t*)"TRGFRM,1\n", 9);
+				chart->DrawTriggerFrame();
+				communication->Write((uint8_t*)"USBN\n", 5);
 
 				thread_info = std::thread(Information);
 				thread_get_data = std::thread(GetData);
@@ -82,26 +92,27 @@ private:
 	}
 	 
 	static void GetData() {
-		static float buf[N_CHANNELS * DATA_PER_CHANNEL];
+		static float fbuf[N_CHANNELS * DATA_PER_CHANNEL];
 		static int cntr = 0;
-		std::vector<uint32_t> ints;
+		
+		int tmp_cnt;
 
 		while (communication->IsConnected()) {
 
 			while (communication->IsConnected()) {
-				communication->Read(buf, 4);
-				if (*((uint32_t*)&buf[0]) == 0xDEADBEEF) {				
+				communication->Read(fbuf, 4);
+				if (*((uint32_t*)&fbuf[0]) == 0xDEADBEEF) {
 					break;
 				}				
-			}				
+			}			
 
-			if (int read = communication->Read(buf, sizeof(buf))) {
+			if (int read = communication->Read(fbuf, sizeof(fbuf))) {
+				float* fbuf_tmp = fbuf;
 				for (int ch = 0; ch < N_CHANNELS; ++ch) {
-					std::vector<float> vec;
-					vec.insert(vec.begin(), &buf[ch*DATA_PER_CHANNEL], &buf[ch*DATA_PER_CHANNEL + DATA_PER_CHANNEL]);
-					chart->CurveEditPoints(ch, cntr * 100, 100, vec);
+					signals[ch].Edit(fbuf_tmp, cntr * DATA_PER_CHANNEL, DATA_PER_CHANNEL);
+					fbuf_tmp += DATA_PER_CHANNEL;
 				}
-				if (++cntr >= 50) {
+				if (++cntr >= 100) {
 					cntr = 0;
 				}
 			}
@@ -123,6 +134,7 @@ private:
 	static gui::Button *button_connect;
 	static gui::Textbox *textbox_comport;
 	static gui::Label	*label_info;
+	static std::vector<gui::Signal> signals;
 
 	static std::thread thread_info;
 	static std::thread thread_get_data;

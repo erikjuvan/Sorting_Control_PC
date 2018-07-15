@@ -7,6 +7,7 @@ gui::Chart *Application::chart;
 gui::Button *Application::button_connect;
 gui::Textbox *Application::textbox_comport;
 gui::Label	*Application::label_info;
+std::vector<gui::Signal> Application::signals;
 
 std::thread Application::thread_info;
 std::thread Application::thread_get_data;

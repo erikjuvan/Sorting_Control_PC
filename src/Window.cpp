@@ -46,3 +46,7 @@ void Window::Run() {
 	}
 
 }
+
+bool Window::IsOpen() {
+	return m_window->isOpen();
+}
