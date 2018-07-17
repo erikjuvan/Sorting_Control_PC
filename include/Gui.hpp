@@ -14,7 +14,7 @@ class Button : public Object {
 	typedef void(*fptr)();
 
 public:
-	Button(int x, int y, const char* name, int w = 90, int h = 40, int character_size = 22,
+	Button(int x, int y, const char* text, int w = 90, int h = 30, int character_size = 20,
 		const char* font_name = "arial.ttf") : m_idle_shape(sf::Vector2f(static_cast<float>(w), static_cast<float>(h))), 
 		m_pressed_shape(m_idle_shape), m_pressed(false) {
 
@@ -28,15 +28,19 @@ public:
 		m_pressed_shape.setOutlineColor(sf::Color::Black);
 		m_pressed_shape.setOutlineThickness(1.f);
 
+		// mouseover not yet implemented
+		m_mouseover_shape.setPosition(static_cast<float>(x), static_cast<float>(y));
+		m_mouseover_shape.setFillColor(sf::Color(215, 240, 245));
+		m_mouseover_shape.setOutlineColor(sf::Color::Black);
+		m_mouseover_shape.setOutlineThickness(1.f);		
+
 		m_active_shape = &m_idle_shape;
 
 		m_font.loadFromFile(font_name);
-		m_text.setFont(m_font);
-		m_text.setString(name);
-		m_text.setCharacterSize(character_size);
-		sf::FloatRect text_pos = m_text.getGlobalBounds();
-		m_text.setPosition(x  + w / 2 - text_pos.width / 2, y + h / 2 - text_pos.height);
+		m_text.setFont(m_font);		
+		m_text.setCharacterSize(character_size);		
 		m_text.setFillColor(sf::Color::Black);
+		SetText(text);
 	}
 
 	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override {
@@ -45,13 +49,20 @@ public:
 	}
 
 	void SetText(const std::string& text) {
-		m_text.setString(text);
-		sf::FloatRect text_pos = m_text.getGlobalBounds();
+		m_text.setString(text);		
+
+		float tx = m_text.getLocalBounds().left;
+		float tw = m_text.getLocalBounds().width;
+		float ty = m_text.getLocalBounds().top;
+		float th = m_text.getLocalBounds().height;
+
 		float x = m_idle_shape.getGlobalBounds().left;
 		float w = m_idle_shape.getGlobalBounds().width;
 		float y = m_idle_shape.getGlobalBounds().top;
 		float h = m_idle_shape.getGlobalBounds().height;
-		m_text.setPosition(x + w / 2 - text_pos.width / 2, y + h / 2 - text_pos.height);
+
+		m_text.setOrigin(tx + tw / 2.0f, ty + th / 2.0f);
+		m_text.setPosition(x + w / 2.0f, y + h / 2.0f);
 	}
 
 	sf::FloatRect GetGlobalBounds() {
@@ -59,6 +70,7 @@ public:
 	}
 
 	virtual void Handle(const sf::Event& event) override {
+
 		if (m_active_shape->getGlobalBounds().contains(sf::Vector2f(event.mouseButton.x, event.mouseButton.y))) {
 			if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
 				m_active_shape = &m_pressed_shape;
@@ -85,6 +97,7 @@ public:
 private:
 	sf::RectangleShape m_idle_shape;
 	sf::RectangleShape m_pressed_shape;
+	sf::RectangleShape m_mouseover_shape;
 	sf::RectangleShape* m_active_shape;
 	sf::Text m_text;
 	sf::Font m_font;
@@ -125,7 +138,7 @@ private:
 class Textbox : public Object {
 	typedef void(*fptr)();
 public:
-	Textbox(int x, int y, const std::string& text = "", int w = 100, int h = 30, int character_size = 18,
+	Textbox(int x, int y, const std::string& text = "", int w = 90, int h = 30, int character_size = 18,
 		const char* font_name = "arial.ttf") : m_rect(sf::Vector2f(static_cast<float>(w), static_cast<float>(h))) {
 
 		m_rect.setPosition(static_cast<float>(x), static_cast<float>(y));
@@ -137,9 +150,15 @@ public:
 		m_text.setFont(m_font);
 		m_text.setString(text);
 		m_text.setCharacterSize(character_size);
-		sf::FloatRect text_pos = m_text.getGlobalBounds();
-		m_text.setPosition(x + m_margin / 2, y+3);
 		m_text.setFillColor(sf::Color::Black);
+
+		float tx = m_text.getLocalBounds().left;
+		float tw = m_text.getLocalBounds().width;
+		float ty = m_text.getLocalBounds().top;
+		float th = m_text.getLocalBounds().height;
+
+		m_text.setOrigin(tx, ty + th / 2.0f);
+		m_text.setPosition(x + m_margin, y + m_rect.getLocalBounds().height / 2.0f);
 	}
 
 	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const {
@@ -148,8 +167,7 @@ public:
 	}
 
 	virtual void Handle(const sf::Event& event) override {
-		static bool in_focus = false;
-		if (event.type == sf::Event::TextEntered && in_focus) {
+		if (event.type == sf::Event::TextEntered && m_in_focus) {
 
 			std::string str = m_text.getString();
 
@@ -169,10 +187,10 @@ public:
 		}
 		else if (event.type == sf::Event::MouseMoved) {
 			if (m_rect.getGlobalBounds().contains(sf::Vector2f(event.mouseMove.x, event.mouseMove.y))) {
-				in_focus = true;
+				m_in_focus = true;
 			}
 			else {
-				in_focus = false;
+				m_in_focus = false;
 			}
 		}		
 	}
@@ -196,7 +214,7 @@ private:
 	sf::RectangleShape m_rect;	
 	sf::Text m_text;
 	sf::Font m_font;
-
+	bool	m_in_focus{ false };
 	fptr m_keyPress{ nullptr };
 };
 
@@ -234,13 +252,12 @@ public:
 		target.draw(m_text);
 	}
 
-	virtual void Handle(const sf::Event& event) override {
-		static bool pressed_in_focus = false;
+	virtual void Handle(const sf::Event& event) override {		
 		if (m_rect->getGlobalBounds().contains(sf::Vector2f(event.mouseButton.x, event.mouseButton.y))) {
 			if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
-				pressed_in_focus = true;
+				m_pressed_in_focus = true;
 			} else if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left) {
-				if (pressed_in_focus) {
+				if (m_pressed_in_focus) {
 					if (!m_checked) {
 						m_rect = &m_rect_checked;
 						m_checked = true;
@@ -252,11 +269,11 @@ public:
 					if (m_onClick != nullptr)
 						m_onClick();
 
-					pressed_in_focus = false;
+					m_pressed_in_focus = false;
 				}				
 			}
 		} else if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left) {
-			pressed_in_focus = false;
+			m_pressed_in_focus = false;
 		}
 	}
 
@@ -279,6 +296,7 @@ private:
 	bool m_checked;
 	sf::Text m_text;
 	sf::Font m_font;
+	bool m_pressed_in_focus{ false };
 
 	fptr m_onClick{ nullptr };
 };
@@ -380,8 +398,8 @@ private:
 class Chart : public Object {
 public:
 
-	Chart(int x, int y, int w, int h, float max_val, const char* font_name = "arial.ttf") : 
-		m_max_val(max_val), m_background(sf::Vector2f(w, h)),
+	Chart(int x, int y, int w, int h, int num_of_points, float max_val, const char* font_name = "arial.ttf") :
+		m_num_of_points(num_of_points),	m_max_val(max_val), m_background(sf::Vector2f(w, h)),
 		m_chart_region(sf::Vector2f(w - 6 * m_margin, h - 5 * m_margin)) {
 
 		m_font.loadFromFile(font_name);		
@@ -413,6 +431,8 @@ public:
 		m_y_axis.setRotation(-90.f);
 		m_y_axis.setString("ADC value");
 		m_y_axis.setPosition(sf::Vector2f(x + m_margin/4, y + h / 2 + m_y_axis.getLocalBounds().width / 2));
+
+		CreateAxisMarkers();		
 	}
 
 	~Chart() {}
@@ -424,6 +444,10 @@ public:
 		target.draw(m_y_axis);
 		target.draw(m_title);
 		target.draw(m_grid);
+		for (auto& m : m_x_axis_markers)
+			target.draw(m);
+		for (auto& m : m_y_axis_markers)
+			target.draw(m);
 		for (int i = 0; i < m_signals.size(); ++i)
 			target.draw(*m_signals[i]);
 	}
@@ -432,20 +456,21 @@ public:
 		//  && m_chart_region.getGlobalBounds().contains(sf::Vector2f(event.mouseButton.x, event.mouseButton.y))
 		if (event.type == sf::Event::MouseWheelScrolled) {
 			if (event.mouseWheelScroll.wheel == sf::Mouse::VerticalWheel) {
-
-				if (m_max_val >= 100) {
-					m_max_val -= event.mouseWheelScroll.delta * 50;
-				}
-				else if (m_max_val > 5) {
-					m_max_val -= event.mouseWheelScroll.delta * 5;
-				}
-				else {
-					if (event.mouseWheelScroll.delta < 0)
+				if (m_chart_region.getGlobalBounds().contains(static_cast<sf::Vector2f>(sf::Mouse::getPosition(*m_window)))) {					
+					if (m_max_val >= 100) {
+						m_max_val -= event.mouseWheelScroll.delta * 50;
+					}
+					else if (m_max_val > 5) {
 						m_max_val -= event.mouseWheelScroll.delta * 5;
-				}
-				
+					}
+					else {
+						if (event.mouseWheelScroll.delta < 0)
+							m_max_val -= event.mouseWheelScroll.delta * 5;
+					}
 
-				std::cout << m_max_val << std::endl;
+					CreateAxisMarkers();
+					std::cout << m_max_val << std::endl;
+				}
 			}
 		}
 	}
@@ -456,6 +481,7 @@ public:
 
 	// n_lines - number of one type of lines (vertical or horizontal), there are same number of other lines
 	void CreateGrid(int n_lines) {
+		m_num_grid_lines = n_lines;
 		m_grid = sf::VertexArray(sf::PrimitiveType::Lines, n_lines * 4);
 		const sf::Color color = sf::Color(100, 100, 100, 65);
 
@@ -476,6 +502,44 @@ public:
 		}
 	}
 
+	void CreateAxisMarkers() {
+		sf::FloatRect rect = m_chart_region.getGlobalBounds();
+		int n = m_num_grid_lines + 2;	// + 2 is for 0 and max
+
+		m_x_axis_markers.clear();
+		m_y_axis_markers.clear();
+
+		// X
+		m_x_axis_markers.reserve(n);
+		for (int i = 0; i < n; ++i) {
+			m_x_axis_markers.push_back(sf::Text());
+			auto& marker = m_x_axis_markers[m_x_axis_markers.size() - 1];
+			marker.setFont(m_font);
+			marker.setFillColor(sf::Color::Black);
+			marker.setCharacterSize(18);
+			int tmp = i * m_num_of_points / (n - 1);
+			marker.setString(std::to_string(tmp));
+			marker.setOrigin(marker.getLocalBounds().left + marker.getLocalBounds().width / 2,
+				marker.getLocalBounds().top + marker.getLocalBounds().height / 2);
+			marker.setPosition(rect.left + i * rect.width / (n-1), rect.top + rect.height + marker.getLocalBounds().height);
+		}		
+
+		// Y
+		m_y_axis_markers.reserve(n);
+		for (int i = 0; i < n; ++i) {
+			m_y_axis_markers.push_back(sf::Text());
+			auto& marker = m_y_axis_markers[m_y_axis_markers.size() - 1];
+			marker.setFont(m_font);
+			marker.setFillColor(sf::Color::Black);
+			marker.setCharacterSize(18);
+			int tmp = i * m_max_val / (n - 1);
+			marker.setString(std::to_string(tmp));
+			marker.setOrigin(marker.getLocalBounds().left + marker.getLocalBounds().width / 2,
+				marker.getLocalBounds().top + marker.getLocalBounds().height / 2);
+			marker.setPosition(rect.left - marker.getLocalBounds().width / 2 - 3, rect.top + rect.height - i * rect.height / (n-1));
+		}
+	}
+
 	const sf::FloatRect GetGraphRegion() {
 		return m_chart_rect;
 	}
@@ -484,9 +548,18 @@ public:
 		return &m_max_val;
 	}
 
-	void DrawTriggerFrame() {
+	void EnableTriggerFrame() {
 		for (const auto& s : m_signals)
 			s->EnableTriggerFrame();
+	}
+
+	void DisableTriggerFrame() {
+		for (const auto& s : m_signals)
+			s->DisableTriggerFrame();
+	}
+
+	void SetParentWindow(sf::RenderWindow* window) {
+		m_window = window;
 	}
 
 private:
@@ -498,13 +571,22 @@ private:
 	sf::VertexArray		m_outline;
 	sf::VertexArray		m_axes;
 	sf::VertexArray		m_grid;
+	int					m_num_grid_lines{ 0 };
 	sf::Text			m_x_axis;
 	sf::Text			m_y_axis;
 	sf::Text			m_title;
+
+	std::vector<sf::Text> m_x_axis_markers;
+	std::vector<sf::Text> m_y_axis_markers;
+
 	sf::Font			m_font;
 
 	std::vector<Signal*> m_signals;
 	float				m_max_val;
+	int					m_num_of_points;
+
+	// Used only to get the mouse coordinates
+	sf::RenderWindow*	m_window;
 };
 
 }

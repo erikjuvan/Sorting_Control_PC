@@ -12,6 +12,7 @@ public:
 	bool IsConnected();
 	int GetRxBufferLen();	
 	int Write(const void* data, int size);
+	int Write(const std::string& data);
 	int Read(void* data, int size);
 	void Flush();
 	void Purge();

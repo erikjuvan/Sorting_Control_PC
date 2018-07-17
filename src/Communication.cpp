@@ -36,17 +36,31 @@ int Communication::GetRxBufferLen() {
 }
 
 int Communication::Write(const void* data, int size) {
-	if (IsConnected() && !m_transfer_active) {
+	if (IsConnected()) {
+		while (m_transfer_active);
 		m_transfer_active = true;
 		int ret = m_serial.write((uint8_t*)data, size);
 		m_transfer_active = false;
-		return ret;
+		return ret;		
 	} else
 		return 0;
 }
 
+int Communication::Write(const std::string& data) {
+	if (IsConnected()) {
+		while (m_transfer_active);
+		m_transfer_active = true;
+		int ret = m_serial.write(data);
+		m_transfer_active = false;
+		return ret;
+	}
+	else
+		return 0;
+}
+
 int Communication::Read(void* data, int size) {
-	if (IsConnected() && !m_transfer_active) {
+	if (IsConnected()) {
+		while (m_transfer_active);
 		m_transfer_active = true;
 		int ret = m_serial.read((uint8_t*)data, size);
 		m_transfer_active = false;

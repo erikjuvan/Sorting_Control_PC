@@ -12,8 +12,9 @@ public:
 	void Run();
 	void Attach(gui::Object* d);
 	bool IsOpen();
+	sf::RenderWindow* GetWindow() { return m_window; }
 
-private:
+private:	
 	sf::RenderWindow *m_window;
 	sf::Event *m_event;
 	std::vector<gui::Object*> m_objects;
