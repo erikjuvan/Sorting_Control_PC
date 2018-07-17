@@ -6,6 +6,7 @@
 #include "Helpers.hpp"
 
 #include <thread>
+#include <fstream>
 #include <Windows.h>
 
 class Application {
@@ -13,17 +14,18 @@ public:
 
 	static void Init() {
 		// MCU coms
-		communication = new Communication();				
+		communication = new Communication();								
 
-		// Chart
-		static constexpr int N = 10000;
-		chart = new gui::Chart(240, 10, 1600, 880, N, 1000);
+		///////////
+		// Chart //
+		///////////		
+		chart = new gui::Chart(240, 10, 1600, 880, N_SAMPLES, 100);
 		chart->CreateGrid(9);
 		signals.reserve(N_CHANNELS);
-		for (int i = 0; i < N_CHANNELS; ++i) {			
-			signals.push_back(gui::Signal(N, sf::Color(m_Colors[i]), chart->GetGraphRegion(), chart->GetMaxVal()));
+		for (int i = 0; i < N_CHANNELS; ++i) {
+			signals.push_back(gui::Signal(N_SAMPLES, sf::Color(m_Colors[i]), chart->GetGraphRegion(), chart->GetMaxVal()));
 			chart->AddSignal(&signals[signals.size() - 1]);
-		}					
+		}
 
 		/////////////
 		// Buttons //
@@ -31,8 +33,20 @@ public:
 		button_connect = new gui::Button(10, 50, "Connect", 110);
 		button_connect->OnClick(button_connect_Click);
 
-		button_trigger_frame = new gui::Button(10, 120, "Frame OFF", 120);
+		button_run = new gui::Button(10, 90, "Stopped", 110);
+		button_run->OnClick(button_run_Click);
+
+		button_trigger_frame = new gui::Button(10, 140, "Frame OFF", 110);
 		button_trigger_frame->OnClick(button_trigger_frame_Click);
+
+		button_capture = new gui::Button(140, 140, "Capture");
+		button_capture->OnClick(button_capture_Click);
+
+		button_toggle_usb_uart = new gui::Button(140, 50, "USB");
+		button_toggle_usb_uart->OnClick(button_toggle_usb_uart_Click);
+
+		button_view_mode = new gui::Button(140, 90, "Filtered");
+		button_view_mode->OnClick(button_view_mode_Click);
 
 		button_set_frequency = new gui::Button(10, 260, "Send");
 		button_set_frequency->OnClick(button_set_frequency_Click);
@@ -41,13 +55,7 @@ public:
 		button_set_filter_params->OnClick(button_set_filter_params_Click);
 		
 		button_set_times = new gui::Button(10, 500, "Send");
-		button_set_times->OnClick(button_set_times_Click);
-
-		button_toggle_config_run = new gui::Button(140, 10, "Config");
-		button_toggle_config_run->OnClick(button_toggle_config_run_Click);
-
-		button_view_mode = new gui::Button(140, 50, "Filtered");
-		button_view_mode->OnClick(button_view_mode_Click);
+		button_set_times->OnClick(button_set_times_Click);	
 
 		//////////////
 		// Texboxes //
@@ -63,33 +71,40 @@ public:
 		label_frequency = new gui::Label(10, 190, "Sample frequency:");
 		label_filter_params = new gui::Label(10, 310, "Filter params(a1,a2,a3,thr):");
 		label_times = new gui::Label(10, 430, "Times (dly, dur, blind):");
-		label_info = new gui::Label(10, 700, "Rx buf: 0 bytes");
+		label_info_rx_bytes = new gui::Label(10, 700, "Rx buf: 0 bytes");
 
 		/////////////////
 		// Main window //
 		/////////////////
-
 		mainWindow = new Window(1850, 900, "Sorting Control");
-		mainWindow->Attach(chart);
-		chart->SetParentWindow(mainWindow->GetWindow());
+		mainWindow->Attach(chart);		
 		// Buttons
 		mainWindow->Attach(button_connect);
+		mainWindow->Attach(button_run);
 		mainWindow->Attach(button_trigger_frame);
 		mainWindow->Attach(button_set_frequency);
 		mainWindow->Attach(button_set_filter_params);
 		mainWindow->Attach(button_set_times);
-		mainWindow->Attach(button_toggle_config_run);
+		mainWindow->Attach(button_toggle_usb_uart);
 		mainWindow->Attach(button_view_mode);
+		mainWindow->Attach(button_capture);
 		// Texboxes
 		mainWindow->Attach(textbox_comport);
 		mainWindow->Attach(textbox_frequency);
 		mainWindow->Attach(textbox_filter_params);
 		mainWindow->Attach(textbox_times);
 		// Labels
-		mainWindow->Attach(label_info);
+		mainWindow->Attach(label_info_rx_bytes);
 		mainWindow->Attach(label_frequency);
 		mainWindow->Attach(label_filter_params);
 		mainWindow->Attach(label_times);
+
+		// Initial parameters from file init
+		InitFromFile("config.txt");
+
+		m_view = View::FILTERED;
+		m_capture = Capture::OFF;
+		m_running = Running::STOPPED;
 	}
 
 	static void Run() {	
@@ -104,12 +119,36 @@ public:
 
 private:
 
+	static void InitFromFile(const std::string& file_name) {
+		std::ifstream in_file(file_name);		
+		std::string str;
+		std::vector<std::string> tokens;
+		if (in_file.is_open()) {
+			while (std::getline(in_file, str)) {
+				tokens.push_back(str);
+			}
+			in_file.close();
+		}
+
+		for (int i = 0; i < tokens.size(); ++i) {
+			switch (i) {
+			case 0: // COM port
+				textbox_comport->SetText(tokens[i]);
+				break;
+			}
+		}
+	}
+
 	static void button_connect_Click() {
 		if (!communication->IsConnected()) {
 			if (communication->Connect(textbox_comport->GetText())) {
+
 				button_connect->SetText("Disconnect");
 				communication->Write("USBY\n");
-				//communication->Write("CSETF,10000\n");
+				button_set_frequency_Click();
+				button_set_filter_params_Click();
+				button_set_times_Click();
+
 				communication->Write("CFILTERED\n");
 				communication->Write("VRBS,1\n");
 
@@ -117,9 +156,9 @@ private:
 				thread_get_data = std::thread(GetData);
 			}			
 		}
-		else {
-			communication->Write("USBY\n");
-			communication->Disconnect();
+		else {			
+			communication->Write("USBY\n");			
+			communication->Disconnect();			
 			button_connect->SetText("Connect");
 
 			thread_info.detach();
@@ -127,33 +166,44 @@ private:
 		}
 	}
 	
-	static void button_toggle_config_run_Click() {
-		static enum class State { CONFIG, RUN } state{ State::CONFIG };
-
-		if (state == State::CONFIG) {
-			communication->Write("USBN\n");
-			button_toggle_config_run->SetText("Running");
-			state = State::RUN;
+	static void button_run_Click() {		
+		if (m_running == Running::STOPPED) {
+			m_running = Running::RUNNING;
+			button_run->SetText("Running");
 		}
-		else if (state == State::RUN) {
+		else if (m_running == Running::RUNNING) {
+			m_running = Running::STOPPED;
+			button_run->SetText("Stopped");
+		}
+	}
+
+	static void button_toggle_usb_uart_Click() {
+		static enum class Com { USB, UART } com{ Com::USB };
+
+		if (com == Com::USB) {
+			com = Com::UART;
+			communication->Write("USBN\n");
+			button_toggle_usb_uart->SetText("UART");			
+		}
+		else if (com == Com::UART) {
+			com = Com::USB;
 			communication->Write("USBY\n");
-			button_toggle_config_run->SetText("Config");
-			state = State::CONFIG;
+			button_toggle_usb_uart->SetText("USB");			
 		}
 	}
 
 	static void button_trigger_frame_Click() {
 		static bool trigger_frame = false;
 		if (trigger_frame == false) {
-			communication->Write((uint8_t*)"TRGFRM,1\n", 9);
-			chart->EnableTriggerFrame();
 			trigger_frame = true;
+			communication->Write("TRGFRM,1\n");
+			chart->EnableTriggerFrame();			
 			button_trigger_frame->SetText("Frame ON");
 		}
 		else {
-			communication->Write((uint8_t*)"TRGFRM,0\n", 9);
-			chart->DisableTriggerFrame();
 			trigger_frame = false;
+			communication->Write("TRGFRM,0\n");
+			chart->DisableTriggerFrame();			
 			button_trigger_frame->SetText("Frame OFF");
 		}
 	}	
@@ -162,8 +212,14 @@ private:
 		communication->Write("CSETF," + textbox_frequency->GetText() + "\n");
 	}
 
-	static void button_set_filter_params_Click() {
+	static void button_set_filter_params_Click() {		
 		communication->Write("CPARAMS," + textbox_filter_params->GetText() + "\n");
+		// Extract threashold from the string
+		std::string str = textbox_filter_params->GetText();
+		auto idx = str.find_last_of(',') + 1;
+		str = str.substr(idx);
+
+		chart->SetTriggerFrame(std::stof(str));
 	}
 
 	static void button_set_times_Click() {
@@ -171,28 +227,38 @@ private:
 	}
 
 	static void button_view_mode_Click() {
-		static enum class View { RAW, FILTERED } view{ View::FILTERED };
-
-		if (view == View::FILTERED) {
+		if (m_view == View::FILTERED) {
+			m_view = View::RAW;
 			communication->Write("CRAW\n");
 			button_view_mode->SetText("Raw");
-			view = View::RAW;
 		}
-		else if (view == View::RAW) {
+		else if (m_view == View::RAW) {
+			m_view = View::FILTERED;
 			communication->Write("CFILTERED\n");
-			button_view_mode->SetText("Filtered");
-			view = View::FILTERED;
+			button_view_mode->SetText("Filtered");			
+		}
+	}
+
+	static void button_capture_Click() {		
+		if (m_capture == Capture::OFF) {
+			m_capture = Capture::ON;
+			button_capture->SetColor(sf::Color::Green);
+		}
+		else if (m_capture == Capture::ON) {
+			m_capture = Capture::OFF;
+			button_capture->ResetColor();
 		}
 	}
 
 	static void Information() {
 		HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
 		COORD coord{ 0, 0 };
+		static int cnt = 0;
 
 		while (communication->IsConnected()) {
 			//SetConsoleCursorPosition(handle, coord);
 			//std::cout << "Availabile: " << std::to_string(communication->GetRxBufferLen()) << " bytes           \n";
-			label_info->SetText("Rx buf: " + std::to_string(communication->GetRxBufferLen()) + " bytes");
+			label_info_rx_bytes->SetText(std::to_string(cnt++) + " Rx buf: " + std::to_string(communication->GetRxBufferLen()) + " bytes");
 			sf::sleep(sf::milliseconds(100));
 		}		
 	}
@@ -203,33 +269,47 @@ private:
 
 		while (communication->IsConnected()) {
 
-			while (communication->IsConnected()) {
-				communication->Read(fbuf, 4);
-				if (*((uint32_t*)&fbuf[0]) == 0xDEADBEEF) {
-					break;
-				}				
-			}			
+			if (m_running == Running::RUNNING) {
+				while (communication->IsConnected()) {
+					communication->Read(fbuf, 4);
+					if (*((uint32_t*)&fbuf[0]) == 0xDEADBEEF) {
+						break;
+					}
+				}
 
-			if (int read = communication->Read(fbuf, sizeof(fbuf))) {
-				float* fbuf_tmp = fbuf;
-				for (int ch = 0; ch < N_CHANNELS; ++ch) {
-					signals[ch].Edit(fbuf_tmp, cntr * DATA_PER_CHANNEL, DATA_PER_CHANNEL);
-					fbuf_tmp += DATA_PER_CHANNEL;
+				int read = communication->Read(fbuf, sizeof(fbuf));
+				if (read > 0) {
+					float* fbuf_tmp = fbuf;
+					for (int ch = 0; ch < N_CHANNELS; ++ch) {
+						if (!signals[ch].Edit(fbuf_tmp, cntr * DATA_PER_CHANNEL, DATA_PER_CHANNEL))
+							if (m_capture == Capture::ON) {
+								button_run_Click();	// only change state here
+								// we don't break out, because we want to draw out the remaining buffer
+							}
+
+						fbuf_tmp += DATA_PER_CHANNEL;
+					}
+					if (++cntr >= (N_SAMPLES / DATA_PER_CHANNEL)) {
+						cntr = 0;
+					}
 				}
-				if (++cntr >= 100) {
-					cntr = 0;
-				}
-			}
+			}			
 		}		
 	}
 
-
-
-
 private:
+	static constexpr int N_SAMPLES = 20000;
 	static constexpr int DATA_PER_CHANNEL = 100;
 	static constexpr int N_CHANNELS { 8 };
-	static constexpr uint32_t m_Colors[10]{ 0xFF0000FF, 0x00FF00FF, 0x0000FFFF, 0xFFFF00FF, 0x00FFFFFF, 0xFF00FFFF, 0xFF8000FF, 0xC0C0C0FF, 0x800000FF, 0x808000FF };
+	static constexpr uint32_t m_Colors[10]{ 0xFF0000FF, 0x00FF00FF, 0x0000FFFF, 0xFFFF00FF, 0x00FFFFFF, 0xFF00FFFF, 0xFF8000FF, 0xC0C0C0FF, 0x800000FF, 0x808000FF };		
+
+	enum class Running { STOPPED, RUNNING};
+	enum class View { RAW, FILTERED };
+	enum class Capture { ON, OFF };
+
+	static Running m_running;
+	static View m_view;	
+	static Capture m_capture;
 
 	static Communication *communication;
 	static Window *mainWindow;
@@ -237,13 +317,14 @@ private:
 	static gui::Chart *chart;
 	// Button
 	static gui::Button *button_connect;
+	static gui::Button *button_run;
 	static gui::Button *button_trigger_frame;
 	static gui::Button *button_set_frequency;
 	static gui::Button *button_set_filter_params;
 	static gui::Button *button_set_times;
-	static gui::Button *button_toggle_config_run;
+	static gui::Button *button_toggle_usb_uart;
 	static gui::Button *button_view_mode;
-
+	static gui::Button *button_capture;
 	// Texbox
 	static gui::Textbox *textbox_comport;
 	static gui::Textbox *textbox_frequency;
@@ -251,7 +332,7 @@ private:
 	static gui::Textbox *textbox_times;
 
 	// Labels
-	static gui::Label	*label_info;
+	static gui::Label	*label_info_rx_bytes;
 	static gui::Label	*label_frequency;
 	static gui::Label	*label_filter_params;
 	static gui::Label	*label_times;
@@ -261,5 +342,5 @@ private:
 	static std::thread thread_info;
 	static std::thread thread_get_data;
 	
-	static bool program_running;	
+	static bool program_running;
 };

@@ -11,8 +11,7 @@ public:
 	void EventHandler();
 	void Run();
 	void Attach(gui::Object* d);
-	bool IsOpen();
-	sf::RenderWindow* GetWindow() { return m_window; }
+	bool IsOpen();	
 
 private:	
 	sf::RenderWindow *m_window;

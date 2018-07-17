@@ -1,6 +1,7 @@
 #pragma once
 
 #include <serial\serial.h>
+#include <mutex>
 
 class Communication {	
 
@@ -18,9 +19,10 @@ public:
 	void Purge();
 
 private:
-	serial::Serial	m_serial;
-	bool			m_transfer_active{ false };
-	bool			m_is_connected{ false };
+	serial::Serial			m_serial;	
+	volatile bool			m_is_connected{ false };
+	
+	std::mutex				m_mutex;	// mutex does not seem to be neccessary
 };
 
 inline bool Communication::IsConnected() {

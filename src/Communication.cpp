@@ -22,48 +22,47 @@ bool Communication::Connect(const std::string& port) {
 }
 
 void Communication::Disconnect() {
-	while (m_transfer_active); {
-		m_is_connected = false;
-		m_serial.close();
-	}		
+	//std::lock_guard<std::mutex> lock(m_mutex);
+
+	m_is_connected = false;
+	m_serial.close();	
 }
 
 int Communication::GetRxBufferLen() {
+	//std::lock_guard<std::mutex> lock(m_mutex);
+
 	if (IsConnected())
-		return m_serial.available();
+		return static_cast<int>(m_serial.available());
 	else
 		return 0;
 }
 
-int Communication::Write(const void* data, int size) {
+int Communication::Write(const void* data, int size) {	
+	//std::lock_guard<std::mutex> lock(m_mutex);
+
 	if (IsConnected()) {
-		while (m_transfer_active);
-		m_transfer_active = true;
-		int ret = m_serial.write((uint8_t*)data, size);
-		m_transfer_active = false;
+		int ret = static_cast<int>(m_serial.write((uint8_t*)data, size));
 		return ret;		
 	} else
 		return 0;
 }
 
-int Communication::Write(const std::string& data) {
+int Communication::Write(const std::string& data) {	
+	//std::lock_guard<std::mutex> lock(m_mutex);
+
 	if (IsConnected()) {
-		while (m_transfer_active);
-		m_transfer_active = true;
-		int ret = m_serial.write(data);
-		m_transfer_active = false;
+		int ret = static_cast<int>(m_serial.write(data));
 		return ret;
 	}
 	else
-		return 0;
+		return 0;		
 }
 
 int Communication::Read(void* data, int size) {
+	//std::lock_guard<std::mutex> lock(m_mutex);
+
 	if (IsConnected()) {
-		while (m_transfer_active);
-		m_transfer_active = true;
-		int ret = m_serial.read((uint8_t*)data, size);
-		m_transfer_active = false;
+		int ret = static_cast<int>(m_serial.read((uint8_t*)data, size));
 		return ret;
 	}
 	else
@@ -71,11 +70,15 @@ int Communication::Read(void* data, int size) {
 }
 
 void Communication::Flush() {
+	//std::lock_guard<std::mutex> lock(m_mutex);
+
 	if (IsConnected())
 		m_serial.flush();
 }
 
 void Communication::Purge() {
+	//std::lock_guard<std::mutex> lock(m_mutex);
+
 	if (IsConnected())
 		m_serial.purge();
 }
