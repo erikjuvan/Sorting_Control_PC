@@ -317,13 +317,12 @@ class Signal : public sf::Drawable {
 public:
 	Signal(int n, sf::Color col, const sf::FloatRect& region, float *max_val) :
 		m_curve(sf::PrimitiveType::LineStrip, n),
-		m_trigger_frame(sf::PrimitiveType::LineStrip, N_TRIGGER_FRAME_POINTS),
-		m_points(n), m_draw_trigger_frame(false), m_region(region), m_max_val(max_val) {	
+		m_trigger_frame(sf::PrimitiveType::Lines, N_TRIGGER_FRAME_POINTS),
+		m_draw_trigger_frame(false), m_region(region), m_max_val(max_val) {
 
 		for (int i = 0; i < n; ++i) {
 			m_curve[i].color = col;
 			m_curve[i].position.x = static_cast<float>(region.left + i * region.width / (n - 1));
-			m_points[i] = 0.f;
 		}
 
 		// Trigger Frame		
@@ -337,70 +336,99 @@ public:
 			target.draw(m_trigger_frame);
 	}
 
-	void SetTriggerFrame(float threashold) {
+	void SetThreashold(float threashold) {
 		m_threashold_value = threashold;
-		UpdateTriggerFrame();
-	}
-
-	void UpdateTriggerFrame() {
-		const float y_low = m_region.top + m_region.height;
-		const float y_high = y_low - (m_threashold_value / *m_max_val) * m_region.height + 1;
-
-		m_trigger_frame[0].position.y = y_low;
-		m_trigger_frame[1].position.y = y_high;
-		m_trigger_frame[2].position.y = y_high;
-		m_trigger_frame[3].position.y = y_low;
 	}
 
 	void EnableTriggerFrame() {
 		m_draw_trigger_frame = true;
 	}
-	
+
 	void DisableTriggerFrame() {
 		m_draw_trigger_frame = false;
 	}
 
 	// Return false if a signal never reached the threashold value when the window was on
 	bool Edit(float* buf, int start, int size) {
+		const float y_zero = m_region.top + m_region.height;
+		const float y_high = y_zero - (m_threashold_value / *m_max_val) * m_region.height + 1;
 		bool ret = true;
 
 		if (m_draw_trigger_frame) {
 
-			// Clear frame at start
 			if (start == 0) {
+				if (m_frame_found) {
+					m_loopback = true;
+					m_trigger_frame[4].position = sf::Vector2f(m_curve[0].position.x, y_high);
+					m_trigger_frame[5].position = sf::Vector2f(m_curve[0].position.x, y_high);
+				}
 				if (!m_frame_found) {
-					for (int i = 0; i < N_TRIGGER_FRAME_POINTS; ++i)
-						m_trigger_frame[i].position.x = m_region.left;
+					m_loopback = false;
 				}
 			}
-			
-			for (int i = 0, s = start; i < size; ++i, ++s) {
-				if ( (((uint32_t*)buf)[i] & 0x80000000) != 0) {	// trigger is active
-					if (!m_frame_found) {
-						m_trigger_frame[0].position.x = m_trigger_frame[1].position.x =
-							m_trigger_frame[2].position.x = m_trigger_frame[3].position.x = m_curve[s].position.x;
 
+			for (int i = 0, s = start; i < size; ++i, ++s) {
+				// Clear frame
+				if (!m_frame_found && (s == m_idx_start_frame)) {
+					for (int i = 0; i < N_TRIGGER_FRAME_POINTS; ++i) {
+						m_trigger_frame[i].position = sf::Vector2f(0.f, 0.f);
+					}
+				}
+
+				if ((((uint32_t*)buf)[i] & 0x80000000) != 0) {	// trigger is active
+
+					if (!m_frame_found) {	// start of new frame
 						m_frame_found = true;
 						m_threashold = Threashold::SEARCHING;
+
+						// Clear frame
+						for (int i = 0; i < N_TRIGGER_FRAME_POINTS; ++i) {
+							m_trigger_frame[i].position = sf::Vector2f(0.f, 0.f);
+						}
+
+						m_idx_start_frame = s;
+						// Set points
+						m_trigger_frame[0].position = sf::Vector2f(m_curve[s].position.x, y_zero);
+						m_trigger_frame[1].position = sf::Vector2f(m_curve[s].position.x, y_high);
+						m_trigger_frame[2].position = sf::Vector2f(m_curve[s].position.x, y_high);
+						m_trigger_frame[3].position = sf::Vector2f(m_curve[s].position.x, y_high);
 					}
-					else {
-						m_trigger_frame[2].position.x = m_trigger_frame[3].position.x = m_curve[s].position.x;
+					else {	// frame is ongoing
+						if (!m_loopback) {							
+							m_trigger_frame[3].position.x = m_curve[s].position.x;
+						}
+						else {
+							m_trigger_frame[5].position.x = m_curve[s].position.x;
+						}
+
 					}
-					((uint32_t*)buf)[i] -= 0x80000000;
+					// Correct buf by removing the encoding in the MSB
+					((uint32_t*)buf)[i] -= 0x80000000;					
+					// Has the threashold been reached
 					if (buf[i] >= m_threashold_value)
 						m_threashold = Threashold::REACHED;
 				}
-				else if (m_frame_found) {
+				else if (m_frame_found) {	// frame just ended
 					m_frame_found = false;
 					if (m_threashold == Threashold::SEARCHING) {
 						m_threashold = Threashold::MISSED;
 						ret = false;
 					}
+
+					if (!m_loopback) {
+						m_trigger_frame[4].position = sf::Vector2f(m_curve[s].position.x, y_high);
+						m_trigger_frame[5].position = sf::Vector2f(m_curve[s].position.x, y_zero);
+					}
+					else {
+						m_trigger_frame[6].position = sf::Vector2f(m_curve[s].position.x, y_high);
+						m_trigger_frame[7].position = sf::Vector2f(m_curve[s].position.x, y_zero);
+					}
+
+					m_loopback = false;
 				}
 			}
 		}
 
-		const float y_zero = m_region.top + m_region.height;
 		for (int i = 0, s = start; i < size; ++i, ++s) {
 			m_curve[s].position.y = y_zero - (buf[i] / *m_max_val) * m_region.height + 1;
 		}
@@ -409,11 +437,10 @@ public:
 	}
 
 private:
-	static constexpr int N_TRIGGER_FRAME_POINTS = 4;
+	static constexpr int N_TRIGGER_FRAME_POINTS = 8;
 
 	sf::VertexArray m_curve;
 	sf::VertexArray m_trigger_frame;
-	std::vector<float> m_points;
 	sf::FloatRect m_region;
 
 	float *m_max_val;
@@ -421,10 +448,12 @@ private:
 	bool m_draw_trigger_frame{ false };
 	bool m_frame_found{ false };
 
-	float m_prev_buf[100];
+	bool m_loopback{ false };
 
-	enum class Threashold {IDLE, REACHED, MISSED, SEARCHING};
+	enum class Threashold { IDLE, REACHED, MISSED, SEARCHING };
 	Threashold m_threashold;
+
+	int m_idx_start_frame{ 0 };
 };
 
 class Chart : public Object {
@@ -498,7 +527,6 @@ public:
 				}
 
 				CreateAxisMarkers();
-				UpdateTriggerFrame();
 			}			
 		}
 		else if (event.type == sf::Event::MouseMoved) {
@@ -588,14 +616,9 @@ public:
 		return &m_max_val;
 	}
 
-	void UpdateTriggerFrame() {
-		for (const auto& s : m_signals)
-			s->UpdateTriggerFrame();
-	}
-
 	void SetTriggerFrame(float threashold) {
 		for (const auto& s : m_signals)
-			s->SetTriggerFrame(threashold);
+			s->SetThreashold(threashold);
 	}
 
 	void EnableTriggerFrame() {

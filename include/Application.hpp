@@ -331,11 +331,11 @@ private:
 	static gui::Textbox *textbox_filter_params;
 	static gui::Textbox *textbox_times;
 
-	// Labels
-	static gui::Label	*label_info_rx_bytes;
+	// Labels	
 	static gui::Label	*label_frequency;
 	static gui::Label	*label_filter_params;
 	static gui::Label	*label_times;
+	static gui::Label	*label_info_rx_bytes;
 
 	static std::vector<gui::Signal> signals;
 
