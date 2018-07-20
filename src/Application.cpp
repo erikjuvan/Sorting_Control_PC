@@ -1,5 +1,7 @@
 #include "Application.hpp"
 
+int Application::m_n_samples;
+
 Communication *Application::communication;
 Window *Application::mainWindow;
 

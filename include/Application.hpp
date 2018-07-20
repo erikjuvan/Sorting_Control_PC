@@ -18,14 +18,9 @@ public:
 
 		///////////
 		// Chart //
-		///////////		
-		chart = new gui::Chart(240, 10, 1600, 880, N_SAMPLES, 100);
-		chart->CreateGrid(9);
-		signals.reserve(N_CHANNELS);
-		for (int i = 0; i < N_CHANNELS; ++i) {
-			signals.push_back(gui::Signal(N_SAMPLES, sf::Color(m_Colors[i]), chart->GetGraphRegion(), chart->GetMaxVal()));
-			chart->AddSignal(&signals[signals.size() - 1]);
-		}
+		///////////
+		constexpr int N_SAMPLES = 10000;
+		CreateChart(N_SAMPLES);
 
 		/////////////
 		// Buttons //
@@ -118,6 +113,18 @@ public:
 	}
 
 private:
+
+	static void CreateChart(int n_samples) {
+		m_n_samples = n_samples;
+		chart = new gui::Chart(240, 10, 1600, 880, m_n_samples, 100);
+		chart->CreateGrid(9);
+		signals.clear();
+		signals.reserve(N_CHANNELS);
+		for (int i = 0; i < N_CHANNELS; ++i) {
+			signals.push_back(gui::Signal(m_n_samples, sf::Color(m_Colors[i]), chart->GetGraphRegion(), chart->GetMaxVal()));
+			chart->AddSignal(&signals[signals.size() - 1]);
+		}
+	}
 
 	static void InitFromFile(const std::string& file_name) {
 		std::ifstream in_file(file_name);		
@@ -289,7 +296,7 @@ private:
 
 						fbuf_tmp += DATA_PER_CHANNEL;
 					}
-					if (++cntr >= (N_SAMPLES / DATA_PER_CHANNEL)) {
+					if (++cntr >= (m_n_samples / DATA_PER_CHANNEL)) {
 						cntr = 0;
 					}
 				}
@@ -297,8 +304,7 @@ private:
 		}		
 	}
 
-private:
-	static constexpr int N_SAMPLES = 20000;
+private:	
 	static constexpr int DATA_PER_CHANNEL = 100;
 	static constexpr int N_CHANNELS { 8 };
 	static constexpr uint32_t m_Colors[10]{ 0xFF0000FF, 0x00FF00FF, 0x0000FFFF, 0xFFFF00FF, 0x00FFFFFF, 0xFF00FFFF, 0xFF8000FF, 0xC0C0C0FF, 0x800000FF, 0x808000FF };		
@@ -306,6 +312,8 @@ private:
 	enum class Running { STOPPED, RUNNING};
 	enum class View { RAW, FILTERED };
 	enum class Capture { ON, OFF };
+
+	static int m_n_samples;
 
 	static Running m_running;
 	static View m_view;	
