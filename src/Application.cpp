@@ -26,10 +26,10 @@ gui::Textbox *Application::textbox_frequency;
 gui::Textbox *Application::textbox_filter_params;
 gui::Textbox *Application::textbox_times;
 
-gui::Label	*Application::label_info_rx_bytes;
 gui::Label	*Application::label_frequency;
 gui::Label	*Application::label_filter_params;
 gui::Label	*Application::label_times;
+gui::Label	*Application::label_info_rx_bytes;
 
 std::vector<gui::Signal> Application::signals;
 
