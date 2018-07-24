@@ -50,12 +50,12 @@ public:
 		button_set_filter_params->OnClick(button_set_filter_params_Click);
 		
 		button_set_times = new gui::Button(10, 500, "Send");
-		button_set_times->OnClick(button_set_times_Click);	
+		button_set_times->OnClick(button_set_times_Click);
 
 		//////////////
 		// Texboxes //
 		//////////////
-		textbox_comport = new gui::Textbox(10, 10, "COM10", 80);
+		textbox_comport = new gui::Textbox(10, 10, "COM", 80);
 		textbox_frequency = new gui::Textbox(10, 220, "10000", 80);
 		textbox_filter_params = new gui::Textbox(10, 340, "0.01,0.03,0.03,7.0", 170);
 		textbox_times = new gui::Textbox(10, 460, "0,100,1000", 120);
@@ -67,6 +67,12 @@ public:
 		label_filter_params = new gui::Label(10, 310, "Filter params(a1,a2,a3,thr):");
 		label_times = new gui::Label(10, 430, "Times (dly, dur, blind):");
 		label_info_rx_bytes = new gui::Label(10, 700, "Rx buf: 0 bytes");
+
+		////////////////
+		// Checkboxes //
+		////////////////
+		checkbox_only_show_framed = new gui::Checkbox(10, 550, "Only show framed");
+		checkbox_only_show_framed->OnClick(checkbox_only_show_framed_Clicked);
 
 		/////////////////
 		// Main window //
@@ -93,6 +99,8 @@ public:
 		mainWindow->Attach(label_frequency);
 		mainWindow->Attach(label_filter_params);
 		mainWindow->Attach(label_times);
+		// Checkboxes
+		mainWindow->Attach(checkbox_only_show_framed);
 
 		// Initial parameters from file init
 		InitFromFile("config.txt");
@@ -104,12 +112,6 @@ public:
 
 	static void Run() {	
 		mainWindow->Run();
-
-		delete mainWindow;
-		delete chart;
-		delete button_connect;
-		delete textbox_comport;
-		delete communication;
 	}
 
 private:
@@ -257,6 +259,12 @@ private:
 		}
 	}
 
+	static void checkbox_only_show_framed_Clicked() {
+		for (auto& s : signals) {
+			s.OnlyDrawOnTrigger(checkbox_only_show_framed->IsChecked());
+		}
+	}
+
 	static void Information() {
 		HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
 		COORD coord{ 0, 0 };
@@ -273,6 +281,7 @@ private:
 	static void GetData() {
 		static float fbuf[N_CHANNELS * DATA_PER_CHANNEL];
 		static int cntr = 0;
+		static bool thr_missed = false;
 
 		while (communication->IsConnected()) {
 
@@ -286,13 +295,15 @@ private:
 
 				int read = communication->Read(fbuf, sizeof(fbuf));
 				if (read > 0) {
+					thr_missed = false;
 					float* fbuf_tmp = fbuf;
 					for (int ch = 0; ch < N_CHANNELS; ++ch) {
-						if (!signals[ch].Edit(fbuf_tmp, cntr * DATA_PER_CHANNEL, DATA_PER_CHANNEL))
-							if (m_capture == Capture::ON) {
-								button_run_Click();	// only change state here
-								// we don't break out, because we want to draw out the remaining buffer
-							}
+						signals[ch].Edit(fbuf_tmp, cntr * DATA_PER_CHANNEL, DATA_PER_CHANNEL);
+						if (signals[ch].ThreasholdMissed() && m_capture == Capture::ON && !thr_missed) {
+							button_run_Click();	// only change state here
+							thr_missed = true;
+							// we don't break out, because we want to draw out the remaining buffer
+						}
 
 						fbuf_tmp += DATA_PER_CHANNEL;
 					}
@@ -344,6 +355,9 @@ private:
 	static gui::Label	*label_filter_params;
 	static gui::Label	*label_times;
 	static gui::Label	*label_info_rx_bytes;
+
+	// Checkboxes
+	static gui::Checkbox *checkbox_only_show_framed;
 
 	static std::vector<gui::Signal> signals;
 

@@ -318,7 +318,7 @@ public:
 	Signal(int n, sf::Color col, const sf::FloatRect& region, float *max_val) :
 		m_curve(sf::PrimitiveType::LineStrip, n),
 		m_trigger_frame(sf::PrimitiveType::Lines, N_TRIGGER_FRAME_POINTS),
-		m_draw_trigger_frame(false), m_region(region), m_max_val(max_val) {
+		m_draw_trigger_frame(false), m_graph_region(region), m_max_val(max_val) {
 
 		for (int i = 0; i < n; ++i) {
 			m_curve[i].color = col;
@@ -331,9 +331,11 @@ public:
 	}
 
 	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override {
-		target.draw(m_curve);
-		if (m_draw_trigger_frame)
-			target.draw(m_trigger_frame);
+		if (m_draw) {
+			target.draw(m_curve);
+			if (m_draw_trigger_frame)
+				target.draw(m_trigger_frame);
+		}		
 	}
 
 	void SetThreashold(float threashold) {
@@ -348,11 +350,35 @@ public:
 		m_draw_trigger_frame = false;
 	}
 
+	void EnableDraw() {
+		m_draw = true;
+	}
+
+	void DisableDraw() {
+		m_draw = false;
+	}
+
+	void OnlyDrawOnTrigger(bool on) {
+		if (on)
+			m_only_draw_on_trigger = true;
+		else
+			m_only_draw_on_trigger = false;
+	}
+	
+	bool ThreasholdMissed() {
+		if (m_threashold == Threashold::MISSED) {
+			m_threashold = Threashold::IDLE;
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
 	// Return false if a signal never reached the threashold value when the window was on
-	bool Edit(float* buf, int start, int size) {
-		const float y_zero = m_region.top + m_region.height;
-		const float y_high = y_zero - (m_threashold_value / *m_max_val) * m_region.height + 1;
-		bool ret = true;
+	void Edit(float* buf, int start, int size) {
+		const float y_zero = m_graph_region.top + m_graph_region.height;
+		const float y_high = y_zero - (m_threashold_value / *m_max_val) * m_graph_region.height + 1;
 
 		if (m_draw_trigger_frame) {
 
@@ -373,11 +399,14 @@ public:
 					for (int i = 0; i < N_TRIGGER_FRAME_POINTS; ++i) {
 						m_trigger_frame[i].position = sf::Vector2f(0.f, 0.f);
 					}
+					if (m_only_draw_on_trigger) DisableDraw();
+					else EnableDraw();
 				}
 
 				if ((((uint32_t*)buf)[i] & 0x80000000) != 0) {	// trigger is active
 
 					if (!m_frame_found) {	// start of new frame
+						if (m_only_draw_on_trigger) EnableDraw();
 						m_frame_found = true;
 						m_threashold = Threashold::SEARCHING;
 
@@ -412,7 +441,6 @@ public:
 					m_frame_found = false;
 					if (m_threashold == Threashold::SEARCHING) {
 						m_threashold = Threashold::MISSED;
-						ret = false;
 					}
 
 					if (!m_loopback) {
@@ -430,10 +458,8 @@ public:
 		}
 
 		for (int i = 0, s = start; i < size; ++i, ++s) {
-			m_curve[s].position.y = y_zero - (buf[i] / *m_max_val) * m_region.height + 1;
+			m_curve[s].position.y = y_zero - (buf[i] / *m_max_val) * m_graph_region.height + 1;
 		}
-
-		return ret;
 	}
 
 private:
@@ -441,7 +467,10 @@ private:
 
 	sf::VertexArray m_curve;
 	sf::VertexArray m_trigger_frame;
-	sf::FloatRect m_region;
+	sf::FloatRect m_graph_region;
+
+	bool m_draw{ true };
+	bool m_only_draw_on_trigger{ false };
 
 	float *m_max_val;
 	float m_threashold_value;
