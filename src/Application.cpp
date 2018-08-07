@@ -6,8 +6,10 @@ Communication *Application::communication;
 Window *Application::mainWindow;
 
 Application::Running Application::m_running;
+Application::Mode Application::m_mode;
 Application::View Application::m_view;
 Application::Capture Application::m_capture;
+
 
 gui::Chart *Application::chart;
 
@@ -21,6 +23,7 @@ gui::Button *Application::button_set_times;
 gui::Button *Application::button_toggle_usb_uart;
 gui::Button *Application::button_view_mode;
 gui::Button *Application::button_capture;
+gui::Button *Application::button_record;
 
 // Texbox
 gui::Textbox *Application::textbox_comport;
@@ -42,6 +45,5 @@ std::vector<gui::Signal> Application::signals;
 std::thread Application::thread_info;
 std::thread Application::thread_get_data;
 
-bool Application::program_running;
 
 

@@ -52,6 +52,9 @@ public:
 		button_set_times = new gui::Button(10, 500, "Send");
 		button_set_times->OnClick(button_set_times_Click);
 
+		button_record = new gui::Button(10, 600, "Record");
+		button_record->OnClick(button_record_Click);
+
 		//////////////
 		// Texboxes //
 		//////////////
@@ -89,6 +92,7 @@ public:
 		mainWindow->Attach(button_toggle_usb_uart);
 		mainWindow->Attach(button_view_mode);
 		mainWindow->Attach(button_capture);
+		mainWindow->Attach(button_record);
 		// Texboxes
 		mainWindow->Attach(textbox_comport);
 		mainWindow->Attach(textbox_frequency);
@@ -105,9 +109,10 @@ public:
 		// Initial parameters from file init
 		InitFromFile("config.txt");
 
+		m_running = Running::STOPPED;
+		m_mode = Mode::LIVE;
 		m_view = View::FILTERED;
 		m_capture = Capture::OFF;
-		m_running = Running::STOPPED;
 	}
 
 	static void Run() {	
@@ -120,6 +125,7 @@ private:
 		m_n_samples = n_samples;
 		chart = new gui::Chart(240, 10, 1600, 880, m_n_samples, 100);
 		chart->CreateGrid(9);
+		chart->OnKeyPress(chart_OnKeyPress);
 		signals.clear();
 		signals.reserve(N_CHANNELS);
 		for (int i = 0; i < N_CHANNELS; ++i) {
@@ -259,9 +265,31 @@ private:
 		}
 	}
 
+	static void button_record_Click() {
+		if (m_mode == Mode::LIVE) {
+			m_mode = Mode::RECORD;
+			button_record->SetColor(sf::Color::Red);
+		} 
+		else if (m_mode == Mode::RECORD) {
+			m_mode = Mode::LIVE;
+			button_record->ResetColor();
+		}
+	}
+
 	static void checkbox_only_show_framed_Clicked() {
 		for (auto& s : signals) {
 			s.OnlyDrawOnTrigger(checkbox_only_show_framed->IsChecked());
+		}
+	}
+
+	static void chart_OnKeyPress(const sf::Event& event) {
+		if (m_mode == Mode::RECORD && m_running == Running::STOPPED) {
+			if (event.key.code == sf::Keyboard::Left) {
+
+			}
+			if (event.key.code == sf::Keyboard::Right) {
+
+			}
 		}
 	}
 
@@ -281,11 +309,12 @@ private:
 	static void GetData() {
 		static float fbuf[N_CHANNELS * DATA_PER_CHANNEL];
 		static int cntr = 0;
-		static bool thr_missed = false;
+		static bool thr_missed;
 
 		while (communication->IsConnected()) {
 
 			if (m_running == Running::RUNNING) {
+
 				while (communication->IsConnected()) {
 					communication->Read(fbuf, 4);
 					if (*((uint32_t*)&fbuf[0]) == 0xDEADBEEF) {
@@ -311,7 +340,8 @@ private:
 						cntr = 0;
 					}
 				}
-			}			
+
+			}
 		}		
 	}
 
@@ -320,13 +350,15 @@ private:
 	static constexpr int N_CHANNELS { 8 };
 	static constexpr uint32_t m_Colors[10]{ 0xFF0000FF, 0x00FF00FF, 0x0000FFFF, 0xFFFF00FF, 0x00FFFFFF, 0xFF00FFFF, 0xFF8000FF, 0xC0C0C0FF, 0x800000FF, 0x808000FF };		
 
-	enum class Running { STOPPED, RUNNING};
+	enum class Running { STOPPED, RUNNING };
+	enum class Mode { LIVE, RECORD };
 	enum class View { RAW, FILTERED };
 	enum class Capture { ON, OFF };
 
 	static int m_n_samples;
 
 	static Running m_running;
+	static Mode	m_mode;
 	static View m_view;	
 	static Capture m_capture;
 
@@ -344,6 +376,7 @@ private:
 	static gui::Button *button_toggle_usb_uart;
 	static gui::Button *button_view_mode;
 	static gui::Button *button_capture;
+	static gui::Button *button_record;
 	// Texbox
 	static gui::Textbox *textbox_comport;
 	static gui::Textbox *textbox_frequency;
@@ -363,6 +396,4 @@ private:
 
 	static std::thread thread_info;
 	static std::thread thread_get_data;
-	
-	static bool program_running;
 };

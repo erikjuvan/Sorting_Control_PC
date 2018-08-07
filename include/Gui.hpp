@@ -486,6 +486,8 @@ private:
 };
 
 class Chart : public Object {
+	typedef void(*fptr)(const sf::Event& event);
+
 public:
 
 	Chart(int x, int y, int w, int h, int num_of_points, float max_val, const std::string& font_name = "arial.ttf") :
@@ -557,6 +559,9 @@ public:
 
 				CreateAxisMarkers();
 			}			
+		}
+		else if (event.type == sf::Event::KeyReleased && m_mouseover) {
+			m_onKeyPress(event);
 		}
 		else if (event.type == sf::Event::MouseMoved) {
 			if (m_chart_region.getGlobalBounds().contains(sf::Vector2f(event.mouseMove.x, event.mouseMove.y))) {
@@ -660,6 +665,10 @@ public:
 			s->DisableTriggerFrame();
 	}
 
+	void OnKeyPress(const fptr& f) {
+		m_onKeyPress = f;
+	}	
+
 private:
 	static constexpr int m_margin{ 20 };
 
@@ -684,6 +693,8 @@ private:
 	int					m_num_of_points;
 	
 	bool	m_mouseover;
+
+	fptr m_onKeyPress{ nullptr };
 };
 
 }
