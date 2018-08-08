@@ -538,8 +538,10 @@ public:
 			target.draw(m);
 		for (auto& m : m_y_axis_markers)
 			target.draw(m);
-		for (int i = 0; i < m_signals.size(); ++i)
-			target.draw(*m_signals[i]);
+		for (int i = 0; i < m_signals.size(); ++i) {
+			if (m_draw_signal[i])
+				target.draw(*m_signals[i]);
+		}			
 	}
 
 	virtual void Handle(const sf::Event& event) {
@@ -575,6 +577,13 @@ public:
 
 	void AddSignal(Signal* signal) {
 		m_signals.push_back(signal);
+		m_draw_signal.push_back(true);
+	}
+
+	void ChangeSignal(int idx, Signal* signal) {
+		if (idx < m_signals.size()) {
+			m_signals[idx] = signal;
+		}
 	}
 
 	// n_lines - number of one type of lines (vertical or horizontal), there are same number of other lines
@@ -669,6 +678,21 @@ public:
 		m_onKeyPress = f;
 	}	
 
+	void ToggleDrawSignal(int idx) {
+		if (idx > 0 && idx <= m_signals.size())
+			m_draw_signal[idx-1] = !m_draw_signal[idx-1];
+	}
+
+	void ToggleDrawAllSignals() {
+		static bool draw_signals = false;
+
+		for (auto& ds : m_draw_signal) {
+			ds = draw_signals;
+		}
+
+		draw_signals = !draw_signals;
+	}
+
 private:
 	static constexpr int m_margin{ 20 };
 
@@ -689,6 +713,7 @@ private:
 	sf::Font			m_font;
 
 	std::vector<Signal*> m_signals;
+	std::vector<bool>	m_draw_signal;
 	float				m_max_val;
 	int					m_num_of_points;
 	

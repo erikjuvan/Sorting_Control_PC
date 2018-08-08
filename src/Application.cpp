@@ -41,6 +41,7 @@ gui::Label	*Application::label_info_rx_bytes;
 gui::Checkbox *Application::checkbox_only_show_framed;
 
 std::vector<gui::Signal> Application::signals;
+std::vector<gui::Signal> Application::recorded_signals;
 
 std::thread Application::thread_info;
 std::thread Application::thread_get_data;

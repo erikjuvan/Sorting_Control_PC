@@ -185,6 +185,9 @@ private:
 		if (m_running == Running::STOPPED) {
 			m_running = Running::RUNNING;
 			button_run->SetText("Running");
+
+			for (int i = 0; i < N_CHANNELS; ++i)
+				chart->ChangeSignal(i, &signals[i]);
 		}
 		else if (m_running == Running::RUNNING) {
 			m_running = Running::STOPPED;
@@ -269,6 +272,7 @@ private:
 		if (m_mode == Mode::LIVE) {
 			m_mode = Mode::RECORD;
 			button_record->SetColor(sf::Color::Red);
+			recorded_signals.clear();
 		} 
 		else if (m_mode == Mode::RECORD) {
 			m_mode = Mode::LIVE;
@@ -283,13 +287,53 @@ private:
 	}
 
 	static void chart_OnKeyPress(const sf::Event& event) {
+		static int frame_idx = -1;	// -1 so that when we first press right arrow we get the first [0] frame
 		if (m_mode == Mode::RECORD && m_running == Running::STOPPED) {
 			if (event.key.code == sf::Keyboard::Left) {
-
+				if (frame_idx > 0) {
+					frame_idx--;
+					for (int i = 0; i < N_CHANNELS; ++i)
+						chart->ChangeSignal(i, &recorded_signals[frame_idx * N_CHANNELS + i]);
+				}				
 			}
-			if (event.key.code == sf::Keyboard::Right) {
-
+			if (event.key.code == sf::Keyboard::Right) {				
+				const int size = ((int)recorded_signals.size() / N_CHANNELS);	// conversion from size_t to int (const int size) must be made or the bottom evaluation is wrong since comparing signed to unsigned, compiler promotes signed to unsigned converting -1 to maximum int value
+				if (frame_idx < (size - 1)) {
+					frame_idx++;
+					for (int i = 0; i < N_CHANNELS; ++i)
+						chart->ChangeSignal(i, &recorded_signals[frame_idx * N_CHANNELS + i]);
+				}
 			}
+		}
+
+		switch (event.key.code) {
+		case sf::Keyboard::Num0:
+			chart->ToggleDrawAllSignals();
+			break;
+		case sf::Keyboard::Num1:
+			chart->ToggleDrawSignal(1);
+			break;
+		case sf::Keyboard::Num2:
+			chart->ToggleDrawSignal(2);
+			break;
+		case sf::Keyboard::Num3:
+			chart->ToggleDrawSignal(3);
+			break;
+		case sf::Keyboard::Num4:
+			chart->ToggleDrawSignal(4);
+			break;
+		case sf::Keyboard::Num5:
+			chart->ToggleDrawSignal(5);
+			break;
+		case sf::Keyboard::Num6:
+			chart->ToggleDrawSignal(6);
+			break;
+		case sf::Keyboard::Num7:
+			chart->ToggleDrawSignal(7);
+			break;
+		case sf::Keyboard::Num8:
+			chart->ToggleDrawSignal(8);
+			break;
 		}
 	}
 
@@ -338,6 +382,10 @@ private:
 					}
 					if (++cntr >= (m_n_samples / DATA_PER_CHANNEL)) {
 						cntr = 0;
+						if (m_mode == Mode::RECORD) {
+							for (const auto& s : signals)
+								recorded_signals.push_back(s);
+						}						
 					}
 				}
 
@@ -392,7 +440,8 @@ private:
 	// Checkboxes
 	static gui::Checkbox *checkbox_only_show_framed;
 
-	static std::vector<gui::Signal> signals;
+	static std::vector<gui::Signal> signals; 
+	static std::vector<gui::Signal> recorded_signals;
 
 	static std::thread thread_info;
 	static std::thread thread_get_data;
