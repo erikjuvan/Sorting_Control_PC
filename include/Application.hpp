@@ -70,6 +70,12 @@ public:
 		label_filter_params = new gui::Label(10, 310, "Filter params(a1,a2,a3,thr):");
 		label_times = new gui::Label(10, 430, "Times (dly, dur, blind):");
 		label_info_rx_bytes = new gui::Label(10, 700, "Rx buf: 0 bytes");
+		label_info_detected_in_window = new gui::Label(10, 740, "Det IN: 0");
+		label_info_detected_in_window->OnClick(label_info_detected_in_window_Clicked);
+		label_info_detected_out_window = new gui::Label(10, 780, "Det OUT: 0");
+		label_info_detected_out_window->OnClick(label_info_detected_out_window_Clicked);
+		label_info_signal_missed = new gui::Label(10, 820, "Missed: 0");
+		label_info_signal_missed->OnClick(label_info_signal_missed_Clicked);
 
 		////////////////
 		// Checkboxes //
@@ -98,11 +104,14 @@ public:
 		mainWindow->Attach(textbox_frequency);
 		mainWindow->Attach(textbox_filter_params);
 		mainWindow->Attach(textbox_times);
-		// Labels
-		mainWindow->Attach(label_info_rx_bytes);
+		// Labels		
 		mainWindow->Attach(label_frequency);
 		mainWindow->Attach(label_filter_params);
 		mainWindow->Attach(label_times);
+		mainWindow->Attach(label_info_rx_bytes);
+		mainWindow->Attach(label_info_detected_in_window);
+		mainWindow->Attach(label_info_detected_out_window);
+		mainWindow->Attach(label_info_signal_missed);		
 		// Checkboxes
 		mainWindow->Attach(checkbox_only_show_framed);
 
@@ -232,16 +241,22 @@ private:
 
 	static void button_set_filter_params_Click() {		
 		communication->Write("CPARAMS," + textbox_filter_params->GetText() + "\n");
-		// Extract threashold from the string
-		std::string str = textbox_filter_params->GetText();
-		auto idx = str.find_last_of(',') + 1;
-		str = str.substr(idx);
 
-		chart->SetTriggerFrame(std::stof(str));
+		// Set threashold for all signals
+		std::vector<std::string> strings = Help::TokenizeString(textbox_filter_params->GetText());
+		for (auto& s : signals) {
+			s.SetThreashold(std::stof(strings[3]));
+		}			
 	}
 
 	static void button_set_times_Click() {
 		communication->Write("CTIMES," + textbox_times->GetText() + "\n");
+
+		// Set blind time for all signals
+		std::vector<std::string> strings = Help::TokenizeString(textbox_times->GetText());
+		for (auto& s : signals) {
+			s.SetBlindTime(std::stoi(strings[2]));
+		}
 	}
 
 	static void button_view_mode_Click() {
@@ -283,6 +298,24 @@ private:
 	static void checkbox_only_show_framed_Clicked() {
 		for (auto& s : signals) {
 			s.OnlyDrawOnTrigger(checkbox_only_show_framed->IsChecked());
+		}
+	}
+
+	static void label_info_detected_in_window_Clicked() {
+		for (auto& s : signals) {
+			s.ClearDetectionsInWindow();
+		}
+	}
+
+	static void label_info_detected_out_window_Clicked() {
+		for (auto& s : signals) {
+			s.ClearDetectionsOutWindow();
+		}
+	}
+
+	static void label_info_signal_missed_Clicked() {
+		for (auto& s : signals) {
+			s.ClearMissed();
 		}
 	}
 
@@ -338,14 +371,23 @@ private:
 	}
 
 	static void Information() {
-		HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
-		COORD coord{ 0, 0 };
 		static int cnt = 0;
+		static int detected_in_window_cnt = 0, detected_out_window_cnt = 0, signal_missed_cnt = 0;
 
-		while (communication->IsConnected()) {
-			//SetConsoleCursorPosition(handle, coord);
-			//std::cout << "Availabile: " << std::to_string(communication->GetRxBufferLen()) << " bytes           \n";
+
+		while (communication->IsConnected()) {			
 			label_info_rx_bytes->SetText(std::to_string(cnt++) + " Rx buf: " + std::to_string(communication->GetRxBufferLen()) + " bytes");
+			
+			detected_in_window_cnt = detected_out_window_cnt = signal_missed_cnt = 0;
+			for (const auto& s : signals) {
+				detected_in_window_cnt += s.GetDetectionsInWindow();
+				detected_out_window_cnt += s.GetDetectionsOutWindow();
+				signal_missed_cnt += s.GetMissed();
+			}
+			label_info_detected_in_window->SetText("Det IN: " + std::to_string(detected_in_window_cnt));
+			label_info_detected_out_window->SetText("Det OUT: " + std::to_string(detected_out_window_cnt));
+			label_info_signal_missed->SetText("Missed: " + std::to_string(signal_missed_cnt));
+
 			sf::sleep(sf::milliseconds(100));
 		}		
 	}
@@ -436,6 +478,9 @@ private:
 	static gui::Label	*label_filter_params;
 	static gui::Label	*label_times;
 	static gui::Label	*label_info_rx_bytes;
+	static gui::Label	*label_info_detected_in_window;
+	static gui::Label	*label_info_detected_out_window;
+	static gui::Label	*label_info_signal_missed;
 
 	// Checkboxes
 	static gui::Checkbox *checkbox_only_show_framed;

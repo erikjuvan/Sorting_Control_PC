@@ -118,6 +118,8 @@ private:
 };
 
 class Label : public Object {
+	typedef void(*fptr)();
+
 public:
 	Label(int x, int y, const char* text, int character_size = 18,
 		const char* font_name = "arial.ttf") {
@@ -130,20 +132,32 @@ public:
 		m_text.setFillColor(sf::Color::Black);				
 	}
 
-	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const {
+	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override {
 		target.draw(m_text);
 	}
 
-	virtual void Handle(const sf::Event& event) {
+	virtual void Handle(const sf::Event& event) override {		
+		if (m_text.getGlobalBounds().contains(sf::Vector2f(event.mouseButton.x, event.mouseButton.y))) {
+			if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left) {
+				if (m_onClick) m_onClick();
+			}
+		}
 	}
 
 	void SetText(const std::string& text) {
 		m_text.setString(text);
 	}
 
+	// Actions
+	void OnClick(const fptr& f) {
+		m_onClick = f;
+	}
+
 private:
 	sf::Text m_text;
-	sf::Font m_font;	
+	sf::Font m_font;
+
+	fptr m_onClick{ nullptr };
 };
 
 class Textbox : public Object {
@@ -342,6 +356,10 @@ public:
 		m_threashold_value = threashold;
 	}
 
+	void SetBlindTime(int blind_time_value) {
+		m_blind_time_value = blind_time_value;
+	}
+
 	void EnableTriggerFrame() {
 		m_draw_trigger_frame = true;
 	}
@@ -373,6 +391,27 @@ public:
 		else {
 			return false;
 		}
+	}	
+
+	int GetDetectionsInWindow() const {
+		return m_detected_in_window_cnt;
+	}
+	void ClearDetectionsInWindow() {
+		m_detected_in_window_cnt = 0;
+	}
+
+	int GetDetectionsOutWindow() const {
+		return m_detected_out_window_cnt;
+	}
+	void ClearDetectionsOutWindow() {
+		m_detected_out_window_cnt = 0;
+	}
+
+	int GetMissed() const {
+		return m_detection_missed;
+	}
+	void ClearMissed() {
+		m_detection_missed = 0;
 	}
 
 	// Return false if a signal never reached the threashold value when the window was on
@@ -380,80 +419,78 @@ public:
 		const float y_zero = m_graph_region.top + m_graph_region.height;
 		const float y_high = y_zero - (m_threashold_value / *m_max_val) * m_graph_region.height + 1;
 
-		if (m_draw_trigger_frame) {
+		if (m_draw_trigger_frame) {			
 
 			if (start == 0) {
-				if (m_frame_found) {
-					m_loopback = true;
-					m_trigger_frame[4].position = sf::Vector2f(m_curve[0].position.x, y_high);
-					m_trigger_frame[5].position = sf::Vector2f(m_curve[0].position.x, y_high);
+				// Clear all frames
+				for (int i = 0; i <= m_trigger_frame_idx; ++i) {
+					m_trigger_frame[i].position = sf::Vector2f(0.f, 0.f);
 				}
-				if (!m_frame_found) {
-					m_loopback = false;
-				}
+				m_trigger_frame_idx = 0;
+
+				if (m_only_draw_on_trigger) DisableDraw();
+				else EnableDraw();
 			}
 
 			for (int i = 0, s = start; i < size; ++i, ++s) {
-				// Clear frame
-				if (!m_frame_found && (s == m_idx_start_frame)) {
-					for (int i = 0; i < N_TRIGGER_FRAME_POINTS; ++i) {
-						m_trigger_frame[i].position = sf::Vector2f(0.f, 0.f);
-					}
-					if (m_only_draw_on_trigger) DisableDraw();
-					else EnableDraw();
-				}
 
+				// Edge detection
+				/////////////////
 				if ((((uint32_t*)buf)[i] & 0x80000000) != 0) {	// trigger is active
-
-					if (!m_frame_found) {	// start of new frame
-						if (m_only_draw_on_trigger) EnableDraw();
-						m_frame_found = true;
-						m_threashold = Threashold::SEARCHING;
-
-						// Clear frame
-						for (int i = 0; i < N_TRIGGER_FRAME_POINTS; ++i) {
-							m_trigger_frame[i].position = sf::Vector2f(0.f, 0.f);
-						}
-
-						m_idx_start_frame = s;
-						// Set points
-						m_trigger_frame[0].position = sf::Vector2f(m_curve[s].position.x, y_zero);
-						m_trigger_frame[1].position = sf::Vector2f(m_curve[s].position.x, y_high);
-						m_trigger_frame[2].position = sf::Vector2f(m_curve[s].position.x, y_high);
-						m_trigger_frame[3].position = sf::Vector2f(m_curve[s].position.x, y_high);
-					}
-					else {	// frame is ongoing
-						if (!m_loopback) {							
-							m_trigger_frame[3].position.x = m_curve[s].position.x;
-						}
-						else {
-							m_trigger_frame[5].position.x = m_curve[s].position.x;
-						}
-
-					}
-					// Correct buf by removing the encoding in the MSB
-					((uint32_t*)buf)[i] -= 0x80000000;					
-					// Has the threashold been reached
-					if (buf[i] >= m_threashold_value)
-						m_threashold = Threashold::REACHED;
+					m_trigger_val = 1;					
+					((uint32_t*)buf)[i] -= 0x80000000;	// Correct buf by removing the encoding in the MSB
 				}
-				else if (m_frame_found) {	// frame just ended
-					m_frame_found = false;
+				else {
+					m_trigger_val = 0;
+				}				
+				m_diff = m_trigger_val - m_trigger_val_prev;
+				m_trigger_val_prev = m_trigger_val;
+				/////////////////
+
+				// Threashold detection
+				///////////////////////
+				m_blind_time -= (m_blind_time > 0);
+				if (buf[i] >= m_threashold_value && m_blind_time <= 0) {
+					m_threashold = Threashold::REACHED;
+					m_blind_time = m_blind_time_value;
+				}
+				///////////////////////
+
+				if (m_diff == 1) { // rising edge
+					m_trigger_frame[m_trigger_frame_idx++].position = sf::Vector2f(m_curve[s].position.x, y_zero);
+					m_trigger_frame[m_trigger_frame_idx++].position = sf::Vector2f(m_curve[s].position.x, y_high);
+					m_trigger_frame[m_trigger_frame_idx++].position = sf::Vector2f(m_curve[s].position.x, y_high);
+
+					if (m_only_draw_on_trigger) EnableDraw();
+					m_threashold = Threashold::SEARCHING;					
+				}
+				else if (m_diff == -1) { // falling edge
+					m_trigger_frame[m_trigger_frame_idx++].position = sf::Vector2f(m_curve[s].position.x, y_high);
+					m_trigger_frame[m_trigger_frame_idx++].position = sf::Vector2f(m_curve[s].position.x, y_high);
+					m_trigger_frame[m_trigger_frame_idx++].position = sf::Vector2f(m_curve[s].position.x, y_zero);
+
 					if (m_threashold == Threashold::SEARCHING) {
 						m_threashold = Threashold::MISSED;
+						m_detection_missed++;
 					}
-
-					if (!m_loopback) {
-						m_trigger_frame[4].position = sf::Vector2f(m_curve[s].position.x, y_high);
-						m_trigger_frame[5].position = sf::Vector2f(m_curve[s].position.x, y_zero);
-					}
-					else {
-						m_trigger_frame[6].position = sf::Vector2f(m_curve[s].position.x, y_high);
-						m_trigger_frame[7].position = sf::Vector2f(m_curve[s].position.x, y_zero);
-					}
-
-					m_loopback = false;
 				}
+				else if (m_trigger_val == 1) { // frame active
+					if (s == 0) { // new start						
+						m_trigger_frame[m_trigger_frame_idx++].position = sf::Vector2f(m_curve[0].position.x, y_high);
+					}
+					m_trigger_frame[m_trigger_frame_idx].position = sf::Vector2f(m_curve[s].position.x, y_high);
+
+					if (m_threashold == Threashold::REACHED) {
+						m_detected_in_window_cnt++;
+						m_threashold = Threashold::IDLE;
+					}
+				}
+				else { // no frame
+					if (m_threashold == Threashold::REACHED) {
+						m_detected_out_window_cnt++;
+						m_threashold = Threashold::IDLE;
+					}
+				}				
 			}
 		}
 
@@ -463,11 +500,12 @@ public:
 	}
 
 private:
-	static constexpr int N_TRIGGER_FRAME_POINTS = 8;
+	static constexpr int N_TRIGGER_FRAME_POINTS = 60;	// should be enough for ~ 60 / 3 = 20 windows
 
-	sf::VertexArray m_curve;
-	sf::VertexArray m_trigger_frame;
-	sf::FloatRect m_graph_region;
+	sf::VertexArray	m_curve;
+	sf::VertexArray	m_trigger_frame;
+	int m_trigger_frame_idx{ 0 };
+	sf::FloatRect	m_graph_region;
 
 	bool m_draw{ true };
 	bool m_only_draw_on_trigger{ false };
@@ -475,21 +513,26 @@ private:
 	float *m_max_val;
 	float m_threashold_value;
 	bool m_draw_trigger_frame{ false };
-	bool m_frame_found{ false };
-
-	bool m_loopback{ false };
 
 	enum class Threashold { IDLE, REACHED, MISSED, SEARCHING };
 	Threashold m_threashold;
 
-	int m_idx_start_frame{ 0 };
+	int m_diff{ 0 };
+	int m_trigger_val{ 0 };
+	int m_trigger_val_prev{ 0 };	
+
+	int m_detected_in_window_cnt{ 0 };
+	int m_detected_out_window_cnt{ 0 };
+	int m_detection_missed{ 0 };
+	int m_blind_time{ 0 };
+	int m_blind_time_value;
 };
 
 class Chart : public Object {
 	typedef void(*fptr)(const sf::Event& event);
 
 public:
-
+	 
 	Chart(int x, int y, int w, int h, int num_of_points, float max_val, const std::string& font_name = "arial.ttf") :
 		m_num_of_points(num_of_points),	m_max_val(max_val), m_background(sf::Vector2f(w, h)),
 		m_chart_region(sf::Vector2f(w - 6 * m_margin, h - 5 * m_margin)) {
@@ -657,11 +700,6 @@ public:
 
 	float* GetMaxVal() {
 		return &m_max_val;
-	}
-
-	void SetTriggerFrame(float threashold) {
-		for (const auto& s : m_signals)
-			s->SetThreashold(threashold);
 	}
 
 	void EnableTriggerFrame() {

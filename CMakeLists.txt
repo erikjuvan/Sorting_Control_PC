@@ -17,6 +17,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 	src/Communication.cpp
 	src/Window.cpp
 	src/Gui.cpp
+	src/Helpers.cpp
 	)
 	
 target_sources(${PROJECT_NAME} PRIVATE 

@@ -5,10 +5,9 @@
 #include <chrono>
 #include <string>
 #include <iostream>
+#include <vector>
 
-static uint64_t rdtsc(){
-    return __rdtsc();
-}
+namespace Help { 
 
 #define TIME_IT(x) \
 	{auto s1 = std::chrono::high_resolution_clock::now(); \
@@ -23,3 +22,8 @@ static uint64_t rdtsc(){
 	auto s2 = std::chrono::high_resolution_clock::now(); \
 	auto str = std::string(#x) + ": " + std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(s2 - s1).count()) + " us"; \
 	std::cout << str << std::endl;}
+
+
+	inline uint64_t rdtsc();
+	std::vector<std::string> TokenizeString(std::string str);
+}

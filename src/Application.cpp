@@ -36,6 +36,9 @@ gui::Label	*Application::label_frequency;
 gui::Label	*Application::label_filter_params;
 gui::Label	*Application::label_times;
 gui::Label	*Application::label_info_rx_bytes;
+gui::Label	*Application::label_info_detected_in_window;
+gui::Label	*Application::label_info_detected_out_window;
+gui::Label	*Application::label_info_signal_missed;
 
 // Checkboxes
 gui::Checkbox *Application::checkbox_only_show_framed;
