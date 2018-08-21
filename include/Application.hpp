@@ -69,13 +69,19 @@ public:
 		label_frequency = new gui::Label(10, 190, "Sample frequency:");
 		label_filter_params = new gui::Label(10, 310, "Filter params(a1,a2,a3,thr):");
 		label_times = new gui::Label(10, 430, "Times (dly, dur, blind):");
-		label_info_rx_bytes = new gui::Label(10, 700, "Rx buf: 0 bytes");
-		label_info_detected_in_window = new gui::Label(10, 740, "Det IN: 0");
+		label_info_rx_bytes = new gui::Label(10, 660, "Rx buf: 0 bytes");
+		label_info_detected_in_window = new gui::Label(10, 700, "Det IN: 0");
 		label_info_detected_in_window->OnClick(label_info_detected_in_window_Clicked);
-		label_info_detected_out_window = new gui::Label(10, 780, "Det OUT: 0");
+		label_info_detected_out_window = new gui::Label(10, 720, "Det OUT: 0");
 		label_info_detected_out_window->OnClick(label_info_detected_out_window_Clicked);
-		label_info_signal_missed = new gui::Label(10, 820, "Missed: 0");
+		label_info_signal_missed = new gui::Label(10, 740, "Missed: 0");
 		label_info_signal_missed->OnClick(label_info_signal_missed_Clicked);
+		label_info_win_to_det_min = new gui::Label(10, 780, "Min: 0 ms");
+		label_info_win_to_det_min->OnClick(label_info_win_to_det_min_Clicked);
+		label_info_win_to_det_max = new gui::Label(10, 800, "Max: 0 ms");
+		label_info_win_to_det_max->OnClick(label_info_win_to_det_max_Clicked);
+		label_info_win_to_det_mean = new gui::Label(10, 820, "Mean: 0 ms");
+		label_info_win_to_det_mean->OnClick(label_info_win_to_det_mean_Clicked);
 
 		////////////////
 		// Checkboxes //
@@ -111,7 +117,10 @@ public:
 		mainWindow->Attach(label_info_rx_bytes);
 		mainWindow->Attach(label_info_detected_in_window);
 		mainWindow->Attach(label_info_detected_out_window);
-		mainWindow->Attach(label_info_signal_missed);		
+		mainWindow->Attach(label_info_signal_missed);
+		mainWindow->Attach(label_info_win_to_det_min);
+		mainWindow->Attach(label_info_win_to_det_max);
+		mainWindow->Attach(label_info_win_to_det_mean);
 		// Checkboxes
 		mainWindow->Attach(checkbox_only_show_framed);
 
@@ -319,6 +328,18 @@ private:
 		}
 	}
 
+	static void label_info_win_to_det_min_Clicked() {
+		win_to_det_min = CONST_WIN_TO_DET_MIN;
+	}
+	
+	static void label_info_win_to_det_max_Clicked() {
+		win_to_det_max = 0;
+	}
+	
+	static void label_info_win_to_det_mean_Clicked() {
+		win_to_det_mean = 0;
+	}
+
 	static void chart_OnKeyPress(const sf::Event& event) {
 		static int frame_idx = -1;	// -1 so that when we first press right arrow we get the first [0] frame
 		if (m_mode == Mode::RECORD && m_running == Running::STOPPED) {
@@ -388,6 +409,10 @@ private:
 			label_info_detected_out_window->SetText("Det OUT: " + std::to_string(detected_out_window_cnt));
 			label_info_signal_missed->SetText("Missed: " + std::to_string(signal_missed_cnt));
 
+			label_info_win_to_det_min->SetText("Min: " + std::to_string(win_to_det_min) + " ms");
+			label_info_win_to_det_max->SetText("Max: " + std::to_string(win_to_det_max) + " ms");
+			label_info_win_to_det_mean->SetText("Mean: " + std::to_string(win_to_det_mean) + " ms");
+
 			sf::sleep(sf::milliseconds(100));
 		}		
 	}
@@ -430,12 +455,19 @@ private:
 						}						
 					}
 				}
+				
+				communication->Read(fbuf, 3 * 4); // 3 ints: min, max, mean				
+				uint32_t* values = (uint32_t*)fbuf;
+				if (values[0] < win_to_det_min) win_to_det_min = values[0];
+				if (values[1] > win_to_det_max) win_to_det_max = values[1];
+				win_to_det_mean = values[2];
 
 			}
 		}		
 	}
 
-private:	
+private:
+	static constexpr int CONST_WIN_TO_DET_MIN = 123456789;
 	static constexpr int DATA_PER_CHANNEL = 100;
 	static constexpr int N_CHANNELS { 8 };
 	static constexpr uint32_t m_Colors[10]{ 0xFF0000FF, 0x00FF00FF, 0x0000FFFF, 0xFFFF00FF, 0x00FFFFFF, 0xFF00FFFF, 0xFF8000FF, 0xC0C0C0FF, 0x800000FF, 0x808000FF };		
@@ -481,6 +513,9 @@ private:
 	static gui::Label	*label_info_detected_in_window;
 	static gui::Label	*label_info_detected_out_window;
 	static gui::Label	*label_info_signal_missed;
+	static gui::Label	*label_info_win_to_det_min;
+	static gui::Label	*label_info_win_to_det_max;
+	static gui::Label	*label_info_win_to_det_mean;
 
 	// Checkboxes
 	static gui::Checkbox *checkbox_only_show_framed;
@@ -490,4 +525,8 @@ private:
 
 	static std::thread thread_info;
 	static std::thread thread_get_data;
+
+	static int win_to_det_min;
+	static int win_to_det_max;
+	static int win_to_det_mean;
 };

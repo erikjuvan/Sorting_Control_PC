@@ -39,6 +39,9 @@ gui::Label	*Application::label_info_rx_bytes;
 gui::Label	*Application::label_info_detected_in_window;
 gui::Label	*Application::label_info_detected_out_window;
 gui::Label	*Application::label_info_signal_missed;
+gui::Label	*Application::label_info_win_to_det_min;
+gui::Label	*Application::label_info_win_to_det_max;
+gui::Label	*Application::label_info_win_to_det_mean;
 
 // Checkboxes
 gui::Checkbox *Application::checkbox_only_show_framed;
@@ -49,5 +52,7 @@ std::vector<gui::Signal> Application::recorded_signals;
 std::thread Application::thread_info;
 std::thread Application::thread_get_data;
 
-
+int Application::win_to_det_min{ 123456789 };;
+int Application::win_to_det_max;
+int Application::win_to_det_mean;
 
