@@ -13,7 +13,7 @@ public:
 };
 
 class Button : public Object {
-	typedef void(*fptr)();
+	typedef void(*fptr)(void*);
 
 public:
 	Button(int x, int y, const char* text, int w = 90, int h = 30, int character_size = 20,
@@ -88,7 +88,7 @@ public:
 			}
 			else if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left) {
 				m_active_shape = &m_idle_shape;
-				if (m_onClick && m_pressed) m_onClick();
+				if (m_onClick && m_pressed) m_onClick(m_onClick_vobject);
 				m_pressed = false;
 			}
 		} else {
@@ -100,8 +100,9 @@ public:
 	}
 
 	// Actions
-	void OnClick(const fptr& f) {
+	void OnClick(void* vobj, const fptr& f) {
 		m_onClick = f;
+		m_onClick_vobject = vobj;
 	}
 
 private:
@@ -115,10 +116,11 @@ private:
 	bool m_pressed{ false };
 
 	fptr m_onClick{ nullptr };
+	void* m_onClick_vobject;
 };
 
 class Label : public Object {
-	typedef void(*fptr)();
+	typedef void(*fptr)(void*);
 
 public:
 	Label(int x, int y, const char* text, int character_size = 18,
@@ -139,7 +141,7 @@ public:
 	virtual void Handle(const sf::Event& event) override {		
 		if (m_text.getGlobalBounds().contains(sf::Vector2f(event.mouseButton.x, event.mouseButton.y))) {
 			if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left) {
-				if (m_onClick) m_onClick();
+				if (m_onClick) m_onClick(m_onClick_vobject);
 			}
 		}
 	}
@@ -149,8 +151,9 @@ public:
 	}
 
 	// Actions
-	void OnClick(const fptr& f) {
+	void OnClick(void* vobj, const fptr& f) {
 		m_onClick = f;
+		m_onClick_vobject = vobj;
 	}
 
 private:
@@ -158,10 +161,11 @@ private:
 	sf::Font m_font;
 
 	fptr m_onClick{ nullptr };
+	void* m_onClick_vobject;
 };
 
 class Textbox : public Object {
-	typedef void(*fptr)();
+	typedef void(*fptr)(void*);
 public:
 	Textbox(int x, int y, const std::string& text = "", int w = 90, int h = 30, int character_size = 18,
 		const char* font_name = "arial.ttf") : m_rect(sf::Vector2f(static_cast<float>(w), static_cast<float>(h))) {
@@ -229,8 +233,9 @@ public:
 	}
 
 	// Actions
-	void onKeyPress(const fptr& f) {
+	void onKeyPress(void* vobj, const fptr& f) {
 		m_keyPress = f;
+		m_onKeyPress_vobject = vobj;
 	}
 
 private:
@@ -241,10 +246,11 @@ private:
 	sf::Font m_font;
 	bool m_mouseover{ false };
 	fptr m_keyPress{ nullptr };
+	void* m_onKeyPress_vobject;
 };
 
 class Checkbox : public Object {
-	typedef void(*fptr)();
+	typedef void(*fptr)(void*);
 public:
 	Checkbox(int x, int y, const char* text = "", int w = 17, int h = 17, int character_size = 18,
 		const char* font_name = "arial.ttf") : m_rect_checked(sf::Vector2f(static_cast<float>(w), static_cast<float>(h))),
@@ -292,7 +298,7 @@ public:
 					}
 
 					if (m_onClick != nullptr)
-						m_onClick();
+						m_onClick(m_onClick_vobject);
 
 					m_pressed_in_focus = false;
 				}				
@@ -303,8 +309,9 @@ public:
 	}
 
 	// Actions
-	void OnClick(const fptr& f) {
+	void OnClick(void* vobj, const fptr& f) {
 		m_onClick = f;
+		m_onClick_vobject = vobj;
 	}
 
 	bool IsChecked() {
@@ -324,6 +331,7 @@ private:
 	bool m_pressed_in_focus{ false };
 
 	fptr m_onClick{ nullptr };
+	void* m_onClick_vobject;
 };
 
 class Signal : public sf::Drawable {
@@ -529,7 +537,7 @@ private:
 };
 
 class Chart : public Object {
-	typedef void(*fptr)(const sf::Event& event);
+	typedef void(*fptr)(void*, const sf::Event&);
 
 public:
 	 
@@ -606,7 +614,7 @@ public:
 			}			
 		}
 		else if (event.type == sf::Event::KeyReleased && m_mouseover) {
-			m_onKeyPress(event);
+			m_onKeyPress(m_onKeyPress_vobject, event);
 		}
 		else if (event.type == sf::Event::MouseMoved) {
 			if (m_chart_region.getGlobalBounds().contains(sf::Vector2f(event.mouseMove.x, event.mouseMove.y))) {
@@ -712,8 +720,9 @@ public:
 			s->DisableTriggerFrame();
 	}
 
-	void OnKeyPress(const fptr& f) {
+	void OnKeyPress(void* vobj, const fptr& f) {
 		m_onKeyPress = f;
+		m_onKeyPress_vobject = vobj;
 	}	
 
 	void ToggleDrawSignal(int idx) {
@@ -758,6 +767,7 @@ private:
 	bool	m_mouseover;
 
 	fptr m_onKeyPress{ nullptr };
+	void* m_onKeyPress_vobject;
 };
 
 }

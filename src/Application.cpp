@@ -1,58 +1,118 @@
 #include "Application.hpp"
+#include "MainWindow.hpp"
+#include "AnalysisWindow.hpp"
+#include <fstream>
 
-int Application::m_n_samples;
+void Application::Information() {
+	static int cnt = 0;
+	static int detected_in_window_cnt = 0, detected_out_window_cnt = 0, signal_missed_cnt = 0;
 
-Communication *Application::communication;
-Window *Application::mainWindow;
+	while (communication->IsConnected()) {
+		mainWindow->label_info_rx_bytes->SetText(std::to_string(cnt++) + " Rx buf: " + std::to_string(communication->GetRxBufferLen()) + " bytes");
 
-Application::Running Application::m_running;
-Application::Mode Application::m_mode;
-Application::View Application::m_view;
-Application::Capture Application::m_capture;
+		detected_in_window_cnt = detected_out_window_cnt = signal_missed_cnt = 0;
+		for (const auto& s : mainWindow->signals) {
+			detected_in_window_cnt += s.GetDetectionsInWindow();
+			detected_out_window_cnt += s.GetDetectionsOutWindow();
+			signal_missed_cnt += s.GetMissed();
+		}
+		mainWindow->label_info_detected_in_window->SetText("Det IN: " + std::to_string(detected_in_window_cnt));
+		mainWindow->label_info_detected_out_window->SetText("Det OUT: " + std::to_string(detected_out_window_cnt));
+		mainWindow->label_info_signal_missed->SetText("Missed: " + std::to_string(signal_missed_cnt));
 
+		sf::sleep(sf::milliseconds(100));
+	}
+}
 
-gui::Chart *Application::chart;
+void Application::GetData() {
+	static float fbuf[Application::N_CHANNELS * Application::DATA_PER_CHANNEL];
+	static int cntr = 0;
+	static bool thr_missed;
 
-// Buttons
-gui::Button *Application::button_connect;
-gui::Button *Application::button_run;
-gui::Button *Application::button_trigger_frame;
-gui::Button *Application::button_set_frequency;
-gui::Button *Application::button_set_filter_params;
-gui::Button *Application::button_set_times;
-gui::Button *Application::button_toggle_usb_uart;
-gui::Button *Application::button_view_mode;
-gui::Button *Application::button_capture;
-gui::Button *Application::button_record;
+	while (communication->IsConnected()) {
 
-// Texbox
-gui::Textbox *Application::textbox_comport;
-gui::Textbox *Application::textbox_frequency;
-gui::Textbox *Application::textbox_filter_params;
-gui::Textbox *Application::textbox_times;
+		if (m_running == Running::RUNNING) {
 
-// Labels
-gui::Label	*Application::label_frequency;
-gui::Label	*Application::label_filter_params;
-gui::Label	*Application::label_times;
-gui::Label	*Application::label_info_rx_bytes;
-gui::Label	*Application::label_info_detected_in_window;
-gui::Label	*Application::label_info_detected_out_window;
-gui::Label	*Application::label_info_signal_missed;
-gui::Label	*Application::label_info_win_to_det_min;
-gui::Label	*Application::label_info_win_to_det_max;
-gui::Label	*Application::label_info_win_to_det_mean;
+			while (communication->IsConnected()) {
+				communication->Read(fbuf, 4);
+				uint32_t delim = *((uint32_t*)&fbuf[0]);
+				if (delim == 0xDEADBEEF) {	// Data
+					int read = communication->Read(fbuf, sizeof(fbuf));
+					if (read > 0) {
+						thr_missed = false;
+						float* fbuf_tmp = fbuf;
+						for (int ch = 0; ch < N_CHANNELS; ++ch) {
+							mainWindow->signals[ch].Edit(fbuf_tmp, cntr * DATA_PER_CHANNEL, DATA_PER_CHANNEL);
+							if (mainWindow->signals[ch].ThreasholdMissed() && m_capture == Capture::ON && !thr_missed) {
+								mainWindow->RunClick();	// only change state here
+								thr_missed = true;
+								// we don't break out, because we want to draw out the remaining buffer
+							}
 
-// Checkboxes
-gui::Checkbox *Application::checkbox_only_show_framed;
+							fbuf_tmp += DATA_PER_CHANNEL;
+						}
+						if (++cntr >= (m_n_samples / DATA_PER_CHANNEL)) {
+							cntr = 0;
+							if (m_mode == Mode::RECORD) {
+								for (const auto& s : mainWindow->signals)
+									mainWindow->recorded_signals.push_back(s);
+							}
+						}
+					}
+				}
+				else if (delim == 0xABCDDCBA) {	// Sorting analysis
+					int read = communication->Read(fbuf, communication->GetRxBufferLen()) / 2; // "/2" because the data is int16 not int8
+					analysisWindow->Update((uint16_t*)fbuf, read);
+				}
+			}
+		}
+	}
+}
 
-std::vector<gui::Signal> Application::signals;
-std::vector<gui::Signal> Application::recorded_signals;
+void Application::InitFromFile(const std::string& file_name) {
+	std::ifstream in_file(file_name);
+	std::string str;
+	std::vector<std::string> tokens;
+	if (in_file.is_open()) {
+		while (std::getline(in_file, str)) {
+			tokens.push_back(str);
+		}
+		in_file.close();
+	}
 
-std::thread Application::thread_info;
-std::thread Application::thread_get_data;
+	for (int i = 0; i < tokens.size(); ++i) {
+		switch (i) {
+		case 0: // COM port
+			mainWindow->textbox_comport->SetText(tokens[i]);
+			break;
+		}
+	}
+}
 
-int Application::win_to_det_min{ 123456789 };;
-int Application::win_to_det_max;
-int Application::win_to_det_mean;
+void Application::Run() {
+	while (mainWindow->IsOpen()) {
+		mainWindow->Run();
+		analysisWindow->Run();
+	}
+}
 
+Application::Application() {
+	communication = new Communication();
+	mainWindow = new MainWindow(1850, 900, "Sorting Control", this);
+	analysisWindow = new AnalysisWindow(500, 500, "Info", this);
+	analysisWindow->Hide();
+
+	// Initial parameters from file init
+	InitFromFile("config.txt");
+
+	m_running = Running::STOPPED;
+	m_mode = Mode::LIVE;
+	m_view = View::FILTERED;
+	m_capture = Capture::OFF;
+}
+
+Application::~Application() {
+	delete communication;
+	delete mainWindow;
+	delete analysisWindow;
+}

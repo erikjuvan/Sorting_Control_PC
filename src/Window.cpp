@@ -1,7 +1,7 @@
 #include "Window.hpp"
 
 Window::Window(int w, int h, const char* title) {
-	m_window = new sf::RenderWindow(sf::VideoMode(w, h), title, sf::Style::Close | sf::Style::Titlebar);
+	m_render_window = new sf::RenderWindow(sf::VideoMode(w, h), title, sf::Style::Close | sf::Style::Titlebar);
 	//m_window->setFramerateLimit(60);
 
 	m_event = new sf::Event();
@@ -16,21 +16,20 @@ void Window::Attach(gui::Object* d) {
 
 void Window::Draw() {
 	static const auto backgroundColor = sf::Color(235, 235, 235);
-	m_window->clear(backgroundColor);
+	m_render_window->clear(backgroundColor);
 
 	for (const auto& o : m_objects) {
-		m_window->draw(*o);
+		m_render_window->draw(*o);
 	}
 	
-	m_window->display();
+	m_render_window->display();
 }
 
 void Window::EventHandler() {
-	while (m_window->pollEvent(*m_event))
-	{
+	while (m_render_window->pollEvent(*m_event)) {
 		// "close requested" event: we close the window
 		if (m_event->type == sf::Event::Closed) {
-			m_window->close();
+			m_render_window->close();
 		}
 		for (auto& m : m_objects) {
 			m->Handle(*m_event);
@@ -40,7 +39,7 @@ void Window::EventHandler() {
 
 void Window::Run() {
 
-	while (m_window->isOpen()) {
+	if (m_render_window->isOpen()) {
 		EventHandler();
 		Draw();
 	}
@@ -48,5 +47,13 @@ void Window::Run() {
 }
 
 bool Window::IsOpen() {
-	return m_window->isOpen();
+	return m_render_window->isOpen();
+}
+
+void Window::Show() {
+	m_render_window->setVisible(true);
+}
+
+void Window::Hide() {
+	m_render_window->setVisible(false);
 }

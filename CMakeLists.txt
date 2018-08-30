@@ -14,18 +14,22 @@ target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 target_sources(${PROJECT_NAME} PRIVATE 
 	src/main.cpp
 	src/Application.cpp
-	src/Communication.cpp
-	src/Window.cpp
+	src/Communication.cpp	
 	src/Gui.cpp
 	src/Helpers.cpp
+	src/Window.cpp
+	src/MainWindow.cpp
+	src/AnalysisWindow.cpp
 	)
 	
 target_sources(${PROJECT_NAME} PRIVATE 
 	include/Application.hpp
 	include/Communication.hpp
-	include/Helpers.hpp
-	include/Window.hpp
+	include/Helpers.hpp	
 	include/Gui.hpp
+	include/Window.hpp
+	include/MainWindow.hpp
+	include/AnalysisWindow.hpp
 	)
 
 set(SERIALLIBRARY_DIR "" CACHE PATH "Path to SerialLibrary root dir")
