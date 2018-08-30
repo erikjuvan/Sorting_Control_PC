@@ -2,6 +2,8 @@
 
 #include "Window.hpp"
 #include "Application.hpp"
+#include <mygui/Button.hpp>
+#include <mygui/Label.hpp>
 
 struct SortingAnalysis {
 	struct Channel {
@@ -39,19 +41,19 @@ public:
 	// Members
 	//////////
 
-	gui::Button	*button_clear_all;
+	mygui::Button	*button_clear_all;
 
-	gui::Label	*label_info_win_to_det_min;
-	gui::Label	*label_info_win_to_det_max;
-	gui::Label	*label_info_win_to_det_avg;
-	gui::Label	*label_info_win_to_det_last;
+	mygui::Label	*label_info_win_to_det_min;
+	mygui::Label	*label_info_win_to_det_max;
+	mygui::Label	*label_info_win_to_det_avg;
+	mygui::Label	*label_info_win_to_det_last;
 
 	struct InfoLabel {
-		gui::Label* channel_number;
-		gui::Label* label_min;
-		gui::Label* label_max;
-		gui::Label* label_avg;
-		gui::Label* label_last;		
+		mygui::Label* channel_number;
+		mygui::Label* label_min;
+		mygui::Label* label_max;
+		mygui::Label* label_avg;
+		mygui::Label* label_last;
 	};
 
 	InfoLabel labels[Application::N_CHANNELS];

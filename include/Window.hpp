@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Gui.hpp"
+#include <mygui/Object.hpp>
 
 class Window {
 public:
@@ -10,7 +10,7 @@ public:
 	void Draw();
 	void EventHandler();
 	void Run();
-	void Attach(gui::Object* d);
+	void Attach(mygui::Object* d);
 	bool IsOpen();	
 	void Show();
 	void Hide();
@@ -18,6 +18,6 @@ public:
 private:	
 	sf::RenderWindow *m_render_window;
 	sf::Event *m_event;
-	std::vector<gui::Object*> m_objects;
+	std::vector<mygui::Object*> m_objects;
 };
 

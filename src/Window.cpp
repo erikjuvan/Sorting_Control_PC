@@ -10,7 +10,7 @@ Window::Window(int w, int h, const char* title) {
 Window::~Window() {
 }
 
-void Window::Attach(gui::Object* d) {
+void Window::Attach(mygui::Object* d) {
 	m_objects.push_back(d);
 }
 

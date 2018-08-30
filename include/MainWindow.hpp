@@ -2,6 +2,11 @@
 
 #include "Window.hpp"
 #include "Application.hpp"
+#include <mygui/Button.hpp>
+#include <mygui/Label.hpp>
+#include <mygui/Chart.hpp>
+#include <mygui/Textbox.hpp>
+#include <mygui/Checkbox.hpp>
 
 class MainWindow {
 private:
@@ -43,39 +48,39 @@ public:
 	// Members
 	//////////
 
-	gui::Chart *chart;
+	mygui::Chart *chart;
 	// Button
-	gui::Button *button_connect;
-	gui::Button *button_run;
-	gui::Button *button_trigger_frame;
-	gui::Button *button_set_frequency;
-	gui::Button *button_set_filter_params;
-	gui::Button *button_set_times;
-	gui::Button *button_toggle_usb_uart;
-	gui::Button *button_view_mode;
-	gui::Button *button_capture;
-	gui::Button *button_record;
-	gui::Button *button_analysis_window;
+	mygui::Button *button_connect;
+	mygui::Button *button_run;
+	mygui::Button *button_trigger_frame;
+	mygui::Button *button_set_frequency;
+	mygui::Button *button_set_filter_params;
+	mygui::Button *button_set_times;
+	mygui::Button *button_toggle_usb_uart;
+	mygui::Button *button_view_mode;
+	mygui::Button *button_capture;
+	mygui::Button *button_record;
+	mygui::Button *button_analysis_window;
 	// Texbox
-	gui::Textbox *textbox_comport;
-	gui::Textbox *textbox_frequency;
-	gui::Textbox *textbox_filter_params;
-	gui::Textbox *textbox_times;
+	mygui::Textbox *textbox_comport;
+	mygui::Textbox *textbox_frequency;
+	mygui::Textbox *textbox_filter_params;
+	mygui::Textbox *textbox_times;
 
 	// Labels	
-	gui::Label	*label_frequency;
-	gui::Label	*label_filter_params;
-	gui::Label	*label_times;
-	gui::Label	*label_info_rx_bytes;
-	gui::Label	*label_info_detected_in_window;
-	gui::Label	*label_info_detected_out_window;
-	gui::Label	*label_info_signal_missed;
+	mygui::Label	*label_frequency;
+	mygui::Label	*label_filter_params;
+	mygui::Label	*label_times;
+	mygui::Label	*label_info_rx_bytes;
+	mygui::Label	*label_info_detected_in_window;
+	mygui::Label	*label_info_detected_out_window;
+	mygui::Label	*label_info_signal_missed;
 
 	// Checkboxes
-	gui::Checkbox *checkbox_only_show_framed;
+	mygui::Checkbox *checkbox_only_show_framed;
 
-	std::vector<gui::Signal> signals;
-	std::vector<gui::Signal> recorded_signals;
+	std::vector<mygui::Signal> signals;
+	std::vector<mygui::Signal> recorded_signals;
 };
 
 

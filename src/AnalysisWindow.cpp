@@ -56,24 +56,24 @@ AnalysisWindow::AnalysisWindow(int w, int h, const char* title, Application* app
 	m_window = new Window(w, h, title);
 	m_analysis = new SortingAnalysis;
 	
-	button_clear_all = new gui::Button(220, 20, "Clear");
+	button_clear_all = new mygui::Button(220, 20, "Clear");
 	button_clear_all->OnClick(this, &AnalysisWindow::button_clear_all_Clicked);
 
-	label_info_win_to_det_min = new gui::Label(100, 70, "Min");
-	label_info_win_to_det_max = new gui::Label(200, 70, "Max:");
-	label_info_win_to_det_avg = new gui::Label(300, 70, "Avg:");
-	label_info_win_to_det_last = new gui::Label(400, 70, "Last:");
+	label_info_win_to_det_min = new mygui::Label(100, 70, "Min");
+	label_info_win_to_det_max = new mygui::Label(200, 70, "Max:");
+	label_info_win_to_det_avg = new mygui::Label(300, 70, "Avg:");
+	label_info_win_to_det_last = new mygui::Label(400, 70, "Last:");
 
 	for (int i = 0; i < Application::N_CHANNELS; ++i) {
-		labels[i].channel_number = new gui::Label(20, 120 + i * 40, ("Ch " + std::to_string(i+1)).c_str());
+		labels[i].channel_number = new mygui::Label(20, 120 + i * 40, ("Ch " + std::to_string(i+1)).c_str());
 		m_window->Attach(labels[i].channel_number);
-		labels[i].label_min = new gui::Label(100, 120 + i * 40, ("N/A"));
+		labels[i].label_min = new mygui::Label(100, 120 + i * 40, ("N/A"));
 		m_window->Attach(labels[i].label_min);
-		labels[i].label_max = new gui::Label(200, 120 + i * 40, ("N/A"));
+		labels[i].label_max = new mygui::Label(200, 120 + i * 40, ("N/A"));
 		m_window->Attach(labels[i].label_max);
-		labels[i].label_avg = new gui::Label(300, 120 + i * 40, ("N/A"));
+		labels[i].label_avg = new mygui::Label(300, 120 + i * 40, ("N/A"));
 		m_window->Attach(labels[i].label_avg);
-		labels[i].label_last = new gui::Label(400, 120 + i * 40, ("N/A"));
+		labels[i].label_last = new mygui::Label(400, 120 + i * 40, ("N/A"));
 		m_window->Attach(labels[i].label_last);		
 	}
 	

@@ -15,7 +15,6 @@ target_sources(${PROJECT_NAME} PRIVATE
 	src/main.cpp
 	src/Application.cpp
 	src/Communication.cpp	
-	src/Gui.cpp
 	src/Helpers.cpp
 	src/Window.cpp
 	src/MainWindow.cpp
@@ -25,8 +24,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 target_sources(${PROJECT_NAME} PRIVATE 
 	include/Application.hpp
 	include/Communication.hpp
-	include/Helpers.hpp	
-	include/Gui.hpp
+	include/Helpers.hpp
 	include/Window.hpp
 	include/MainWindow.hpp
 	include/AnalysisWindow.hpp
@@ -38,13 +36,13 @@ find_library(SERIALLIBRARY_DEBUG NAMES "SerialLibrary-d" PATHS "${SERIALLIBRARY_
 set(SERIALLIBRARY_LIBRARIES debug ${SERIALLIBRARY_DEBUG} optimized ${SERIALLIBRARY_RELEASE})
 find_path(SERIALLIBRARY_INCLUDE_DIR NAME "serial/serial.h" PATHS "${SERIALLIBRARY_DIR}/*" NO_DEFAULT_PATH)
 	
-#set(MYGUI_DIR "" CACHE PATH "Path to mygui root dir")
-#find_library(MYGUI_RELEASE NAMES "mygui" PATHS "${MYGUI_DIR}/Build/*" NO_DEFAULT_PATH)
-#find_library(MYGUI_DEBUG NAMES "mygui-d" PATHS "${MYGUI_DIR}/Build/*" NO_DEFAULT_PATH)
-#set(MYGUI_LIBRARIES debug ${MYGUI_DEBUG} optimized ${MYGUI_RELEASE})
-#find_path(MYGUI_INCLUDE_DIR NAME "mygui/Config.hpp" PATHS "${MYGUI_DIR}/*" NO_DEFAULT_PATH)
+set(MYGUI_DIR "" CACHE PATH "Path to mygui root dir")
+find_library(MYGUI_RELEASE NAMES "mygui" PATHS "${MYGUI_DIR}/Build/*" NO_DEFAULT_PATH)
+find_library(MYGUI_DEBUG NAMES "mygui-d" PATHS "${MYGUI_DIR}/Build/*" NO_DEFAULT_PATH)
+set(MYGUI_LIBRARIES debug ${MYGUI_DEBUG} optimized ${MYGUI_RELEASE})
+find_path(MYGUI_INCLUDE_DIR NAME "mygui/Config.hpp" PATHS "${MYGUI_DIR}/*" NO_DEFAULT_PATH)
 
-target_include_directories(${PROJECT_NAME} PRIVATE include ${SERIALLIBRARY_INCLUDE_DIR}) # ${MYGUI_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} PRIVATE sfml-graphics sfml-window sfml-system ${SERIALLIBRARY_LIBRARIES}) # ${MYGUI_LIBRARIES})
+target_include_directories(${PROJECT_NAME} PRIVATE include ${SERIALLIBRARY_INCLUDE_DIR} ${MYGUI_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME} PRIVATE sfml-graphics sfml-window sfml-system ${SERIALLIBRARY_LIBRARIES} ${MYGUI_LIBRARIES})
 
 

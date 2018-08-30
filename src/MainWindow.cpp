@@ -1,5 +1,6 @@
 #include "MainWindow.hpp"
 #include "AnalysisWindow.hpp"
+#include "Helpers.hpp"
 
 void MainWindow::button_connect_Click(void* vobj) {
 	MainWindow& obj = *static_cast<MainWindow*>(vobj);
@@ -234,13 +235,13 @@ void MainWindow::chart_OnKeyPress(void* vobj, const sf::Event& event) {
 
 void MainWindow::CreateChart(int n_samples) {
 	m_application->m_n_samples = n_samples;
-	chart = new gui::Chart(240, 10, 1600, 880, m_application->m_n_samples, 100);
+	chart = new mygui::Chart(240, 10, 1600, 880, m_application->m_n_samples, 100);
 	chart->CreateGrid(9);
 	chart->OnKeyPress(this, &MainWindow::chart_OnKeyPress);
 	signals.clear();
 	signals.reserve(Application::N_CHANNELS);
 	for (int i = 0; i < Application::N_CHANNELS; ++i) {
-		signals.push_back(gui::Signal(m_application->m_n_samples, sf::Color(m_Colors[i]), chart->GetGraphRegion(), chart->GetMaxVal()));
+		signals.push_back(mygui::Signal(m_application->m_n_samples, sf::Color(m_Colors[i]), chart->GetGraphRegion(), chart->GetMaxVal()));
 		chart->AddSignal(&signals[signals.size() - 1]);
 	}
 }
@@ -263,66 +264,66 @@ MainWindow::MainWindow(int w, int h, const char* title, Application* application
 	/////////////
 	// Buttons //
 	/////////////
-	button_connect = new gui::Button(10, 50, "Connect", 110);
+	button_connect = new mygui::Button(10, 50, "Connect", 110);
 	button_connect->OnClick(this, &MainWindow::button_connect_Click);
 
-	button_run = new gui::Button(10, 90, "Stopped", 110);
+	button_run = new mygui::Button(10, 90, "Stopped", 110);
 	button_run->OnClick(this, &MainWindow::button_run_Click);
 
-	button_trigger_frame = new gui::Button(10, 140, "Frame OFF", 110);
+	button_trigger_frame = new mygui::Button(10, 140, "Frame OFF", 110);
 	button_trigger_frame->OnClick(this, &MainWindow::button_trigger_frame_Click);
 
-	button_capture = new gui::Button(140, 140, "Capture");
+	button_capture = new mygui::Button(140, 140, "Capture");
 	button_capture->OnClick(this, &MainWindow::button_capture_Click);
 
-	button_toggle_usb_uart = new gui::Button(140, 50, "USB");
+	button_toggle_usb_uart = new mygui::Button(140, 50, "USB");
 	button_toggle_usb_uart->OnClick(this, &MainWindow::button_toggle_usb_uart_Click);
 
-	button_view_mode = new gui::Button(140, 90, "Filtered");
+	button_view_mode = new mygui::Button(140, 90, "Filtered");
 	button_view_mode->OnClick(this, &MainWindow::button_view_mode_Click);
 
-	button_set_frequency = new gui::Button(10, 260, "Send");
+	button_set_frequency = new mygui::Button(10, 260, "Send");
 	button_set_frequency->OnClick(this, &MainWindow::button_set_frequency_Click);
 
-	button_set_filter_params = new gui::Button(10, 380, "Send");
+	button_set_filter_params = new mygui::Button(10, 380, "Send");
 	button_set_filter_params->OnClick(this, &MainWindow::button_set_filter_params_Click);
 
-	button_set_times = new gui::Button(10, 500, "Send");
+	button_set_times = new mygui::Button(10, 500, "Send");
 	button_set_times->OnClick(this, &MainWindow::button_set_times_Click);
 
-	button_record = new gui::Button(10, 600, "Record");
+	button_record = new mygui::Button(10, 600, "Record");
 	button_record->OnClick(this, &MainWindow::button_record_Click);
 
-	button_analysis_window = new gui::Button(10, 800, "Info");
+	button_analysis_window = new mygui::Button(10, 800, "Info");
 	button_analysis_window->OnClick(this, &MainWindow::button_analysis_window_Click);
 
 	//////////////
 	// Texboxes //
 	//////////////
-	textbox_comport = new gui::Textbox(10, 10, "COM", 80);
-	textbox_frequency = new gui::Textbox(10, 220, "10000", 80);
-	textbox_filter_params = new gui::Textbox(10, 340, "0.01,0.03,0.03,7.0", 170);
-	textbox_times = new gui::Textbox(10, 460, "0,100,1000", 120);
+	textbox_comport = new mygui::Textbox(10, 10, "COM", 80);
+	textbox_frequency = new mygui::Textbox(10, 220, "10000", 80);
+	textbox_filter_params = new mygui::Textbox(10, 340, "0.01,0.03,0.03,7.0", 170);
+	textbox_times = new mygui::Textbox(10, 460, "0,100,1000", 120);
 
 	////////////
 	// Labels //
 	////////////			
-	label_frequency = new gui::Label(10, 190, "Sample frequency:");
-	label_filter_params = new gui::Label(10, 310, "Filter params(a1,a2,a3,thr):");
-	label_times = new gui::Label(10, 430, "Times (dly, dur, blind):");
-	label_info_rx_bytes = new gui::Label(10, 660, "Rx buf: 0 bytes");
-	label_info_detected_in_window = new gui::Label(10, 700, "Det IN: 0");
+	label_frequency = new mygui::Label(10, 190, "Sample frequency:");
+	label_filter_params = new mygui::Label(10, 310, "Filter params(a1,a2,a3,thr):");
+	label_times = new mygui::Label(10, 430, "Times (dly, dur, blind):");
+	label_info_rx_bytes = new mygui::Label(10, 660, "Rx buf: 0 bytes");
+	label_info_detected_in_window = new mygui::Label(10, 700, "Det IN: 0");
 	label_info_detected_in_window->OnClick(this, &MainWindow::label_info_detected_in_window_Clicked);
-	label_info_detected_out_window = new gui::Label(10, 720, "Det OUT: 0");
+	label_info_detected_out_window = new mygui::Label(10, 720, "Det OUT: 0");
 	label_info_detected_out_window->OnClick(this, &MainWindow::label_info_detected_out_window_Clicked);
-	label_info_signal_missed = new gui::Label(10, 740, "Missed: 0");
+	label_info_signal_missed = new mygui::Label(10, 740, "Missed: 0");
 	label_info_signal_missed->OnClick(this, &MainWindow::label_info_signal_missed_Clicked);
 
 
 	////////////////
 	// Checkboxes //
 	////////////////
-	checkbox_only_show_framed = new gui::Checkbox(10, 550, "Only show framed");
+	checkbox_only_show_framed = new mygui::Checkbox(10, 550, "Only show framed");
 	checkbox_only_show_framed->OnClick(this, &MainWindow::checkbox_only_show_framed_Clicked);
 
 	/////////////////
