@@ -1,9 +1,25 @@
 #include "Application.hpp"
 #include "MainWindow.hpp"
 #include "AnalysisWindow.hpp"
+#include "Communication.hpp"
 #include <fstream>
+#include <thread>
 
-void Application::Information() {
+Communication	*communication;
+MainWindow		*mainWindow;
+AnalysisWindow	*analysisWindow;
+
+Running running;
+Mode	mode;
+View	view;
+Capture capture;
+
+std::thread thread_info;
+std::thread thread_get_data;
+
+int n_samples;
+
+void Information() {
 	static int cnt = 0;
 	static int detected_in_window_cnt = 0, detected_out_window_cnt = 0, signal_missed_cnt = 0;
 
@@ -24,46 +40,45 @@ void Application::Information() {
 	}
 }
 
-void Application::GetData() {
-	static float fbuf[Application::N_CHANNELS * Application::DATA_PER_CHANNEL];
+void GetData() {
+	static float fbuf[N_CHANNELS * DATA_PER_CHANNEL];
 	static int cntr = 0;
 	static bool thr_missed;
 
 	while (communication->IsConnected()) {
 
-		if (m_running == Running::RUNNING) {
+		if (running == Running::RUNNING) {	
 
-			while (communication->IsConnected()) {
-				communication->Read(fbuf, 4);
-				uint32_t delim = *((uint32_t*)&fbuf[0]);
-				if (delim == 0xDEADBEEF) {	// Data
-					int read = communication->Read(fbuf, sizeof(fbuf));
-					if (read > 0) {
-						thr_missed = false;
-						float* fbuf_tmp = fbuf;
-						for (int ch = 0; ch < N_CHANNELS; ++ch) {
-							mainWindow->signals[ch].Edit(fbuf_tmp, cntr * DATA_PER_CHANNEL, DATA_PER_CHANNEL);
-							if (mainWindow->signals[ch].ThreasholdMissed() && m_capture == Capture::ON && !thr_missed) {
-								mainWindow->RunClick();	// only change state here
-								thr_missed = true;
-								// we don't break out, because we want to draw out the remaining buffer
-							}
+			communication->Read(fbuf, 4);
+			uint32_t delim = *((uint32_t*)&fbuf[0]);
 
-							fbuf_tmp += DATA_PER_CHANNEL;
+			if (delim == 0xDEADBEEF) {	// Data
+				int read = communication->Read(fbuf, sizeof(fbuf));
+				if (read > 0) {
+					thr_missed = false;
+					float* fbuf_tmp = fbuf;
+					for (int ch = 0; ch < N_CHANNELS; ++ch) {
+						mainWindow->signals[ch].Edit(fbuf_tmp, cntr * DATA_PER_CHANNEL, DATA_PER_CHANNEL);
+						if (mainWindow->signals[ch].ThreasholdMissed() && capture == Capture::ON && !thr_missed) {
+							mainWindow->RunClick();	// only change state here
+							thr_missed = true;
+							// we don't break out, because we want to draw out the remaining buffer
 						}
-						if (++cntr >= (m_n_samples / DATA_PER_CHANNEL)) {
-							cntr = 0;
-							if (m_mode == Mode::RECORD) {
-								for (const auto& s : mainWindow->signals)
-									mainWindow->recorded_signals.push_back(s);
-							}
+
+						fbuf_tmp += DATA_PER_CHANNEL;
+					}
+					if (++cntr >= (n_samples / DATA_PER_CHANNEL)) {
+						cntr = 0;
+						if (mode == Mode::RECORD) {
+							for (const auto& s : mainWindow->signals)
+								mainWindow->recorded_signals.push_back(s);
 						}
 					}
 				}
-				else if (delim == 0xABCDDCBA) {	// Sorting analysis
-					int read = communication->Read(fbuf, communication->GetRxBufferLen()) / 2; // "/2" because the data is int16 not int8
-					analysisWindow->Update((uint16_t*)fbuf, read);
-				}
+			}
+			else if (delim == 0xABCDDCBA) {	// Sorting analysis
+				int read = communication->Read(fbuf, ANALYSIS_PACKETS * N_CHANNELS * sizeof(uint32_t));
+				analysisWindow->NewData((uint32_t*)fbuf, read / sizeof(uint32_t)); // "/2" because the data is int16 not int8
 			}
 		}
 	}
@@ -89,30 +104,27 @@ void Application::InitFromFile(const std::string& file_name) {
 	}
 }
 
-void Application::Run() {
-	while (mainWindow->IsOpen()) {
-		mainWindow->Run();
-		analysisWindow->Run();
-	}
-}
-
-Application::Application() {
+void Application::Init() {
 	communication = new Communication();
-	mainWindow = new MainWindow(1850, 900, "Sorting Control", this);
-	analysisWindow = new AnalysisWindow(500, 500, "Info", this);
-	analysisWindow->Hide();
+	mainWindow = new MainWindow(1850, 900, "Sorting Control", sf::Style::None | sf::Style::Close);	
+	analysisWindow = new AnalysisWindow(390, 360, "Info", sf::Style::None | sf::Style::Close);
+	analysisWindow->SetPosition(mainWindow->GetPosition() + sf::Vector2i(1850-420, 40));
+	analysisWindow->AlwaysOnTop(true);
+	analysisWindow->MakeTransparent();
+	analysisWindow->SetTransparency(120);
 
 	// Initial parameters from file init
 	InitFromFile("config.txt");
 
-	m_running = Running::STOPPED;
-	m_mode = Mode::LIVE;
-	m_view = View::FILTERED;
-	m_capture = Capture::OFF;
+	running = Running::STOPPED;
+	mode = Mode::LIVE;
+	view = View::FILTERED;
+	capture = Capture::OFF;
 }
 
-Application::~Application() {
-	delete communication;
-	delete mainWindow;
-	delete analysisWindow;
+void Application::Run() {
+	while (mainWindow->IsOpen()) {
+		mainWindow->Update();
+		analysisWindow->Update();		
+	}
 }

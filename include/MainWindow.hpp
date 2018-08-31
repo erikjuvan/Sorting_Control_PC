@@ -8,41 +8,36 @@
 #include <mygui/Textbox.hpp>
 #include <mygui/Checkbox.hpp>
 
-class MainWindow {
+class MainWindow : public Window {
 private:
 	static constexpr uint32_t m_Colors[10]{ 0xFF0000FF, 0x00FF00FF, 0x0000FFFF, 0xFFFF00FF, 0x00FFFFFF, 0xFF00FFFF, 0xFF8000FF, 0xC0C0C0FF, 0x800000FF, 0x808000FF };
-
-	Window	*m_window;
-	Application *m_application;
 	
 public:
 	// Methods
 	//////////
 
-	MainWindow(int w, int h, const char* title, Application* application);
+	MainWindow(int w, int h, const char* title, sf::Uint32 style = sf::Style::Default);
 	~MainWindow();
 
-	inline void Run() { m_window->Run(); }
-	bool IsOpen();
 	void RunClick();
 	void CreateChart(int n_sample);
 
-	static void button_connect_Click(void*);
-	static void button_run_Click(void*);
-	static void button_toggle_usb_uart_Click(void*);
-	static void button_trigger_frame_Click(void*);
-	static void button_set_frequency_Click(void*);
-	static void button_set_filter_params_Click(void*);
-	static void button_set_times_Click(void*);
-	static void button_view_mode_Click(void*);
-	static void button_capture_Click(void*);
-	static void button_record_Click(void*);
-	static void button_analysis_window_Click(void*);
-	static void checkbox_only_show_framed_Clicked(void*);
-	static void label_info_detected_in_window_Clicked(void*);
-	static void label_info_detected_out_window_Clicked(void*);
-	static void label_info_signal_missed_Clicked(void*);
-	static void chart_OnKeyPress(void*, const sf::Event&);
+	static void button_connect_Click();
+	static void button_run_Click();
+	static void button_toggle_usb_uart_Click();
+	static void button_trigger_frame_Click();
+	static void button_set_frequency_Click();
+	static void button_set_filter_params_Click();
+	static void button_set_times_Click();
+	static void button_view_mode_Click();
+	static void button_capture_Click();
+	static void button_record_Click();
+	static void button_analysis_window_Click();
+	static void checkbox_only_show_framed_Clicked();
+	static void label_info_detected_in_window_Clicked();
+	static void label_info_detected_out_window_Clicked();
+	static void label_info_signal_missed_Clicked();
+	static void chart_OnKeyPress(const sf::Event&);
 
 
 	// Members

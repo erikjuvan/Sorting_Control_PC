@@ -3,21 +3,34 @@
 #include <mygui/Object.hpp>
 
 class Window {
+private:
+	sf::Color backgroundColor = sf::Color(235, 235, 235);	
+
+protected:
+	using widget = mygui::Object;
+
+	sf::RenderWindow		*m_window;
+	sf::Event				*m_event;
+	std::vector<widget*>	m_widgets;
+
+	virtual void Events();
+	virtual void Draw();
+
 public:
-	Window(int w, int h, const char* title);
+	Window(int w, int h, const std::string& title, sf::Uint32 style = sf::Style::Default);
 	~Window();
 
-	void Draw();
-	void EventHandler();
-	void Run();
-	void Attach(mygui::Object* d);
-	bool IsOpen();	
+	void Create(int w, int h, const std::string& title, sf::Uint32 style = sf::Style::Default);
+	void Add(widget* w);
+	void Update();
 	void Show();
 	void Hide();
-
-private:	
-	sf::RenderWindow *m_render_window;
-	sf::Event *m_event;
-	std::vector<mygui::Object*> m_objects;
+	bool IsOpen();
+	sf::Vector2i GetPosition() const;
+	void SetPosition(const sf::Vector2i& position);
+	
+	void AlwaysOnTop(bool top);
+	void MakeTransparent();
+	void SetTransparency(sf::Uint8 alpha);	
 };
 

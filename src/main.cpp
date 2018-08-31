@@ -2,8 +2,8 @@
 
 int main(int argc, char *argv[]) {
 
-	Application app;
-	app.Run();
+	Application::Init();
+	Application::Run();
 
 	return 0;
 }
