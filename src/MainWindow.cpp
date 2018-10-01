@@ -161,12 +161,6 @@ void MainWindow::button_analysis_window_Click() {
 	}	
 }
 
-void MainWindow::checkbox_only_show_framed_Clicked() {
-	for (auto& s : mainWindow->signals) {
-		s.OnlyDrawOnTrigger(mainWindow->checkbox_only_show_framed->IsChecked());
-	}
-}
-
 void MainWindow::label_info_detected_in_window_Clicked() {
 	for (auto& s : mainWindow->signals) {
 		s.ClearDetectionsInWindow();
@@ -183,6 +177,25 @@ void MainWindow::label_info_detected_out_window_Clicked() {
 void MainWindow::label_info_signal_missed_Clicked() {
 	for (auto& s : mainWindow->signals) {
 		s.ClearMissed();
+	}
+}
+
+void MainWindow::checkbox_only_show_framed_Clicked() {
+	for (auto& s : mainWindow->signals) {
+		s.OnlyDrawOnTrigger(mainWindow->checkbox_only_show_framed->IsChecked());
+	}
+}
+
+void MainWindow::checkbox_transparent_Clicked() {
+	static bool transparent = false;
+	if (!transparent) {
+		transparent = true;
+		mainWindow->MakeTransparent();
+		mainWindow->SetTransparency(120);
+	}
+	else {
+		transparent = false;
+		mainWindow->SetTransparency(255);
 	}
 }
 
@@ -326,6 +339,10 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) : Wind
 	checkbox_only_show_framed = new mygui::Checkbox(10, 550, "Only show framed");
 	checkbox_only_show_framed->OnClick(&MainWindow::checkbox_only_show_framed_Clicked);
 
+	checkbox_transparent = new mygui::Checkbox(10, 850, "Transparent");
+	checkbox_transparent->OnClick(&MainWindow::checkbox_transparent_Clicked);
+
+
 	/////////////////
 	// Main window //
 	/////////////////
@@ -357,6 +374,7 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) : Wind
 	Add(label_info_signal_missed);
 	// Checkboxes
 	Add(checkbox_only_show_framed);
+	Add(checkbox_transparent);
 }
 
 MainWindow::~MainWindow() {

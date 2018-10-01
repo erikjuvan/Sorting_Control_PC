@@ -33,12 +33,15 @@ public:
 	static void button_capture_Click();
 	static void button_record_Click();
 	static void button_analysis_window_Click();
-	static void checkbox_only_show_framed_Clicked();
+
 	static void label_info_detected_in_window_Clicked();
 	static void label_info_detected_out_window_Clicked();
 	static void label_info_signal_missed_Clicked();
-	static void chart_OnKeyPress(const sf::Event&);
+	
+	static void checkbox_only_show_framed_Clicked();
+	static void checkbox_transparent_Clicked();
 
+	static void chart_OnKeyPress(const sf::Event&);
 
 	// Members
 	//////////
@@ -73,6 +76,7 @@ public:
 
 	// Checkboxes
 	mygui::Checkbox *checkbox_only_show_framed;
+	mygui::Checkbox *checkbox_transparent;
 
 	std::vector<mygui::Signal> signals;
 	std::vector<mygui::Signal> recorded_signals;
