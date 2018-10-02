@@ -85,6 +85,12 @@ void Signal::ClearMissed() {
 	m_detection_missed = 0;
 }
 
+void Signal::SetColor(sf::Color const& col) {
+	size_t const count = m_curve.getVertexCount();
+	for (int i = 0; i < count; ++i)
+		m_curve[i].color = col;
+}
+
 // Return false if a signal never reached the threashold value when the window was on
 void Signal::Edit(float* buf, int start, int size) {
 	const float y_zero = m_graph_region.top + m_graph_region.height;

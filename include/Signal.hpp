@@ -23,6 +23,7 @@ public:
 	void ClearDetectionsOutWindow();
 	int  GetMissed() const;
 	void ClearMissed();
+	void SetColor(sf::Color const& col);
 
 	// Return false if a signal never reached the threashold value when the window was on
 	void Edit(float* buf, int start, int size);

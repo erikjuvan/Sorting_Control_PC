@@ -248,6 +248,7 @@ void MainWindow::CreateChart(int samples) {
 	chart->OnKeyPress(&MainWindow::chart_OnKeyPress);
 	signals.clear();
 	signals.reserve(N_CHANNELS);
+	recorded_signals.reserve(N_CHANNELS * 10); // make an arbitrary reservation, just so there aren't so many reallocations when first recording
 	for (int i = 0; i < N_CHANNELS; ++i) {
 		signals.push_back(Signal(g_n_samples, sf::Color(m_Colors[i]), chart->GetGraphRegion(), chart->GetMaxVal()));
 		chart->AddSignal(&signals[signals.size() - 1]);
