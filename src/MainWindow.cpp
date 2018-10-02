@@ -4,58 +4,49 @@
 #include "Helpers.hpp"
 #include "Application.hpp"
 
-extern Communication	*communication;
-extern MainWindow		*mainWindow;
-extern AnalysisWindow	*analysisWindow;
+extern Communication	*g_communication;
+extern MainWindow		*g_mainWindow;
+extern AnalysisWindow	*g_analysisWindow;
 
-extern std::thread thread_info;
-extern std::thread thread_get_data;
+extern Running g_running;
+extern Mode	g_mode;
+extern View	g_view;
+extern Capture g_capture;
 
-extern Running running;
-extern Mode	mode;
-extern View	view;
-extern Capture capture;
-
-extern int n_samples;
+extern int g_n_samples;
 
 void MainWindow::button_connect_Click() {
-	if (!communication->IsConnected()) {
-		if (communication->Connect(mainWindow->textbox_comport->GetText())) {
+	if (!g_communication->IsConnected()) {
+		if (g_communication->Connect(g_mainWindow->textbox_comport->GetText())) {
 
-			mainWindow->button_connect->SetText("Disconnect");
-			communication->Write("USBY\n");
+			g_mainWindow->button_connect->SetText("Disconnect");
+			g_communication->Write("USBY\n");
 			button_set_frequency_Click();
 			button_set_filter_params_Click();
 			button_set_times_Click();
 
-			communication->Write("CFILTERED\n");
-			communication->Write("VRBS,1\n");
-
-			thread_info = std::thread(Information);
-			thread_get_data = std::thread(GetData);
+			g_communication->Write("CFILTERED\n");
+			g_communication->Write("VRBS,1\n");
 		}
 	}
 	else {
-		communication->Write("USBY\n");
-		communication->Disconnect();
-		mainWindow->button_connect->SetText("Connect");
-
-		thread_info.detach();
-		thread_get_data.detach();
+		g_communication->Write("USBY\n");
+		g_communication->Disconnect();
+		g_mainWindow->button_connect->SetText("Connect");
 	}
 }
 
 void MainWindow::button_run_Click() {
-	if (running == Running::STOPPED) {
-		running = Running::RUNNING;
-		mainWindow->button_run->SetText("Running");
+	if (g_running == Running::STOPPED) {
+		g_running = Running::RUNNING;
+		g_mainWindow->button_run->SetText("Running");
 
 		for (int i = 0; i < N_CHANNELS; ++i)
-			mainWindow->chart->ChangeSignal(i, &mainWindow->signals[i]);
+			g_mainWindow->chart->ChangeSignal(i, &g_mainWindow->signals[i]);
 	}
-	else if (running == Running::RUNNING) {
-		running = Running::STOPPED;
-		mainWindow->button_run->SetText("Stopped");
+	else if (g_running == Running::RUNNING) {
+		g_running = Running::STOPPED;
+		g_mainWindow->button_run->SetText("Stopped");
 	}
 }
 
@@ -64,13 +55,13 @@ void MainWindow::button_toggle_usb_uart_Click() {
 
 	if (com == Com::USB) {
 		com = Com::UART;
-		communication->Write("USBN\n");
-		mainWindow->button_toggle_usb_uart->SetText("UART");
+		g_communication->Write("USBN\n");
+		g_mainWindow->button_toggle_usb_uart->SetText("UART");
 	}
 	else if (com == Com::UART) {
 		com = Com::USB;
-		communication->Write("USBY\n");
-		mainWindow->button_toggle_usb_uart->SetText("USB");
+		g_communication->Write("USBY\n");
+		g_mainWindow->button_toggle_usb_uart->SetText("USB");
 	}
 }
 
@@ -78,111 +69,111 @@ void MainWindow::button_trigger_frame_Click() {
 	static bool trigger_frame = false;
 	if (trigger_frame == false) {
 		trigger_frame = true;
-		communication->Write("TRGFRM,1\n");
-		mainWindow->chart->EnableTriggerFrame();
-		mainWindow->button_trigger_frame->SetText("Frame ON");
+		g_communication->Write("TRGFRM,1\n");
+		g_mainWindow->chart->EnableTriggerFrame();
+		g_mainWindow->button_trigger_frame->SetText("Frame ON");
 	}
 	else {
 		trigger_frame = false;
-		communication->Write("TRGFRM,0\n");
-		mainWindow->chart->DisableTriggerFrame();
-		mainWindow->button_trigger_frame->SetText("Frame OFF");
+		g_communication->Write("TRGFRM,0\n");
+		g_mainWindow->chart->DisableTriggerFrame();
+		g_mainWindow->button_trigger_frame->SetText("Frame OFF");
 	}
 }
 
 void MainWindow::button_set_frequency_Click() {
-	communication->Write("CSETF," + mainWindow->textbox_frequency->GetText() + "\n");
+	g_communication->Write("CSETF," + g_mainWindow->textbox_frequency->GetText() + "\n");
 }
 
 void MainWindow::button_set_filter_params_Click() {
-	communication->Write("CPARAMS," + mainWindow->textbox_filter_params->GetText() + "\n");
+	g_communication->Write("CPARAMS," + g_mainWindow->textbox_filter_params->GetText() + "\n");
 
 	// Set threashold for all signals
-	std::vector<std::string> strings = Help::TokenizeString(mainWindow->textbox_filter_params->GetText());
-	for (auto& s : mainWindow->signals) {
+	std::vector<std::string> strings = Help::TokenizeString(g_mainWindow->textbox_filter_params->GetText());
+	for (auto& s : g_mainWindow->signals) {
 		s.SetThreashold(std::stof(strings[3]));
 	}
 }
 
 void MainWindow::button_set_times_Click() {
-	communication->Write("CTIMES," + mainWindow->textbox_times->GetText() + "\n");
+	g_communication->Write("CTIMES," + g_mainWindow->textbox_times->GetText() + "\n");
 
 	// Set blind time for all signals
-	std::vector<std::string> strings = Help::TokenizeString(mainWindow->textbox_times->GetText());
-	for (auto& s : mainWindow->signals) {
+	std::vector<std::string> strings = Help::TokenizeString(g_mainWindow->textbox_times->GetText());
+	for (auto& s : g_mainWindow->signals) {
 		s.SetBlindTime(std::stoi(strings[2]));
 	}
 }
 
 void MainWindow::button_view_mode_Click() {
-	if (view == View::FILTERED) {
-		view = View::RAW;
-		communication->Write("CRAW\n");
-		mainWindow->button_view_mode->SetText("Raw");
+	if (g_view == View::FILTERED) {
+		g_view = View::RAW;
+		g_communication->Write("CRAW\n");
+		g_mainWindow->button_view_mode->SetText("Raw");
 	}
-	else if (view == View::RAW) {
-		view = View::FILTERED;
-		communication->Write("CFILTERED\n");
-		mainWindow->button_view_mode->SetText("Filtered");
+	else if (g_view == View::RAW) {
+		g_view = View::FILTERED;
+		g_communication->Write("CFILTERED\n");
+		g_mainWindow->button_view_mode->SetText("Filtered");
 	}
 }
 
 void MainWindow::button_capture_Click() {
-	if (capture == Capture::OFF) {
-		capture = Capture::ON;
-		mainWindow->button_capture->SetColor(sf::Color::Green);
+	if (g_capture == Capture::OFF) {
+		g_capture = Capture::ON;
+		g_mainWindow->button_capture->SetColor(sf::Color::Green);
 	}
-	else if (capture == Capture::ON) {
-		capture = Capture::OFF;
-		mainWindow->button_capture->ResetColor();
+	else if (g_capture == Capture::ON) {
+		g_capture = Capture::OFF;
+		g_mainWindow->button_capture->ResetColor();
 	}
 }
 
 void MainWindow::button_record_Click() {
-	if (mode == Mode::LIVE) {
-		mode = Mode::RECORD;
-		mainWindow->button_record->SetColor(sf::Color::Red);
-		mainWindow->recorded_signals.clear();
+	if (g_mode == Mode::LIVE) {
+		g_mode = Mode::RECORD;
+		g_mainWindow->button_record->SetColor(sf::Color::Red);
+		g_mainWindow->recorded_signals.clear();
 	}
-	else if (mode == Mode::RECORD) {
-		mode = Mode::LIVE;
-		mainWindow->button_record->ResetColor();
+	else if (g_mode == Mode::RECORD) {
+		g_mode = Mode::LIVE;
+		g_mainWindow->button_record->ResetColor();
 	}
 }
 
 void MainWindow::button_analysis_window_Click() {
-	if (!analysisWindow->IsOpen()) {
-		analysisWindow->Create(390, 360, "Info", sf::Style::None | sf::Style::Close);
-		analysisWindow->SetPosition(mainWindow->GetPosition() + sf::Vector2i(1850 - 420, 40));
-		analysisWindow->AlwaysOnTop(true);
-		analysisWindow->MakeTransparent();
-		analysisWindow->SetTransparency(120);
+	if (!g_analysisWindow->IsOpen()) {
+		g_analysisWindow->Create(390, 360, "Info", sf::Style::None | sf::Style::Close);
+		g_analysisWindow->SetPosition(g_mainWindow->GetPosition() + sf::Vector2i(1850 - 420, 40));
+		g_analysisWindow->AlwaysOnTop(true);
+		g_analysisWindow->MakeTransparent();
+		g_analysisWindow->SetTransparency(120);
 
 	}	
 }
 
 void MainWindow::label_info_detected_in_window_Clicked() {
-	for (auto& s : mainWindow->signals) {
+	for (auto& s : g_mainWindow->signals) {
 		s.ClearDetectionsInWindow();
 	}
 }
 
 void MainWindow::label_info_detected_out_window_Clicked() {
 
-	for (auto& s : mainWindow->signals) {
+	for (auto& s : g_mainWindow->signals) {
 		s.ClearDetectionsOutWindow();
 	}
 }
 
 void MainWindow::label_info_signal_missed_Clicked() {
-	for (auto& s : mainWindow->signals) {
+	for (auto& s : g_mainWindow->signals) {
 		s.ClearMissed();
 	}
 }
 
 void MainWindow::checkbox_only_show_framed_Clicked() {
-	for (auto& s : mainWindow->signals) {
-		s.OnlyDrawOnTrigger(mainWindow->checkbox_only_show_framed->IsChecked());
+	for (auto& s : g_mainWindow->signals) {
+		s.OnlyDrawOnTrigger(g_mainWindow->checkbox_only_show_framed->IsChecked());
 	}
 }
 
@@ -190,75 +181,75 @@ void MainWindow::checkbox_transparent_Clicked() {
 	static bool transparent = false;
 	if (!transparent) {
 		transparent = true;
-		mainWindow->MakeTransparent();
-		mainWindow->SetTransparency(120);
+		g_mainWindow->MakeTransparent();
+		g_mainWindow->SetTransparency(120);
 	}
 	else {
 		transparent = false;
-		mainWindow->SetTransparency(255);
+		g_mainWindow->SetTransparency(255);
 	}
 }
 
 void MainWindow::chart_OnKeyPress(const sf::Event& event) {
 	static int frame_idx = -1;	// -1 so that when we first press right arrow we get the first [0] frame
-	if (mode == Mode::RECORD && running == Running::STOPPED) {
+	if (g_mode == Mode::RECORD && g_running == Running::STOPPED) {
 		if (event.key.code == sf::Keyboard::Left) {
 			if (frame_idx > 0) {
 				frame_idx--;
 				for (int i = 0; i < N_CHANNELS; ++i)
-					mainWindow->chart->ChangeSignal(i, &mainWindow->recorded_signals[frame_idx * N_CHANNELS + i]);
+					g_mainWindow->chart->ChangeSignal(i, &g_mainWindow->recorded_signals[frame_idx * N_CHANNELS + i]);
 			}
 		}
 		if (event.key.code == sf::Keyboard::Right) {
-			const int size = ((int)mainWindow->recorded_signals.size() / N_CHANNELS);	// conversion from size_t to int (const int size) must be made or the bottom evaluation is wrong since comparing signed to unsigned, compiler promotes signed to unsigned converting -1 to maximum int value
+			const int size = ((int)g_mainWindow->recorded_signals.size() / N_CHANNELS);	// conversion from size_t to int (const int size) must be made or the bottom evaluation is wrong since comparing signed to unsigned, compiler promotes signed to unsigned converting -1 to maximum int value
 			if (frame_idx < (size - 1)) {
 				frame_idx++;
 				for (int i = 0; i < N_CHANNELS; ++i)
-					mainWindow->chart->ChangeSignal(i, &mainWindow->recorded_signals[frame_idx * N_CHANNELS + i]);
+					g_mainWindow->chart->ChangeSignal(i, &g_mainWindow->recorded_signals[frame_idx * N_CHANNELS + i]);
 			}
 		}
 	}
 
 	switch (event.key.code) {
 	case sf::Keyboard::Num0:
-		mainWindow->chart->ToggleDrawAllSignals();
+		g_mainWindow->chart->ToggleDrawAllSignals();
 		break;
 	case sf::Keyboard::Num1:
-		mainWindow->chart->ToggleDrawSignal(1);
+		g_mainWindow->chart->ToggleDrawSignal(1);
 		break;
 	case sf::Keyboard::Num2:
-		mainWindow->chart->ToggleDrawSignal(2);
+		g_mainWindow->chart->ToggleDrawSignal(2);
 		break;
 	case sf::Keyboard::Num3:
-		mainWindow->chart->ToggleDrawSignal(3);
+		g_mainWindow->chart->ToggleDrawSignal(3);
 		break;
 	case sf::Keyboard::Num4:
-		mainWindow->chart->ToggleDrawSignal(4);
+		g_mainWindow->chart->ToggleDrawSignal(4);
 		break;
 	case sf::Keyboard::Num5:
-		mainWindow->chart->ToggleDrawSignal(5);
+		g_mainWindow->chart->ToggleDrawSignal(5);
 		break;
 	case sf::Keyboard::Num6:
-		mainWindow->chart->ToggleDrawSignal(6);
+		g_mainWindow->chart->ToggleDrawSignal(6);
 		break;
 	case sf::Keyboard::Num7:
-		mainWindow->chart->ToggleDrawSignal(7);
+		g_mainWindow->chart->ToggleDrawSignal(7);
 		break;
 	case sf::Keyboard::Num8:
-		mainWindow->chart->ToggleDrawSignal(8);
+		g_mainWindow->chart->ToggleDrawSignal(8);
 		break;
 	}
 }
 
 void MainWindow::CreateChart(int samples) {
-	n_samples = samples;
-	chart = new mygui::Chart(240, 10, 1600, 880, n_samples, 100);
+	g_n_samples = samples;
+	chart = new mygui::Chart(240, 10, 1600, 880, g_n_samples, 100);
 	chart->CreateGrid(9);
 	chart->OnKeyPress(&MainWindow::chart_OnKeyPress);
 	signals.clear();
 	signals.reserve(N_CHANNELS);
 	for (int i = 0; i < N_CHANNELS; ++i) {
-		signals.push_back(mygui::Signal(n_samples, sf::Color(m_Colors[i]), chart->GetGraphRegion(), chart->GetMaxVal()));
+		signals.push_back(mygui::Signal(g_n_samples, sf::Color(m_Colors[i]), chart->GetGraphRegion(), chart->GetMaxVal()));
 		chart->AddSignal(&signals[signals.size() - 1]);
 	}
 }

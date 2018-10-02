@@ -1,6 +1,6 @@
 #include "AnalysisWindow.hpp"
 
-extern AnalysisWindow	*analysisWindow;
+extern AnalysisWindow	*g_analysisWindow;
 
 SortingAnalysis::Channel::Channel() : min(1000), max(0), avg(0), last(0), cnt(0), sum(0) {
 }
@@ -48,7 +48,7 @@ void SortingAnalysis::Add(uint32_t* data, int size) {
 // Callback
 ///////////
 void AnalysisWindow::button_clear_all_Clicked() {
-	analysisWindow->m_analysis->ClearAll();
+	g_analysisWindow->m_analysis->ClearAll();
 }
 ///////////
 
