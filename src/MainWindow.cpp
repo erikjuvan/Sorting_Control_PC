@@ -243,13 +243,13 @@ void MainWindow::chart_OnKeyPress(const sf::Event& event) {
 
 void MainWindow::CreateChart(int samples) {
 	g_n_samples = samples;
-	chart = new mygui::Chart(240, 10, 1600, 880, g_n_samples, 100);
+	chart = new Chart(240, 10, 1600, 880, g_n_samples, 100);
 	chart->CreateGrid(9);
 	chart->OnKeyPress(&MainWindow::chart_OnKeyPress);
 	signals.clear();
 	signals.reserve(N_CHANNELS);
 	for (int i = 0; i < N_CHANNELS; ++i) {
-		signals.push_back(mygui::Signal(g_n_samples, sf::Color(m_Colors[i]), chart->GetGraphRegion(), chart->GetMaxVal()));
+		signals.push_back(Signal(g_n_samples, sf::Color(m_Colors[i]), chart->GetGraphRegion(), chart->GetMaxVal()));
 		chart->AddSignal(&signals[signals.size() - 1]);
 	}
 }

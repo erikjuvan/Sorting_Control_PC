@@ -1,12 +1,13 @@
 #pragma once
 
-#include "Window.hpp"
-#include "Application.hpp"
 #include <mygui/Button.hpp>
 #include <mygui/Label.hpp>
-#include <mygui/Chart.hpp>
 #include <mygui/Textbox.hpp>
 #include <mygui/Checkbox.hpp>
+
+#include "Window.hpp"
+#include "Chart.hpp"
+#include "Application.hpp"
 
 class MainWindow : public Window {
 private:
@@ -46,7 +47,7 @@ public:
 	// Members
 	//////////
 
-	mygui::Chart *chart;
+	Chart *chart;
 	// Button
 	mygui::Button *button_connect;
 	mygui::Button *button_run;
@@ -78,8 +79,8 @@ public:
 	mygui::Checkbox *checkbox_only_show_framed;
 	mygui::Checkbox *checkbox_transparent;
 
-	std::vector<mygui::Signal> signals;
-	std::vector<mygui::Signal> recorded_signals;
+	std::vector<Signal> signals;
+	std::vector<Signal> recorded_signals;
 };
 
 
