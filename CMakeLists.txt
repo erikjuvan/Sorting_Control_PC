@@ -19,6 +19,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 	src/Window.cpp
 	src/MainWindow.cpp
 	src/AnalysisWindow.cpp
+	src/Signal.cpp
 	src/Chart.cpp
 	)
 	
@@ -29,6 +30,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 	include/Window.hpp
 	include/MainWindow.hpp
 	include/AnalysisWindow.hpp
+	include/Signal.hpp
 	include/Chart.hpp
 	)
 
