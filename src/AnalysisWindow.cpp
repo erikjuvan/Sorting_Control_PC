@@ -73,41 +73,38 @@ void SortingAnalysis::Add(uint32_t* data, int size) {
 
 void SortingAnalysis::SaveRecord(char const* fname) {	
 	std::ofstream f(fname, std::ios::out | std::ios::app);	// open for writting and append data
+
+	auto write_to_file = [&f](std::string& b) { if (b[b.size() - 1] == ',') b.pop_back(); b += "]\n"; f << b; };
+
 	if (f.is_open()) {
 
 		// Channels
 		for (int i = 0; i < N_CHANNELS; ++i) {
 			std::string buf;
+			buf += "ch" + std::to_string(i + 1) + "=[";
 			for (auto const &num : channel[i].record_buf) {
 				buf += std::to_string(num) + ",";
 			}
-			if (buf.size() > 0)
-				buf.pop_back();
-			buf += '\n';
-			f << buf;
+			write_to_file(buf);
 		}
 
 		// Total (the way they came)
 		std::string buf;
+		buf = "total=[";
 		for (auto const &num : total.record_buf) {
 			buf += std::to_string(num) + ",";
-		}
-		if (buf.size() > 0)
-			buf.pop_back();
-		buf += '\n';
-		f << buf;
+		}		
+		write_to_file(buf);
 
 		// Total (sorted by channels)
 		buf.clear();
+		buf = "total_sorted_by_channel_id=[";
 		for (int i = 0; i < N_CHANNELS; ++i) {			
 			for (auto const &num : channel[i].record_buf) {
 				buf += std::to_string(num) + ",";
 			}			
-		}
-		if (buf.size() > 0)
-			buf.pop_back();
-		buf += '\n';
-		f << buf;
+		}		
+		write_to_file(buf);
 
 		f.close();
 		std::cout << "Analysis info saved to " << fname << std::endl;
