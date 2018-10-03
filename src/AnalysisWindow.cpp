@@ -74,6 +74,8 @@ void SortingAnalysis::Add(uint32_t* data, int size) {
 void SortingAnalysis::SaveRecord(char const* fname) {	
 	std::ofstream f(fname, std::ios::out | std::ios::app);	// open for writting and append data
 	if (f.is_open()) {
+
+		// Channels
 		for (int i = 0; i < N_CHANNELS; ++i) {
 			std::string buf;
 			for (auto const &num : channel[i].record_buf) {
@@ -84,6 +86,8 @@ void SortingAnalysis::SaveRecord(char const* fname) {
 			buf += '\n';
 			f << buf;
 		}
+
+		// Total (the way they came)
 		std::string buf;
 		for (auto const &num : total.record_buf) {
 			buf += std::to_string(num) + ",";
@@ -93,8 +97,20 @@ void SortingAnalysis::SaveRecord(char const* fname) {
 		buf += '\n';
 		f << buf;
 
+		// Total (sorted by channels)
+		buf.clear();
+		for (int i = 0; i < N_CHANNELS; ++i) {			
+			for (auto const &num : channel[i].record_buf) {
+				buf += std::to_string(num) + ",";
+			}			
+		}
+		if (buf.size() > 0)
+			buf.pop_back();
+		buf += '\n';
+		f << buf;
+
 		f.close();
-		std::cout << "Info saved to " << fname << std::endl;
+		std::cout << "Analysis info saved to " << fname << std::endl;
 	}
 
 }
