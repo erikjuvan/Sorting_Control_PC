@@ -18,7 +18,7 @@ struct SortingAnalysis {
 		std::vector<int> record_buf;
 
 		Channel();
-		void ClearAll();
+		void Clear();
 	};
 
 	Channel channel[N_CHANNELS];

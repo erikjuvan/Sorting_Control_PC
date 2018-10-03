@@ -7,11 +7,11 @@
 extern AnalysisWindow	*g_analysisWindow;
 
 SortingAnalysis::Channel::Channel() {
-	ClearAll();
+	Clear();
 	record_buf.reserve(1000);
 }
 
-void SortingAnalysis::Channel::ClearAll() {
+void SortingAnalysis::Channel::Clear() {
 	min = 1000;
 	max = avg = prev_avg = std_dev = S = last = cnt = sum = 0;
 	record_buf.clear();
@@ -19,9 +19,9 @@ void SortingAnalysis::Channel::ClearAll() {
 
 void SortingAnalysis::ClearAll() {
 	for (auto& c : channel) {
-		c.ClearAll();
+		c.Clear();
 	}
-	total.ClearAll();
+	total.Clear();
 }
 
 void SortingAnalysis::Add(uint32_t* data, int size) {
@@ -31,6 +31,9 @@ void SortingAnalysis::Add(uint32_t* data, int size) {
 		if (val > 0) {
 			int ch = ((data[i] >> 24) & 0xFF);
 
+			///////////////
+			// Channel i //
+			///////////////
 			channel[ch].last = val;
 			channel[ch].sum += val;
 			channel[ch].cnt++;
