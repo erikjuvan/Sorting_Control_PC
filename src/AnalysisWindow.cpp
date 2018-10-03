@@ -68,34 +68,32 @@ void SortingAnalysis::Add(uint32_t* data, int size) {
 	}
 }
 
-void SortingAnalysis::SaveRecord(char const* fname) {
-	if (total.record_buf.size() > 0) {	// If there is any data
-		std::ofstream f(fname, std::ios::out | std::ios::ate);	// open for writting and attach to file
-		if (f.is_open()) {
-			for (int i = 0; i < N_CHANNELS; ++i) {
-				std::string buf;
-				for (auto const &num : channel[i].record_buf) {
-					buf += std::to_string(num) + ",";
-				}
-				buf.pop_back();
-				buf += '\n';
-				f << buf;
-			}
+void SortingAnalysis::SaveRecord(char const* fname) {	
+	std::ofstream f(fname, std::ios::out | std::ios::app);	// open for writting and append data
+	if (f.is_open()) {
+		for (int i = 0; i < N_CHANNELS; ++i) {
 			std::string buf;
-			for (auto const &num : total.record_buf) {
+			for (auto const &num : channel[i].record_buf) {
 				buf += std::to_string(num) + ",";
 			}
-			buf.pop_back();
+			if (buf.size() > 0)
+				buf.pop_back();
 			buf += '\n';
 			f << buf;
-
-			f.close();
-			std::cout << "Info saved to " << fname << std::endl;
 		}
+		std::string buf;
+		for (auto const &num : total.record_buf) {
+			buf += std::to_string(num) + ",";
+		}
+		if (buf.size() > 0)
+			buf.pop_back();
+		buf += '\n';
+		f << buf;
+
+		f.close();
+		std::cout << "Info saved to " << fname << std::endl;
 	}
-	else {
-		std::cout << "No info data to save" << std::endl;
-	}
+
 }
 
 // Callback
