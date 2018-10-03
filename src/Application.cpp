@@ -112,11 +112,11 @@ void Application::InitFromFile(const std::string& file_name) {
 void Application::Init() {
 	g_communication = new Communication();
 	g_mainWindow = new MainWindow(1850, 900, "Sorting Control", sf::Style::None | sf::Style::Close);	
-	g_analysisWindow = new AnalysisWindow(390, 360, "Info", sf::Style::None | sf::Style::Close);
-	g_analysisWindow->SetPosition(g_mainWindow->GetPosition() + sf::Vector2i(1850-420, 40));
+	g_analysisWindow = new AnalysisWindow("Info");
+	g_analysisWindow->SetPosition(g_mainWindow->GetPosition() + sf::Vector2i(1850-480, 40));
 	g_analysisWindow->AlwaysOnTop(true);
 	g_analysisWindow->MakeTransparent();
-	g_analysisWindow->SetTransparency(120);
+	g_analysisWindow->SetTransparency(150);
 
 	// Initial parameters from file init
 	InitFromFile("config.txt");
