@@ -82,8 +82,7 @@ public:
 	mygui::Checkbox *checkbox_transparent;
 
 	std::vector<Signal> signals;
-	std::vector<Signal> recorded_signals;
-	std::deque<Signal>	tmp_record;
+	std::vector<Signal> recorded_signals;	
 };
 
 

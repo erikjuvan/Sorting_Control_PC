@@ -78,24 +78,11 @@ static void GetData() {
 								g_mainWindow->recorded_signals.push_back(s);
 						}
 						else if (g_mode == Mode::RECORD_ERRORS) {
-							static bool record = false;
-							for (auto const& s : g_mainWindow->signals) {
-								g_mainWindow->tmp_record.push_back(s);
-								g_mainWindow->tmp_record.pop_front();
-							}
-							
-							// static local variable record is used to offset recording by one frame
-							// so we get EF-1,EF,EF+1 frames, where error is in EF - Error Frame
-							if (record) {
-								record = false;
-								for (auto const& s : g_mainWindow->tmp_record) {
-									g_mainWindow->recorded_signals.push_back(s);
-								}
-							}
-
 							if (Signal::GetError()) {
-								record = true;
-							} 						
+								Signal::ResetError();
+								for (auto const& s : g_mainWindow->signals)
+									g_mainWindow->recorded_signals.push_back(s);
+							}
 						}
 					}
 				}

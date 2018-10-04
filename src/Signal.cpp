@@ -1,6 +1,17 @@
 #include "Signal.hpp"
 
+// Static
+////////////////////
 bool Signal::error = false;
+
+bool Signal::GetError() {
+	return Signal::error;
+}
+
+void Signal::ResetError() {
+	Signal::error = false;
+}
+////////////////////
 
 Signal::Signal(int n, sf::Color col, const sf::FloatRect& region, float *max_val) :
 	m_curve(sf::PrimitiveType::LineStrip, n),
@@ -178,12 +189,4 @@ void Signal::Edit(float* buf, int start, int size) {
 	for (int i = 0, s = start; i < size; ++i, ++s) {
 		m_curve[s].position.y = y_zero - (buf[i] / *m_max_val) * m_graph_region.height + 1;
 	}
-}
-
-
-bool Signal::GetError() {
-	bool ret = Signal::error;
-	Signal::error = false;
-
-	return ret;
 }

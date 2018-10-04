@@ -259,12 +259,6 @@ void MainWindow::CreateChart(int samples) {
 		signals.push_back(Signal(g_n_samples, sf::Color(m_Colors[i]), chart->GetGraphRegion(), chart->GetMaxVal()));
 		chart->AddSignal(&signals[signals.size() - 1]);
 	}
-
-	// Initialize a temporary record for holding last 3 frames when recording only errors
-	for (int i = 0; i < 3; ++i) {
-		for (auto const& s : signals)
-			tmp_record.push_back(s);
-	}
 }
 
 void MainWindow::RunClick() {

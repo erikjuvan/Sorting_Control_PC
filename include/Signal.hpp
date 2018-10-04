@@ -6,6 +6,7 @@ class Signal : public sf::Drawable {
 
 public:
 	static bool GetError();
+	static void ResetError();
 
 	Signal(int n, sf::Color col, const sf::FloatRect& region, float *max_val);
 
