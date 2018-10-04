@@ -1,5 +1,7 @@
 #include "Signal.hpp"
 
+bool Signal::error = false;
+
 Signal::Signal(int n, sf::Color col, const sf::FloatRect& region, float *max_val) :
 	m_curve(sf::PrimitiveType::LineStrip, n),
 	m_trigger_frame(sf::PrimitiveType::Lines, N_TRIGGER_FRAME_POINTS),
@@ -149,6 +151,7 @@ void Signal::Edit(float* buf, int start, int size) {
 				if (m_threashold == Threashold::SEARCHING) {
 					m_threashold = Threashold::MISSED;
 					m_detection_missed++;
+					Signal::error = true;
 				}
 			}
 			else if (m_trigger_val == 1) { // frame active
@@ -166,6 +169,7 @@ void Signal::Edit(float* buf, int start, int size) {
 				if (m_threashold == Threashold::REACHED) {
 					m_detected_out_window_cnt++;
 					m_threashold = Threashold::IDLE;
+					Signal::error = true;
 				}
 			}
 		}
@@ -174,4 +178,12 @@ void Signal::Edit(float* buf, int start, int size) {
 	for (int i = 0, s = start; i < size; ++i, ++s) {
 		m_curve[s].position.y = y_zero - (buf[i] / *m_max_val) * m_graph_region.height + 1;
 	}
+}
+
+
+bool Signal::GetError() {
+	bool ret = Signal::error;
+	Signal::error = false;
+
+	return ret;
 }

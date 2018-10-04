@@ -136,6 +136,11 @@ void MainWindow::button_record_Click() {
 		g_mainWindow->recorded_signals.clear();
 	}
 	else if (g_mode == Mode::RECORD) {
+		g_mode = Mode::RECORD_ERRORS;
+		g_mainWindow->button_record->SetColor(sf::Color::Yellow);		
+		g_mainWindow->recorded_signals.clear();
+	}
+	else if (g_mode == Mode::RECORD_ERRORS) {
 		g_mode = Mode::LIVE;
 		g_mainWindow->button_record->ResetColor();
 	}
@@ -192,7 +197,8 @@ void MainWindow::checkbox_transparent_Clicked() {
 
 void MainWindow::chart_OnKeyPress(const sf::Event& event) {
 	static int frame_idx = -1;	// -1 so that when we first press right arrow we get the first [0] frame
-	if (g_mode == Mode::RECORD && g_running == Running::STOPPED) {
+	if ((g_mode == Mode::RECORD || g_mode == Mode::RECORD_ERRORS) 
+		&& g_running == Running::STOPPED) {
 		if (event.key.code == sf::Keyboard::Left) {
 			if (frame_idx > 0) {
 				frame_idx--;
@@ -253,13 +259,20 @@ void MainWindow::CreateChart(int samples) {
 		signals.push_back(Signal(g_n_samples, sf::Color(m_Colors[i]), chart->GetGraphRegion(), chart->GetMaxVal()));
 		chart->AddSignal(&signals[signals.size() - 1]);
 	}
+
+	// Initialize a temporary record for holding last 3 frames when recording only errors
+	for (int i = 0; i < 3; ++i) {
+		for (auto const& s : signals)
+			tmp_record.push_back(s);
+	}
 }
 
 void MainWindow::RunClick() {
 	button_run_Click();
 }
 
-MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) : Window(w, h, title, style) {
+MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) 
+	: Window(w, h, title, style) {
 	///////////
 	// Chart //
 	///////////

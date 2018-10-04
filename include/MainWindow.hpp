@@ -1,5 +1,7 @@
 #pragma once
 
+#include <deque>
+
 #include <mygui/Button.hpp>
 #include <mygui/Label.hpp>
 #include <mygui/Textbox.hpp>
@@ -81,6 +83,7 @@ public:
 
 	std::vector<Signal> signals;
 	std::vector<Signal> recorded_signals;
+	std::deque<Signal>	tmp_record;
 };
 
 

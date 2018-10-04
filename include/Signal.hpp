@@ -5,6 +5,8 @@
 class Signal : public sf::Drawable {
 
 public:
+	static bool GetError();
+
 	Signal(int n, sf::Color col, const sf::FloatRect& region, float *max_val);
 
 	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
@@ -32,6 +34,8 @@ private:
 	enum class Threashold { IDLE, REACHED, MISSED, SEARCHING };
 
 	static constexpr int N_TRIGGER_FRAME_POINTS = 60;	// should be enough for ~ 60 / 3 = 20 windows	
+
+	static bool error;
 
 	sf::VertexArray	m_curve;
 	sf::VertexArray	m_trigger_frame;

@@ -61,9 +61,9 @@ static void GetData() {
 				if (read > 0) {
 					thr_missed = false;
 					float* fbuf_tmp = fbuf;
-					for (int ch = 0; ch < N_CHANNELS; ++ch) {
-						g_mainWindow->signals[ch].Edit(fbuf_tmp, cntr * DATA_PER_CHANNEL, DATA_PER_CHANNEL);
-						if (g_mainWindow->signals[ch].ThreasholdMissed() && g_capture == Capture::ON && !thr_missed) {
+					for (auto& s : g_mainWindow->signals) {				
+						s.Edit(fbuf_tmp, cntr * DATA_PER_CHANNEL, DATA_PER_CHANNEL);
+						if (s.ThreasholdMissed() && g_capture == Capture::ON && !thr_missed) {
 							g_mainWindow->RunClick();	// only change state here
 							thr_missed = true;
 							// we don't break out, because we want to draw out the remaining buffer
@@ -74,8 +74,28 @@ static void GetData() {
 					if (++cntr >= (g_n_samples / DATA_PER_CHANNEL)) {
 						cntr = 0;
 						if (g_mode == Mode::RECORD) {
-							for (const auto& s : g_mainWindow->signals)
+							for (auto const& s : g_mainWindow->signals)
 								g_mainWindow->recorded_signals.push_back(s);
+						}
+						else if (g_mode == Mode::RECORD_ERRORS) {
+							static bool record = false;
+							for (auto const& s : g_mainWindow->signals) {
+								g_mainWindow->tmp_record.push_back(s);
+								g_mainWindow->tmp_record.pop_front();
+							}
+							
+							// static local variable record is used to offset recording by one frame
+							// so we get EF-1,EF,EF+1 frames, where error is in EF - Error Frame
+							if (record) {
+								record = false;
+								for (auto const& s : g_mainWindow->tmp_record) {
+									g_mainWindow->recorded_signals.push_back(s);
+								}
+							}
+
+							if (Signal::GetError()) {
+								record = true;
+							} 						
 						}
 					}
 				}
