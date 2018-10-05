@@ -4,6 +4,10 @@
 Communication::Communication() : m_serial("", 256000) {
 }
 
+Communication::~Communication() {
+	Disconnect();
+}
+
 bool Communication::Connect(const std::string& port) {
 	bool ret = true;
 
@@ -15,70 +19,64 @@ bool Communication::Connect(const std::string& port) {
 		ret = false;
 	}
 	
-	if (ret)
+	if (ret) {
 		m_is_connected = true;
+		SetTimeout(500);
+	}		
 
 	return ret;
 }
 
 void Communication::Disconnect() {
-	//std::lock_guard<std::mutex> lock(m_mutex);
-
 	m_is_connected = false;
 	m_serial.close();	
 }
 
-int Communication::GetRxBufferLen() {
-	//std::lock_guard<std::mutex> lock(m_mutex);
-
+size_t Communication::GetRxBufferLen() {	
 	if (IsConnected())
-		return static_cast<int>(m_serial.available());
+		return m_serial.available();
 	else
 		return 0;
 }
 
-int Communication::Write(const void* data, int size) {	
-	//std::lock_guard<std::mutex> lock(m_mutex);
-
-	if (IsConnected()) {
-		int ret = static_cast<int>(m_serial.write((uint8_t*)data, size));
-		return ret;		
-	} else
+size_t Communication::Write(const void* data, int size) {
+	if (IsConnected())
+		return m_serial.write((uint8_t*)data, size);
+	else
 		return 0;
 }
 
-int Communication::Write(const std::string& data) {	
-	//std::lock_guard<std::mutex> lock(m_mutex);
-
-	if (IsConnected()) {
-		int ret = static_cast<int>(m_serial.write(data));
-		return ret;
-	}
+size_t Communication::Write(const std::string& data) {
+	if (IsConnected())
+		return m_serial.write(data);
 	else
-		return 0;		
+		return 0;
 }
 
-int Communication::Read(void* data, int size) {
-	//std::lock_guard<std::mutex> lock(m_mutex);
+size_t Communication::Read(void* data, int size) {
+	if (IsConnected())
+		return m_serial.read((uint8_t*)data, size);
+	else
+		return 0;	
+}
 
-	if (IsConnected()) {
-		int ret = static_cast<int>(m_serial.read((uint8_t*)data, size));
-		return ret;
-	}
+std::string Communication::Readline() {
+	if (IsConnected())
+		return m_serial.readline();
 	else
 		return 0;
 }
 
 void Communication::Flush() {
-	//std::lock_guard<std::mutex> lock(m_mutex);
-
 	if (IsConnected())
 		m_serial.flush();
 }
 
 void Communication::Purge() {
-	//std::lock_guard<std::mutex> lock(m_mutex);
-
 	if (IsConnected())
 		m_serial.purge();
+}
+
+void Communication::SetTimeout(int ms) {	
+	m_serial.setTimeout(serial::Timeout::simpleTimeout(ms));
 }

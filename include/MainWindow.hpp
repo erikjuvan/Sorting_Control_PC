@@ -26,8 +26,7 @@ public:
 	void CreateChart(int n_sample);
 
 	static void button_connect_Click();
-	static void button_run_Click();
-	static void button_toggle_usb_uart_Click();
+	static void button_run_Click();	
 	static void button_trigger_frame_Click();
 	static void button_set_frequency_Click();
 	static void button_set_filter_params_Click();
@@ -56,8 +55,7 @@ public:
 	mygui::Button *button_trigger_frame;
 	mygui::Button *button_set_frequency;
 	mygui::Button *button_set_filter_params;
-	mygui::Button *button_set_times;
-	mygui::Button *button_toggle_usb_uart;
+	mygui::Button *button_set_times;	
 	mygui::Button *button_view_mode;
 	mygui::Button *button_capture;
 	mygui::Button *button_record;

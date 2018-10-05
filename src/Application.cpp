@@ -145,4 +145,8 @@ void Application::Run() {
 
 	g_thread_info.join();
 	g_thread_get_data.join();
+
+	delete g_analysisWindow;
+	delete g_mainWindow;
+	delete g_communication;
 }

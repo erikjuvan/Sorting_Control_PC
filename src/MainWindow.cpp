@@ -20,24 +20,64 @@ void MainWindow::button_connect_Click() {
 		if (g_communication->Connect(g_mainWindow->textbox_comport->GetText())) {
 
 			g_mainWindow->button_connect->SetText("Disconnect");
-			g_communication->Write("USBY\n");
-			button_set_frequency_Click();
-			button_set_filter_params_Click();
-			button_set_times_Click();
+			//g_communication->Write("USB\n");
 
-			g_communication->Write("CFILTERED\n");
-			g_communication->Write("VRBS,1\n");
+			std::string buf;
+			std::vector<std::string> strings;
+
+			auto& read_and_parse = [&buf, &strings](std::string const& str) {
+				g_communication->Write(str);
+				buf = g_communication->Readline();
+				strings = Help::TokenizeString(buf);
+				if (buf[buf.size() - 1] == '\n') buf.pop_back();
+			};
+
+			read_and_parse("CGETF\n");
+			g_mainWindow->textbox_frequency->SetText(buf);
+
+			read_and_parse("CGETPARAMS\n");
+			for (auto& s : g_mainWindow->signals) {
+				s.SetThreashold(std::stof(strings[3]));
+			}
+			g_mainWindow->textbox_filter_params->SetText(buf);
+
+			read_and_parse("CGETTIMES\n");
+			for (auto& s : g_mainWindow->signals) {
+				s.SetBlindTime(std::stof(strings[2]));
+			}
+			g_mainWindow->textbox_times->SetText(buf);
+
+			read_and_parse("TRGFRMG\n");
+			if (buf == "1")
+				button_trigger_frame_Click();
+
+			read_and_parse("CGETVIEW\n");
+			if (View::FILTERED == static_cast<View>(std::stoi(buf))) {
+				g_mainWindow->button_view_mode->SetText("Filtered");
+				g_view = View::FILTERED;
+			}				
+			else if (View::RAW == static_cast<View>(std::stoi(buf))) {
+				g_mainWindow->button_view_mode->SetText("Raw");
+				g_view = View::RAW;
+			}				
+			else if (View::TRAINED == static_cast<View>(std::stoi(buf))) {
+				g_mainWindow->button_view_mode->SetText("Trained");
+				g_view = View::TRAINED;
+			}				
 		}
 	}
-	else {
-		g_communication->Write("USBY\n");
+	else {		
 		g_communication->Disconnect();
+		g_communication->Write("VRBS,0\n");
 		g_mainWindow->button_connect->SetText("Connect");
 	}
 }
 
 void MainWindow::button_run_Click() {
 	if (g_running == Running::STOPPED) {
+		// Send data first before setting g_running = Running::RUNNING;
+		g_communication->Write("UART_BINARY\n");
+		g_communication->Write("VRBS,1\n");
 		g_running = Running::RUNNING;
 		g_mainWindow->button_run->SetText("Running");
 
@@ -45,23 +85,10 @@ void MainWindow::button_run_Click() {
 			g_mainWindow->chart->ChangeSignal(i, &g_mainWindow->signals[i]);
 	}
 	else if (g_running == Running::RUNNING) {
+		g_communication->Write("VRBS,0\n");
+		//g_communication->Write("USB\n");
 		g_running = Running::STOPPED;
 		g_mainWindow->button_run->SetText("Stopped");
-	}
-}
-
-void MainWindow::button_toggle_usb_uart_Click() {
-	static enum class Com { USB, UART } com{ Com::USB };
-
-	if (com == Com::USB) {
-		com = Com::UART;
-		g_communication->Write("USBN\n");
-		g_mainWindow->button_toggle_usb_uart->SetText("UART");
-	}
-	else if (com == Com::UART) {
-		com = Com::USB;
-		g_communication->Write("USBY\n");
-		g_mainWindow->button_toggle_usb_uart->SetText("USB");
 	}
 }
 
@@ -69,15 +96,39 @@ void MainWindow::button_trigger_frame_Click() {
 	static bool trigger_frame = false;
 	if (trigger_frame == false) {
 		trigger_frame = true;
-		g_communication->Write("TRGFRM,1\n");
+		g_communication->Write("TRGFRMS,1\n");
 		g_mainWindow->chart->EnableTriggerFrame();
 		g_mainWindow->button_trigger_frame->SetText("Frame ON");
 	}
 	else {
 		trigger_frame = false;
-		g_communication->Write("TRGFRM,0\n");
+		g_communication->Write("TRGFRMS,0\n");
 		g_mainWindow->chart->DisableTriggerFrame();
 		g_mainWindow->button_trigger_frame->SetText("Frame OFF");
+	}
+}
+
+void MainWindow::button_view_mode_Click() {
+	if (g_view == View::FILTERED) {
+		g_view = View::RAW;
+		g_communication->Write("CRAW\n");
+		g_mainWindow->button_view_mode->SetText("Raw");
+	}
+	else if (g_view == View::RAW || g_view == View::TRAINED) { // If somehow we end up in TRAINED view, go back to filtered
+		g_view = View::FILTERED;
+		g_communication->Write("CFILTERED\n");
+		g_mainWindow->button_view_mode->SetText("Filtered");
+	}
+}
+
+void MainWindow::button_capture_Click() {
+	if (g_capture == Capture::OFF) {
+		g_capture = Capture::ON;
+		g_mainWindow->button_capture->SetColor(sf::Color::Green);
+	}
+	else if (g_capture == Capture::ON) {
+		g_capture = Capture::OFF;
+		g_mainWindow->button_capture->ResetColor();
 	}
 }
 
@@ -102,30 +153,6 @@ void MainWindow::button_set_times_Click() {
 	std::vector<std::string> strings = Help::TokenizeString(g_mainWindow->textbox_times->GetText());
 	for (auto& s : g_mainWindow->signals) {
 		s.SetBlindTime(std::stoi(strings[2]));
-	}
-}
-
-void MainWindow::button_view_mode_Click() {
-	if (g_view == View::FILTERED) {
-		g_view = View::RAW;
-		g_communication->Write("CRAW\n");
-		g_mainWindow->button_view_mode->SetText("Raw");
-	}
-	else if (g_view == View::RAW) {
-		g_view = View::FILTERED;
-		g_communication->Write("CFILTERED\n");
-		g_mainWindow->button_view_mode->SetText("Filtered");
-	}
-}
-
-void MainWindow::button_capture_Click() {
-	if (g_capture == Capture::OFF) {
-		g_capture = Capture::ON;
-		g_mainWindow->button_capture->SetColor(sf::Color::Green);
-	}
-	else if (g_capture == Capture::ON) {
-		g_capture = Capture::OFF;
-		g_mainWindow->button_capture->ResetColor();
 	}
 }
 
@@ -276,23 +303,20 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style)
 	/////////////
 	// Buttons //
 	/////////////
-	button_connect = new mygui::Button(10, 50, "Connect", 110);
+	button_connect = new mygui::Button(10, 50, "Connect", 100);
 	button_connect->OnClick(&MainWindow::button_connect_Click);
 
-	button_run = new mygui::Button(10, 90, "Stopped", 110);
+	button_run = new mygui::Button(10, 90, "Stopped", 100);
 	button_run->OnClick(&MainWindow::button_run_Click);
 
-	button_trigger_frame = new mygui::Button(10, 140, "Frame OFF", 110);
+	button_trigger_frame = new mygui::Button(125, 50, "Frame OFF", 100, 30, 18);
 	button_trigger_frame->OnClick(&MainWindow::button_trigger_frame_Click);
 
-	button_capture = new mygui::Button(140, 140, "Capture");
-	button_capture->OnClick(&MainWindow::button_capture_Click);
-
-	button_toggle_usb_uart = new mygui::Button(140, 50, "USB");
-	button_toggle_usb_uart->OnClick(&MainWindow::button_toggle_usb_uart_Click);
-
-	button_view_mode = new mygui::Button(140, 90, "Filtered");
+	button_view_mode = new mygui::Button(125, 90, "Filtered", 100, 30, 18);
 	button_view_mode->OnClick(&MainWindow::button_view_mode_Click);
+
+	button_capture = new mygui::Button(125, 140, "Capture", 100, 30, 18);
+	button_capture->OnClick(&MainWindow::button_capture_Click);	
 
 	button_set_frequency = new mygui::Button(10, 260, "Send");
 	button_set_frequency->OnClick(&MainWindow::button_set_frequency_Click);
@@ -313,9 +337,9 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style)
 	// Texboxes //
 	//////////////
 	textbox_comport = new mygui::Textbox(10, 10, "COM", 80);
-	textbox_frequency = new mygui::Textbox(10, 220, "10000", 80);
-	textbox_filter_params = new mygui::Textbox(10, 340, "0.01,0.03,0.03,7.0", 170);
-	textbox_times = new mygui::Textbox(10, 460, "0,100,1000", 120);
+	textbox_frequency = new mygui::Textbox(10, 220, "", 80);
+	textbox_filter_params = new mygui::Textbox(10, 340, "", 170);
+	textbox_times = new mygui::Textbox(10, 460, "", 120);
 
 	////////////
 	// Labels //
@@ -352,8 +376,7 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style)
 	Add(button_trigger_frame);
 	Add(button_set_frequency);
 	Add(button_set_filter_params);
-	Add(button_set_times);
-	Add(button_toggle_usb_uart);
+	Add(button_set_times);	
 	Add(button_view_mode);
 	Add(button_capture);
 	Add(button_record);
@@ -376,6 +399,8 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style)
 	Add(checkbox_transparent);
 }
 
-MainWindow::~MainWindow() {
-
+MainWindow::~MainWindow() {	
+	g_communication->Write("VRBS,0\n");
+	g_communication->Flush();
+	g_communication->Purge();	
 }

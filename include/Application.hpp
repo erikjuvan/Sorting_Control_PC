@@ -4,7 +4,7 @@
 
 enum class Running { STOPPED, RUNNING };
 enum class Mode { LIVE, RECORD, RECORD_ERRORS };
-enum class View { RAW, FILTERED };
+enum class View { RAW, TRAINED, FILTERED };
 enum class Capture { ON, OFF };
 
 static constexpr int DATA_PER_CHANNEL = 100;
