@@ -86,7 +86,7 @@ void MainWindow::button_run_Click() {
 
 	if (g_running == Running::STOPPED) {
 		// Send data first before setting g_running = Running::RUNNING;
-		g_communication->Write("UART_BINARY\n");
+		g_communication->Write("UART_SORT\n");
 		g_communication->Write("VRBS,1\n");
 		g_running = Running::RUNNING;
 		g_mainWindow->button_run->SetText("Running");
