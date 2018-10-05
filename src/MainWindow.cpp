@@ -21,7 +21,6 @@ void MainWindow::button_connect_Click() {
 		if (g_communication->Connect(g_mainWindow->textbox_comport->GetText())) {
 
 			g_mainWindow->button_connect->SetText("Disconnect");
-			//g_communication->Write("USB\n");
 
 			std::string buf;
 			std::vector<std::string> strings;
@@ -76,8 +75,6 @@ void MainWindow::button_connect_Click() {
 	else {
 		if (g_running == Running::RUNNING)
 			button_run_Click();
-		g_communication->Flush();
-		g_communication->Purge();
 		g_communication->Disconnect();
 		g_mainWindow->button_connect->SetText("Connect");
 	}
@@ -98,9 +95,9 @@ void MainWindow::button_run_Click() {
 			g_mainWindow->chart->ChangeSignal(i, &g_mainWindow->signals[i]);
 	}
 	else if (g_running == Running::RUNNING) {
-		g_communication->Write("VRBS,0\n");
-		//g_communication->Write("USB\n");
+		// Order of statements here matters, to insure PC app doesn't get stuck on serial->read function
 		g_running = Running::STOPPED;
+		g_communication->Write("VRBS,0\n");
 		g_mainWindow->button_run->SetText("Stopped");
 	}
 }
@@ -412,7 +409,6 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style)
 }
 
 MainWindow::~MainWindow() {	
-	g_communication->Write("VRBS,0\n");
-	g_communication->Flush();
-	g_communication->Purge();	
+	if (g_running == Running::RUNNING)
+		button_run_Click();
 }

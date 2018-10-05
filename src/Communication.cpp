@@ -21,7 +21,6 @@ bool Communication::Connect(const std::string& port) {
 	
 	if (ret) {
 		m_is_connected = true;
-		SetTimeout(500);
 	}		
 
 	return ret;
