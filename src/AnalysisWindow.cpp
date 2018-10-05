@@ -117,6 +117,7 @@ void SortingAnalysis::SaveRecord(char const* fname) {
 ///////////
 void AnalysisWindow::button_clear_all_Clicked() {
 	g_analysisWindow->m_analysis->ClearAll();
+	g_analysisWindow->NewData(nullptr, 0);	// A call to update label text
 }
 
 void AnalysisWindow::button_record_Clicked() {

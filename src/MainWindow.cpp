@@ -352,7 +352,7 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style)
 	textbox_comport = new mygui::Textbox(10, 10, "COM", 80);
 	textbox_frequency = new mygui::Textbox(10, 220, "", 80);
 	textbox_filter_params = new mygui::Textbox(10, 340, "", 170);
-	textbox_times = new mygui::Textbox(10, 460, "", 120);
+	textbox_times = new mygui::Textbox(10, 460, "", 140);
 
 	////////////
 	// Labels //
