@@ -8,10 +8,10 @@ extern Communication	*g_communication;
 extern MainWindow		*g_mainWindow;
 extern AnalysisWindow	*g_analysisWindow;
 
-extern Running g_running;
-extern Mode	g_mode;
-extern View	g_view;
-extern Capture g_capture;
+extern Running		g_running;
+extern Recording	g_recording;
+extern View			g_view;
+extern Capture		g_capture;
 extern TriggerFrame g_triggerframe;
 
 extern int g_n_samples;
@@ -166,19 +166,23 @@ void MainWindow::button_set_times_Click() {
 }
 
 void MainWindow::button_record_Click() {
-	if (g_mode == Mode::LIVE) {
-		g_mode = Mode::RECORD;
+	if (g_recording == Recording::NO) {
+		g_recording = Recording::ALL;
 		g_mainWindow->button_record->SetColor(sf::Color::Red);
 		g_mainWindow->recorded_signals.clear();
+		g_mainWindow->label_recorded_signals_counter->SetText("0");
 	}
-	else if (g_mode == Mode::RECORD) {
-		g_mode = Mode::RECORD_ERRORS;
-		g_mainWindow->button_record->SetColor(sf::Color::Yellow);		
+	else if (g_recording == Recording::ALL) {
+		g_recording = Recording::ERRORS;
+		g_mainWindow->button_record->SetColor(sf::Color::Yellow);	
 		g_mainWindow->recorded_signals.clear();
+		g_mainWindow->label_recorded_signals_counter->SetText("0");
 	}
-	else if (g_mode == Mode::RECORD_ERRORS) {
-		g_mode = Mode::LIVE;
+	else if (g_recording == Recording::ERRORS) {
+		g_recording = Recording::NO;
 		g_mainWindow->button_record->ResetColor();
+		g_mainWindow->recorded_signals.clear();
+		g_mainWindow->label_recorded_signals_counter->SetText("0");
 	}
 }
 
@@ -233,7 +237,7 @@ void MainWindow::checkbox_transparent_Clicked() {
 
 void MainWindow::chart_OnKeyPress(const sf::Event& event) {
 	static int frame_idx = -1;	// -1 so that when we first press right arrow we get the first [0] frame
-	if ((g_mode == Mode::RECORD || g_mode == Mode::RECORD_ERRORS) 
+	if ((g_recording == Recording::ALL || g_recording == Recording::ERRORS) 
 		&& g_running == Running::STOPPED) {
 		if (event.key.code == sf::Keyboard::Left) {
 			if (frame_idx > 0) {
@@ -356,6 +360,7 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style)
 	label_frequency = new mygui::Label(10, 190, "Sample frequency:");
 	label_filter_params = new mygui::Label(10, 310, "Filter params(a1,a2,a3,thr):");
 	label_times = new mygui::Label(10, 430, "Times (dly, dur, blind):");
+	label_recorded_signals_counter = new mygui::Label(120, 604, "0");
 	label_info_rx_bytes = new mygui::Label(10, 660, "Rx buf: 0 bytes");
 	label_info_detected_in_window = new mygui::Label(10, 700, "Det IN: 0");
 	label_info_detected_in_window->OnClick(&MainWindow::label_info_detected_in_window_Clicked);
@@ -399,6 +404,7 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style)
 	Add(label_frequency);
 	Add(label_filter_params);
 	Add(label_times);
+	Add(label_recorded_signals_counter);
 	Add(label_info_rx_bytes);
 	Add(label_info_detected_in_window);
 	Add(label_info_detected_out_window);

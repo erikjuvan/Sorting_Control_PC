@@ -70,6 +70,7 @@ public:
 	mygui::Label	*label_frequency;
 	mygui::Label	*label_filter_params;
 	mygui::Label	*label_times;
+	mygui::Label	*label_recorded_signals_counter;
 	mygui::Label	*label_info_rx_bytes;
 	mygui::Label	*label_info_detected_in_window;
 	mygui::Label	*label_info_detected_out_window;

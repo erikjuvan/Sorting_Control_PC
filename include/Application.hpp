@@ -3,7 +3,7 @@
 #include <string>
 
 enum class Running { STOPPED, RUNNING };
-enum class Mode { LIVE, RECORD, RECORD_ERRORS };
+enum class Recording { NO, ALL, ERRORS };
 enum class View { RAW, TRAINED, FILTERED };
 enum class Capture { OFF, ON };
 enum class TriggerFrame { OFF, ON };
