@@ -5,7 +5,8 @@
 enum class Running { STOPPED, RUNNING };
 enum class Mode { LIVE, RECORD, RECORD_ERRORS };
 enum class View { RAW, TRAINED, FILTERED };
-enum class Capture { ON, OFF };
+enum class Capture { OFF, ON };
+enum class TriggerFrame { OFF, ON };
 
 static constexpr int DATA_PER_CHANNEL = 100;
 static constexpr int N_CHANNELS{ 8 };

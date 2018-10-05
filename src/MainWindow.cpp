@@ -12,6 +12,7 @@ extern Running g_running;
 extern Mode	g_mode;
 extern View	g_view;
 extern Capture g_capture;
+extern TriggerFrame g_triggerframe;
 
 extern int g_n_samples;
 
@@ -48,8 +49,14 @@ void MainWindow::button_connect_Click() {
 			g_mainWindow->textbox_times->SetText(buf);
 
 			read_and_parse("TRGFRMG\n");
-			if (buf == "1")
-				button_trigger_frame_Click();
+			if (TriggerFrame::ON == static_cast<TriggerFrame>(std::stoi(buf))) {
+				g_mainWindow->chart->EnableTriggerFrame();
+				g_mainWindow->button_trigger_frame->SetText("Frame ON");
+			}
+			else {
+				g_mainWindow->chart->DisableTriggerFrame();
+				g_mainWindow->button_trigger_frame->SetText("Frame OFF");
+			}				
 
 			read_and_parse("CGETVIEW\n");
 			if (View::FILTERED == static_cast<View>(std::stoi(buf))) {
@@ -66,14 +73,20 @@ void MainWindow::button_connect_Click() {
 			}				
 		}
 	}
-	else {		
+	else {
+		if (g_running == Running::RUNNING)
+			button_run_Click();
+		g_communication->Flush();
+		g_communication->Purge();
 		g_communication->Disconnect();
-		g_communication->Write("VRBS,0\n");
 		g_mainWindow->button_connect->SetText("Connect");
 	}
 }
 
 void MainWindow::button_run_Click() {
+	if (!g_communication->IsConnected())
+		return;
+
 	if (g_running == Running::STOPPED) {
 		// Send data first before setting g_running = Running::RUNNING;
 		g_communication->Write("UART_BINARY\n");
@@ -92,16 +105,15 @@ void MainWindow::button_run_Click() {
 	}
 }
 
-void MainWindow::button_trigger_frame_Click() {
-	static bool trigger_frame = false;
-	if (trigger_frame == false) {
-		trigger_frame = true;
+void MainWindow::button_trigger_frame_Click() {	
+	if (g_triggerframe == TriggerFrame::OFF) {
+		g_triggerframe = TriggerFrame::ON;
 		g_communication->Write("TRGFRMS,1\n");
 		g_mainWindow->chart->EnableTriggerFrame();
 		g_mainWindow->button_trigger_frame->SetText("Frame ON");
 	}
 	else {
-		trigger_frame = false;
+		g_triggerframe = TriggerFrame::OFF;
 		g_communication->Write("TRGFRMS,0\n");
 		g_mainWindow->chart->DisableTriggerFrame();
 		g_mainWindow->button_trigger_frame->SetText("Frame OFF");
@@ -312,7 +324,7 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style)
 	button_trigger_frame = new mygui::Button(125, 50, "Frame OFF", 100, 30, 18);
 	button_trigger_frame->OnClick(&MainWindow::button_trigger_frame_Click);
 
-	button_view_mode = new mygui::Button(125, 90, "Filtered", 100, 30, 18);
+	button_view_mode = new mygui::Button(125, 90, "Raw", 100, 30, 18);
 	button_view_mode->OnClick(&MainWindow::button_view_mode_Click);
 
 	button_capture = new mygui::Button(125, 140, "Capture", 100, 30, 18);

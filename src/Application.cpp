@@ -13,6 +13,7 @@ Running g_running;
 Mode	g_mode;
 View	g_view;
 Capture g_capture;
+TriggerFrame g_triggerframe;
 
 static std::thread g_thread_info;
 static std::thread g_thread_get_data;
@@ -132,6 +133,7 @@ void Application::Init() {
 	g_mode = Mode::LIVE;
 	g_view = View::FILTERED;
 	g_capture = Capture::OFF;
+	g_triggerframe = TriggerFrame::OFF;
 
 	g_thread_info = std::thread(Information);
 	g_thread_get_data = std::thread(GetData);
