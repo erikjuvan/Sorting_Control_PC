@@ -14,6 +14,9 @@ public:
 	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 	virtual void Handle(const sf::Event& event) override;
 
+	void Enabled(bool enabled) override;
+	bool Enabled() const override;
+
 	void AddSignal(Signal* signal);
 	void ChangeSignal(int idx, Signal* signal);
 

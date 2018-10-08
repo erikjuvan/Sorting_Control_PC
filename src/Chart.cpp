@@ -56,6 +56,8 @@ void Chart::draw(sf::RenderTarget& target, sf::RenderStates states) const {
 }
 
 void Chart::Handle(const sf::Event& event) {
+	if (!Enabled()) return;
+
 	//  && m_chart_region.getGlobalBounds().contains(sf::Vector2f(event.mouseButton.x, event.mouseButton.y))
 	if (event.type == sf::Event::MouseWheelScrolled && m_mouseover) {
 		if (event.mouseWheelScroll.wheel == sf::Mouse::VerticalWheel) {
@@ -85,6 +87,19 @@ void Chart::Handle(const sf::Event& event) {
 		}
 	}
 }
+
+void Chart::Enabled(bool enabled) {
+	m_enabled = enabled;
+	if (enabled) {
+	}
+	else {
+	}
+}
+
+bool Chart::Enabled() const {
+	return m_enabled;
+}
+
 
 void Chart::AddSignal(Signal* signal) {
 	m_signals.push_back(signal);
