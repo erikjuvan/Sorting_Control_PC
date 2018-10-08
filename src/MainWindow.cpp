@@ -9,7 +9,7 @@ extern MainWindow		*g_mainWindow;
 extern AnalysisWindow	*g_analysisWindow;
 
 extern Running		g_running;
-extern Recording	g_recording;
+extern Record		g_record;
 extern View			g_view;
 extern Capture		g_capture;
 extern TriggerFrame g_triggerframe;
@@ -32,22 +32,22 @@ void MainWindow::button_connect_Click() {
 				if (buf[buf.size() - 1] == '\n') buf.pop_back();
 			};
 
-			read_and_parse("CGETF\n");
+			read_and_parse("GETFREQ\n");
 			g_mainWindow->textbox_frequency->SetText(buf);
 
-			read_and_parse("CGETPARAMS\n");
+			read_and_parse("GETPARAMS\n");
 			for (auto& s : g_mainWindow->signals) {
 				s.SetThreashold(std::stof(strings[3]));
 			}
 			g_mainWindow->textbox_filter_params->SetText(buf);
 
-			read_and_parse("CGETTIMES\n");
+			read_and_parse("GETTIMES\n");
 			for (auto& s : g_mainWindow->signals) {
 				s.SetBlindTime(std::stof(strings[2]));
 			}
 			g_mainWindow->textbox_times->SetText(buf);
 
-			read_and_parse("TRGFRMG\n");
+			read_and_parse("GETTRGFRM\n");
 			if (TriggerFrame::ON == static_cast<TriggerFrame>(std::stoi(buf))) {
 				g_mainWindow->chart->EnableTriggerFrame();
 				g_mainWindow->button_trigger_frame->SetText("Frame ON");
@@ -57,7 +57,7 @@ void MainWindow::button_connect_Click() {
 				g_mainWindow->button_trigger_frame->SetText("Frame OFF");
 			}				
 
-			read_and_parse("CGETVIEW\n");
+			read_and_parse("GETVIEW\n");
 			if (View::FILTERED == static_cast<View>(std::stoi(buf))) {
 				g_mainWindow->button_view_mode->SetText("Filtered");
 				g_view = View::FILTERED;
@@ -105,13 +105,13 @@ void MainWindow::button_run_Click() {
 void MainWindow::button_trigger_frame_Click() {	
 	if (g_triggerframe == TriggerFrame::OFF) {
 		g_triggerframe = TriggerFrame::ON;
-		g_communication->Write("TRGFRMS,1\n");
+		g_communication->Write("SETTRGFRM,1\n");
 		g_mainWindow->chart->EnableTriggerFrame();
 		g_mainWindow->button_trigger_frame->SetText("Frame ON");
 	}
 	else {
 		g_triggerframe = TriggerFrame::OFF;
-		g_communication->Write("TRGFRMS,0\n");
+		g_communication->Write("GETTRGFRM,0\n");
 		g_mainWindow->chart->DisableTriggerFrame();
 		g_mainWindow->button_trigger_frame->SetText("Frame OFF");
 	}
@@ -120,12 +120,12 @@ void MainWindow::button_trigger_frame_Click() {
 void MainWindow::button_view_mode_Click() {
 	if (g_view == View::FILTERED) {
 		g_view = View::RAW;
-		g_communication->Write("CRAW\n");
+		g_communication->Write("RAW\n");
 		g_mainWindow->button_view_mode->SetText("Raw");
 	}
 	else if (g_view == View::RAW || g_view == View::TRAINED) { // If somehow we end up in TRAINED view, go back to filtered
 		g_view = View::FILTERED;
-		g_communication->Write("CFILTERED\n");
+		g_communication->Write("FILTERED\n");
 		g_mainWindow->button_view_mode->SetText("Filtered");
 	}
 }
@@ -142,11 +142,11 @@ void MainWindow::button_capture_Click() {
 }
 
 void MainWindow::button_set_frequency_Click() {
-	g_communication->Write("CSETF," + g_mainWindow->textbox_frequency->GetText() + "\n");
+	g_communication->Write("SETFREQ," + g_mainWindow->textbox_frequency->GetText() + "\n");
 }
 
 void MainWindow::button_set_filter_params_Click() {
-	g_communication->Write("CPARAMS," + g_mainWindow->textbox_filter_params->GetText() + "\n");
+	g_communication->Write("SETPARAMS," + g_mainWindow->textbox_filter_params->GetText() + "\n");
 
 	// Set threashold for all signals
 	std::vector<std::string> strings = Help::TokenizeString(g_mainWindow->textbox_filter_params->GetText());
@@ -156,7 +156,7 @@ void MainWindow::button_set_filter_params_Click() {
 }
 
 void MainWindow::button_set_times_Click() {
-	g_communication->Write("CTIMES," + g_mainWindow->textbox_times->GetText() + "\n");
+	g_communication->Write("SETTIMES," + g_mainWindow->textbox_times->GetText() + "\n");
 
 	// Set blind time for all signals
 	std::vector<std::string> strings = Help::TokenizeString(g_mainWindow->textbox_times->GetText());
@@ -166,20 +166,20 @@ void MainWindow::button_set_times_Click() {
 }
 
 void MainWindow::button_record_Click() {
-	if (g_recording == Recording::NO) {
-		g_recording = Recording::ALL;
+	if (g_record == Record::NO) {
+		g_record = Record::ALL;
 		g_mainWindow->button_record->SetColor(sf::Color::Red);
 		g_mainWindow->recorded_signals.clear();
 		g_mainWindow->label_recorded_signals_counter->SetText("0");
 	}
-	else if (g_recording == Recording::ALL) {
-		g_recording = Recording::ERRORS;
+	else if (g_record == Record::ALL) {
+		g_record = Record::ERRORS;
 		g_mainWindow->button_record->SetColor(sf::Color::Yellow);	
 		g_mainWindow->recorded_signals.clear();
 		g_mainWindow->label_recorded_signals_counter->SetText("0");
 	}
-	else if (g_recording == Recording::ERRORS) {
-		g_recording = Recording::NO;
+	else if (g_record == Record::ERRORS) {
+		g_record = Record::NO;
 		g_mainWindow->button_record->ResetColor();
 		g_mainWindow->recorded_signals.clear();
 		g_mainWindow->label_recorded_signals_counter->SetText("0");
@@ -237,7 +237,7 @@ void MainWindow::checkbox_transparent_Clicked() {
 
 void MainWindow::chart_OnKeyPress(const sf::Event& event) {
 	static int frame_idx = -1;	// -1 so that when we first press right arrow we get the first [0] frame
-	if ((g_recording == Recording::ALL || g_recording == Recording::ERRORS) 
+	if ((g_record == Record::ALL || g_record == Record::ERRORS) 
 		&& g_running == Running::STOPPED) {
 		if (event.key.code == sf::Keyboard::Left) {
 			if (frame_idx > 0) {

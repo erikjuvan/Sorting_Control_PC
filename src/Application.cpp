@@ -10,7 +10,7 @@ MainWindow		*g_mainWindow;
 AnalysisWindow	*g_analysisWindow;
 
 Running g_running;
-Recording	g_recording;
+Record	g_record;
 View	g_view;
 Capture g_capture;
 TriggerFrame g_triggerframe;
@@ -74,12 +74,12 @@ static void GetData() {
 					}
 					if (++cntr >= (g_n_samples / DATA_PER_CHANNEL)) {
 						cntr = 0;
-						if (g_recording == Recording::ALL) {
+						if (g_record == Record::ALL) {
 							for (auto const& s : g_mainWindow->signals)
 								g_mainWindow->recorded_signals.push_back(s);
 							g_mainWindow->label_recorded_signals_counter->SetText(std::to_string(g_mainWindow->recorded_signals.size() / N_CHANNELS));
 						}
-						else if (g_recording == Recording::ERRORS) {
+						else if (g_record == Record::ERRORS) {
 							if (Signal::GetError()) {
 								Signal::ResetError();
 								for (auto const& s : g_mainWindow->signals)
@@ -132,7 +132,7 @@ void Application::Init() {
 	InitFromFile("config.txt");
 
 	g_running = Running::STOPPED;
-	g_recording = Recording::NO;
+	g_record = Record::NO;
 	g_view = View::FILTERED;
 	g_capture = Capture::OFF;
 	g_triggerframe = TriggerFrame::OFF;
