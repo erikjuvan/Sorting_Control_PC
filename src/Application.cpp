@@ -34,9 +34,9 @@ static void Information() {
 				detected_out_window_cnt += s.GetDetectionsOutWindow();
 				signal_missed_cnt += s.GetMissed();
 			}
-			g_mainWindow->label_info_detected_in_window->SetText("Det IN: " + std::to_string(detected_in_window_cnt));
-			g_mainWindow->label_info_detected_out_window->SetText("Det OUT: " + std::to_string(detected_out_window_cnt));
-			g_mainWindow->label_info_signal_missed->SetText("Missed: " + std::to_string(signal_missed_cnt));
+			g_mainWindow->label_info_detected_in_window->SetText(std::to_string(detected_in_window_cnt));
+			g_mainWindow->label_info_detected_out_window->SetText(std::to_string(detected_out_window_cnt));
+			g_mainWindow->label_info_signal_missed->SetText(std::to_string(signal_missed_cnt));
 
 			sf::sleep(sf::milliseconds(100));
 		}
@@ -79,13 +79,21 @@ static void GetData() {
 								g_mainWindow->recorded_signals.push_back(s);
 							g_mainWindow->label_recorded_signals_counter->SetText(std::to_string(g_mainWindow->recorded_signals.size() / N_CHANNELS));
 						}
-						else if (g_record == Record::ERRORS) {
-							if (Signal::GetError()) {
-								Signal::ResetError();
-								for (auto const& s : g_mainWindow->signals)
-									g_mainWindow->recorded_signals.push_back(s);
-								g_mainWindow->label_recorded_signals_counter->SetText(std::to_string(g_mainWindow->recorded_signals.size() / N_CHANNELS));
+						else if (g_record == Record::EVENTS) {
+							bool tmp_record = false;
+							for (auto& s : g_mainWindow->signals) {
+								if (s.AnyEvents()) {
+									tmp_record = true;
+									s.ClearEvents();									
+								}
 							}
+							
+							if (tmp_record) {
+								for (auto const& s : g_mainWindow->signals) {									
+									g_mainWindow->recorded_signals.push_back(s);
+								}
+								g_mainWindow->label_recorded_signals_counter->SetText(std::to_string(g_mainWindow->recorded_signals.size() / N_CHANNELS));
+							}							
 						}
 					}
 				}

@@ -40,6 +40,9 @@ public:
 	static void label_info_detected_out_window_Clicked();
 	static void label_info_signal_missed_Clicked();
 	
+	static void checkbox_detected_in_Clicked();
+	static void checkbox_detected_out_Clicked();
+	static void checkbox_missed_Clicked();
 	static void checkbox_only_show_framed_Clicked();
 	static void checkbox_transparent_Clicked();
 
@@ -77,6 +80,9 @@ public:
 	mygui::Label	*label_info_signal_missed;
 
 	// Checkboxes
+	mygui::Checkbox *checkbox_detected_in;
+	mygui::Checkbox *checkbox_detected_out;
+	mygui::Checkbox *checkbox_missed;
 	mygui::Checkbox *checkbox_only_show_framed;
 	mygui::Checkbox *checkbox_transparent;
 

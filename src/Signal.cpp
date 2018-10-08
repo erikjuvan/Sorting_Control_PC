@@ -1,22 +1,25 @@
 #include "Signal.hpp"
+#include "Helpers.hpp"
 
 // Static
-////////////////////
-bool Signal::error = false;
+/////////
 
-bool Signal::GetError() {
-	return Signal::error;
+void Signal::EventsToRecord(Event const events) {
+	m_events_to_record = events;
 }
 
-void Signal::ResetError() {
-	Signal::error = false;
+Signal::Event Signal::EventsToRecord() {
+	return m_events_to_record;
 }
-////////////////////
+
+/////////
+
 
 Signal::Signal(int n, sf::Color col, const sf::FloatRect& region, float *max_val) :
 	m_curve(sf::PrimitiveType::LineStrip, n),
 	m_trigger_frame(sf::PrimitiveType::Lines, N_TRIGGER_FRAME_POINTS),
-	m_draw_trigger_frame(false), m_graph_region(region), m_max_val(max_val) {
+	m_draw_trigger_frame(false), m_graph_region(region), m_max_val(max_val),
+	m_events(Event::NONE) {
 
 	for (int i = 0; i < n; ++i) {
 		m_curve[i].color = col;
@@ -104,6 +107,14 @@ void Signal::SetColor(sf::Color const& col) {
 		m_curve[i].color = col;
 }
 
+bool Signal::AnyEvents() const {
+	return (m_events_to_record & m_events) != 0;
+}
+
+void Signal::ClearEvents() {
+	m_events = Event::NONE;
+}
+
 // Return false if a signal never reached the threashold value when the window was on
 void Signal::Edit(float* buf, int start, int size) {
 	const float y_zero = m_graph_region.top + m_graph_region.height;
@@ -120,6 +131,8 @@ void Signal::Edit(float* buf, int start, int size) {
 
 			if (m_only_draw_on_trigger) DisableDraw();
 			else EnableDraw();
+
+			ClearEvents();
 		}
 
 		for (int i = 0, s = start; i < size; ++i, ++s) {
@@ -162,7 +175,7 @@ void Signal::Edit(float* buf, int start, int size) {
 				if (m_threashold == Threashold::SEARCHING) {
 					m_threashold = Threashold::MISSED;
 					m_detection_missed++;
-					Signal::error = true;
+					m_events |= MISSED;
 				}
 			}
 			else if (m_trigger_val == 1) { // frame active
@@ -174,13 +187,14 @@ void Signal::Edit(float* buf, int start, int size) {
 				if (m_threashold == Threashold::REACHED) {
 					m_detected_in_window_cnt++;
 					m_threashold = Threashold::IDLE;
+					m_events |= DETECTED_IN;
 				}
 			}
 			else { // no frame
 				if (m_threashold == Threashold::REACHED) {
 					m_detected_out_window_cnt++;
 					m_threashold = Threashold::IDLE;
-					Signal::error = true;
+					m_events |= DETECTED_OUT;
 				}
 			}
 		}

@@ -3,10 +3,11 @@
 #include <SFML/Graphics.hpp>
 
 class Signal : public sf::Drawable {
+private:
+	enum class Threashold { IDLE, REACHED, MISSED, SEARCHING };	
 
-public:
-	static bool GetError();
-	static void ResetError();
+public:	
+	enum Event { NONE = 0x0, DETECTED_IN = 0x1, DETECTED_OUT = 0x2, MISSED = 0x4 };	
 
 	Signal(int n, sf::Color col, const sf::FloatRect& region, float *max_val);
 
@@ -27,16 +28,21 @@ public:
 	int  GetMissed() const;
 	void ClearMissed();
 	void SetColor(sf::Color const& col);
-
+	static void EventsToRecord(Event const events);
+	static Event EventsToRecord();
+	bool AnyEvents() const;
+	void ClearEvents();
 	// Return false if a signal never reached the threashold value when the window was on
 	void Edit(float* buf, int start, int size);
 
-private:
-	enum class Threashold { IDLE, REACHED, MISSED, SEARCHING };
+private:	
 
-	static constexpr int N_TRIGGER_FRAME_POINTS = 60;	// should be enough for ~ 60 / 3 = 20 windows	
+	static constexpr int N_TRIGGER_FRAME_POINTS = 60;	// should be enough for ~ 60 / 3 = 20 windows		
 
-	static bool error;
+	inline static Event m_events_to_record;
+
+	Threashold m_threashold;
+	Event m_events;	
 
 	sf::VertexArray	m_curve;
 	sf::VertexArray	m_trigger_frame;
@@ -48,9 +54,7 @@ private:
 
 	float *m_max_val{ nullptr };
 	float m_threashold_value;
-	bool m_draw_trigger_frame{ false };
-
-	Threashold m_threashold;
+	bool m_draw_trigger_frame{ false };	
 
 	int m_diff{ 0 };
 	int m_trigger_val{ 0 };

@@ -7,6 +7,15 @@
 #include <iostream>
 #include <vector>
 
+// All these operator overloads are to support enum bitwise operations
+template<class T> inline T operator~ (T a) { return (T)~(int)a; }
+template<class T> inline T operator| (T a, T b) { return (T)((int)a | (int)b); }
+template<class T> inline T operator& (T a, T b) { return (T)((int)a & (int)b); }
+template<class T> inline T operator^ (T a, T b) { return (T)((int)a ^ (int)b); }
+template<class T> inline T& operator|= (T& a, T b) { return (T&)((int&)a |= (int)b); }
+template<class T> inline T& operator&= (T& a, T b) { return (T&)((int&)a &= (int)b); }
+template<class T> inline T& operator^= (T& a, T b) { return (T&)((int&)a ^= (int)b); }
+
 namespace Help { 
 
 #define TIME_IT(x) \

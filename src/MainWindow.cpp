@@ -71,6 +71,9 @@ void MainWindow::button_connect_Click() {
 				g_view = View::TRAINED;
 			}				
 		}
+		else {
+			std::cout << "Can't connect to port " << g_mainWindow->textbox_comport->GetText() << std::endl;
+		}
 	}
 	else {
 		if (g_running == Running::RUNNING)
@@ -173,12 +176,12 @@ void MainWindow::button_record_Click() {
 		g_mainWindow->label_recorded_signals_counter->SetText("0");
 	}
 	else if (g_record == Record::ALL) {
-		g_record = Record::ERRORS;
+		g_record = Record::EVENTS;
 		g_mainWindow->button_record->SetColor(sf::Color::Yellow);	
 		g_mainWindow->recorded_signals.clear();
 		g_mainWindow->label_recorded_signals_counter->SetText("0");
 	}
-	else if (g_record == Record::ERRORS) {
+	else if (g_record == Record::EVENTS) {
 		g_record = Record::NO;
 		g_mainWindow->button_record->ResetColor();
 		g_mainWindow->recorded_signals.clear();
@@ -216,9 +219,28 @@ void MainWindow::label_info_signal_missed_Clicked() {
 	}
 }
 
+static auto TmpSetEvent = [](bool on, Signal::Event e) {
+	Signal::Event ev = Signal::EventsToRecord();
+	if (on) ev |= e;
+	else ev &= ~e;
+	Signal::EventsToRecord(ev);
+};
+
+void MainWindow::checkbox_detected_in_Clicked() {
+	TmpSetEvent(g_mainWindow->checkbox_detected_in->Checked() , Signal::Event::DETECTED_IN);
+}
+
+void MainWindow::checkbox_detected_out_Clicked() {
+	TmpSetEvent(g_mainWindow->checkbox_detected_out->Checked(), Signal::Event::DETECTED_OUT);
+}
+
+void MainWindow::checkbox_missed_Clicked() {
+	TmpSetEvent(g_mainWindow->checkbox_missed->Checked(), Signal::Event::MISSED);
+}
+
 void MainWindow::checkbox_only_show_framed_Clicked() {
 	for (auto& s : g_mainWindow->signals) {
-		s.OnlyDrawOnTrigger(g_mainWindow->checkbox_only_show_framed->IsChecked());
+		s.OnlyDrawOnTrigger(g_mainWindow->checkbox_only_show_framed->Checked());
 	}
 }
 
@@ -237,7 +259,7 @@ void MainWindow::checkbox_transparent_Clicked() {
 
 void MainWindow::chart_OnKeyPress(const sf::Event& event) {
 	static int frame_idx = -1;	// -1 so that when we first press right arrow we get the first [0] frame
-	if ((g_record == Record::ALL || g_record == Record::ERRORS) 
+	if ((g_record == Record::ALL || g_record == Record::EVENTS) 
 		&& g_running == Running::STOPPED) {
 		if (event.key.code == sf::Keyboard::Left) {
 			if (frame_idx > 0) {
@@ -299,6 +321,7 @@ void MainWindow::CreateChart(int samples) {
 		signals.push_back(Signal(g_n_samples, sf::Color(m_Colors[i]), chart->GetGraphRegion(), chart->GetMaxVal()));
 		chart->AddSignal(&signals[signals.size() - 1]);
 	}
+	Signal::EventsToRecord(Signal::Event::MISSED | Signal::Event::DETECTED_OUT);
 }
 
 void MainWindow::RunClick() {
@@ -340,7 +363,7 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style)
 	button_set_times = new mygui::Button(10, 500, "Send");
 	button_set_times->OnClick(&MainWindow::button_set_times_Click);
 
-	button_record = new mygui::Button(10, 600, "Record");
+	button_record = new mygui::Button(10, 650, "Record");
 	button_record->OnClick(&MainWindow::button_record_Click);
 
 	button_analysis_window = new mygui::Button(10, 800, "Info");
@@ -360,19 +383,31 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style)
 	label_frequency = new mygui::Label(10, 190, "Sample frequency:");
 	label_filter_params = new mygui::Label(10, 310, "Filter params(a1,a2,a3,thr):");
 	label_times = new mygui::Label(10, 430, "Times (dly, dur, blind):");
-	label_recorded_signals_counter = new mygui::Label(120, 604, "0");
-	label_info_rx_bytes = new mygui::Label(10, 660, "Rx buf: 0 bytes");
-	label_info_detected_in_window = new mygui::Label(10, 700, "Det IN: 0");
+	label_recorded_signals_counter = new mygui::Label(120, 654, "0");
+	label_info_rx_bytes = new mygui::Label(10, 590, "Rx buf: 0 bytes");
+	label_info_detected_in_window = new mygui::Label(120, 698, "0");
 	label_info_detected_in_window->OnClick(&MainWindow::label_info_detected_in_window_Clicked);
-	label_info_detected_out_window = new mygui::Label(10, 720, "Det OUT: 0");
+	label_info_detected_out_window = new mygui::Label(120, 729, "0");
 	label_info_detected_out_window->OnClick(&MainWindow::label_info_detected_out_window_Clicked);
-	label_info_signal_missed = new mygui::Label(10, 740, "Missed: 0");
+	label_info_signal_missed = new mygui::Label(120, 760, "0");
 	label_info_signal_missed->OnClick(&MainWindow::label_info_signal_missed_Clicked);
 
 
 	////////////////
 	// Checkboxes //
 	////////////////
+	checkbox_detected_in = new mygui::Checkbox(10, 700, "Det IN: ");
+	checkbox_detected_in->OnClick(&MainWindow::checkbox_detected_in_Clicked);	
+	checkbox_detected_in->Checked(false);
+
+	checkbox_detected_out = new mygui::Checkbox(10, 730, "Det OUT: ");
+	checkbox_detected_out->OnClick(&MainWindow::checkbox_detected_out_Clicked);
+	checkbox_detected_out->Checked(true);
+
+	checkbox_missed = new mygui::Checkbox(10, 760, "Missed: ");
+	checkbox_missed->OnClick(&MainWindow::checkbox_missed_Clicked);
+	checkbox_missed->Checked(true);
+
 	checkbox_only_show_framed = new mygui::Checkbox(10, 550, "Only show framed");
 	checkbox_only_show_framed->OnClick(&MainWindow::checkbox_only_show_framed_Clicked);
 
@@ -410,6 +445,9 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style)
 	Add(label_info_detected_out_window);
 	Add(label_info_signal_missed);
 	// Checkboxes
+	Add(checkbox_detected_in);
+	Add(checkbox_detected_out);
+	Add(checkbox_missed);
 	Add(checkbox_only_show_framed);
 	Add(checkbox_transparent);
 }
