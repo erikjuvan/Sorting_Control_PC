@@ -60,7 +60,6 @@ public:
 	mygui::Button *button_set_filter_params;
 	mygui::Button *button_set_times;	
 	mygui::Button *button_view_mode;
-	mygui::Button *button_capture;
 	mygui::Button *button_record;
 	mygui::Button *button_analysis_window;
 	// Texbox

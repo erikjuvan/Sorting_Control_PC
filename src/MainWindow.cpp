@@ -11,7 +11,6 @@ extern AnalysisWindow	*g_analysisWindow;
 extern Running		g_running;
 extern Record		g_record;
 extern View			g_view;
-extern Capture		g_capture;
 extern TriggerFrame g_triggerframe;
 
 extern int g_n_samples;
@@ -130,17 +129,6 @@ void MainWindow::button_view_mode_Click() {
 		g_view = View::FILTERED;
 		g_communication->Write("FILTERED\n");
 		g_mainWindow->button_view_mode->SetText("Filtered");
-	}
-}
-
-void MainWindow::button_capture_Click() {
-	if (g_capture == Capture::OFF) {
-		g_capture = Capture::ON;
-		g_mainWindow->button_capture->SetColor(sf::Color::Green);
-	}
-	else if (g_capture == Capture::ON) {
-		g_capture = Capture::OFF;
-		g_mainWindow->button_capture->ResetColor();
 	}
 }
 
@@ -351,9 +339,6 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style)
 	button_view_mode = new mygui::Button(125, 90, "Raw", 100, 30, 18);
 	button_view_mode->OnClick(&MainWindow::button_view_mode_Click);
 
-	button_capture = new mygui::Button(125, 140, "Capture", 100, 30, 18);
-	button_capture->OnClick(&MainWindow::button_capture_Click);	
-
 	button_set_frequency = new mygui::Button(10, 260, "Send");
 	button_set_frequency->OnClick(&MainWindow::button_set_frequency_Click);
 
@@ -427,7 +412,6 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style)
 	Add(button_set_filter_params);
 	Add(button_set_times);	
 	Add(button_view_mode);
-	Add(button_capture);
 	Add(button_record);
 	Add(button_analysis_window);
 	// Texboxes

@@ -5,10 +5,9 @@
 enum class Running { STOPPED, RUNNING };
 enum class Record { NO, ALL, EVENTS };
 enum class View { RAW, TRAINED, FILTERED };
-enum class Capture { OFF, ON };
 enum class TriggerFrame { OFF, ON };
 
-static constexpr int DATA_PER_CHANNEL = 100;
+static constexpr int DATA_PER_CHANNEL{ 100 };
 static constexpr int N_CHANNELS{ 8 };
 static constexpr int ANALYSIS_PACKETS{ 10 };
 

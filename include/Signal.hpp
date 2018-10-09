@@ -20,7 +20,6 @@ public:
 	void EnableDraw();
 	void DisableDraw();
 	void OnlyDrawOnTrigger(bool on);
-	bool ThreasholdMissed();
 	int  GetDetectionsInWindow() const;
 	void ClearDetectionsInWindow();
 	int  GetDetectionsOutWindow() const;

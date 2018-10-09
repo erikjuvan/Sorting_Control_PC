@@ -70,16 +70,6 @@ void Signal::OnlyDrawOnTrigger(bool on) {
 		m_only_draw_on_trigger = false;
 }
 
-bool Signal::ThreasholdMissed() {
-	if (m_threashold == Threashold::MISSED) {
-		m_threashold = Threashold::IDLE;
-		return true;
-	}
-	else {
-		return false;
-	}
-}
-
 int Signal::GetDetectionsInWindow() const {
 	return m_detected_in_window_cnt;
 }

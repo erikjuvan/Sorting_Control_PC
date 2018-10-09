@@ -12,7 +12,6 @@ AnalysisWindow	*g_analysisWindow;
 Running g_running;
 Record	g_record;
 View	g_view;
-Capture g_capture;
 TriggerFrame g_triggerframe;
 
 static std::thread g_thread_info;
@@ -46,7 +45,6 @@ static void Information() {
 static void GetData() {
 	static float fbuf[N_CHANNELS * DATA_PER_CHANNEL];
 	static int cntr = 0;
-	static bool thr_missed;
 	bool running = true;
 
 	while (g_mainWindow->IsOpen()) {
@@ -60,16 +58,9 @@ static void GetData() {
 			if (delim == 0xDEADBEEF) {	// Data
 				int read = g_communication->Read(fbuf, sizeof(fbuf));
 				if (read > 0) {
-					thr_missed = false;
 					float* fbuf_tmp = fbuf;
 					for (auto& s : g_mainWindow->signals) {				
 						s.Edit(fbuf_tmp, cntr * DATA_PER_CHANNEL, DATA_PER_CHANNEL);
-						if (s.ThreasholdMissed() && g_capture == Capture::ON && !thr_missed) {
-							g_mainWindow->RunClick();	// only change state here
-							thr_missed = true;
-							// we don't break out, because we want to draw out the remaining buffer
-						}
-
 						fbuf_tmp += DATA_PER_CHANNEL;
 					}
 					if (++cntr >= (g_n_samples / DATA_PER_CHANNEL)) {
@@ -100,7 +91,7 @@ static void GetData() {
 			}
 			else if (delim == 0xABCDDCBA) {	// Sorting analysis
 				int read = g_communication->Read(fbuf, ANALYSIS_PACKETS * N_CHANNELS * sizeof(uint32_t));
-				g_analysisWindow->NewData((uint32_t*)fbuf, read / sizeof(uint32_t)); // "/2" because the data is int16 not int8
+				g_analysisWindow->NewData((uint32_t*)fbuf, read / sizeof(uint32_t)); // "/sizeof(uint32_t)" because the data is 4 bytes not 1
 			}
 		}
 
@@ -142,7 +133,6 @@ void Application::Init() {
 	g_running = Running::STOPPED;
 	g_record = Record::NO;
 	g_view = View::FILTERED;
-	g_capture = Capture::OFF;
 	g_triggerframe = TriggerFrame::OFF;
 
 	g_thread_info = std::thread(Information);
