@@ -15,6 +15,8 @@ extern TriggerFrame g_triggerframe;
 
 extern int g_n_samples;
 
+static int chart_frame_idx = -1;	// -1 so that when we first press right arrow we get the first [0] frame
+
 void MainWindow::button_connect_Click() {
 	if (!g_communication->IsConnected()) {
 		if (g_communication->Connect(g_mainWindow->textbox_comport->GetText())) {
@@ -157,22 +159,30 @@ void MainWindow::button_set_times_Click() {
 }
 
 void MainWindow::button_record_Click() {
+	auto& ResetSignals = []() {for (int i = 0; i < N_CHANNELS; ++i)
+		g_mainWindow->chart->ChangeSignal(i, &g_mainWindow->signals[i]); };
+
+	chart_frame_idx = -1;
+
 	if (g_record == Record::NO) {
 		g_record = Record::ALL;
 		g_mainWindow->button_record->SetColor(sf::Color::Red);
 		g_mainWindow->recorded_signals.clear();
+		ResetSignals();
 		g_mainWindow->label_recorded_signals_counter->SetText("0");
 	}
 	else if (g_record == Record::ALL) {
 		g_record = Record::EVENTS;
 		g_mainWindow->button_record->SetColor(sf::Color::Yellow);	
 		g_mainWindow->recorded_signals.clear();
+		ResetSignals();
 		g_mainWindow->label_recorded_signals_counter->SetText("0");
 	}
 	else if (g_record == Record::EVENTS) {
 		g_record = Record::NO;
 		g_mainWindow->button_record->ResetColor();
 		g_mainWindow->recorded_signals.clear();
+		ResetSignals();
 		g_mainWindow->label_recorded_signals_counter->SetText("0");
 	}
 }
@@ -245,23 +255,23 @@ void MainWindow::checkbox_transparent_Clicked() {
 	}
 }
 
-void MainWindow::chart_OnKeyPress(const sf::Event& event) {
-	static int frame_idx = -1;	// -1 so that when we first press right arrow we get the first [0] frame
+void MainWindow::chart_OnKeyPress(const sf::Event& event) {	
 	if ((g_record == Record::ALL || g_record == Record::EVENTS) 
 		&& g_running == Running::STOPPED) {
+		const int size = ((int)g_mainWindow->recorded_signals.size() / N_CHANNELS);	// conversion from size_t to int (const int size) must be made or the bottom evaluation is wrong since comparing signed to unsigned, compiler promotes signed to unsigned converting -1 to maximum int value		
+
 		if (event.key.code == sf::Keyboard::Left) {
-			if (frame_idx > 0) {
-				frame_idx--;
+			if (chart_frame_idx > 0 && chart_frame_idx < size) {
+				chart_frame_idx--;
 				for (int i = 0; i < N_CHANNELS; ++i)
-					g_mainWindow->chart->ChangeSignal(i, &g_mainWindow->recorded_signals[frame_idx * N_CHANNELS + i]);
+					g_mainWindow->chart->ChangeSignal(i, &g_mainWindow->recorded_signals[chart_frame_idx * N_CHANNELS + i]);
 			}
 		}
-		if (event.key.code == sf::Keyboard::Right) {
-			const int size = ((int)g_mainWindow->recorded_signals.size() / N_CHANNELS);	// conversion from size_t to int (const int size) must be made or the bottom evaluation is wrong since comparing signed to unsigned, compiler promotes signed to unsigned converting -1 to maximum int value
-			if (frame_idx < (size - 1)) {
-				frame_idx++;
+		if (event.key.code == sf::Keyboard::Right) {			
+			if (chart_frame_idx < (size - 1)) {
+				chart_frame_idx++;
 				for (int i = 0; i < N_CHANNELS; ++i)
-					g_mainWindow->chart->ChangeSignal(i, &g_mainWindow->recorded_signals[frame_idx * N_CHANNELS + i]);
+					g_mainWindow->chart->ChangeSignal(i, &g_mainWindow->recorded_signals[chart_frame_idx * N_CHANNELS + i]);
 			}
 		}
 	}
@@ -306,7 +316,7 @@ void MainWindow::CreateChart(int samples) {
 	signals.reserve(N_CHANNELS);
 	recorded_signals.reserve(N_CHANNELS * 10); // make an arbitrary reservation, just so there aren't so many reallocations when first recording
 	for (int i = 0; i < N_CHANNELS; ++i) {
-		signals.push_back(Signal(g_n_samples, sf::Color(m_Colors[i]), chart->GetGraphRegion(), chart->GetMaxVal()));
+		signals.push_back(Signal(g_n_samples, sf::Color(m_Colors[i]), chart->GraphRegion(), chart->MaxVal()));
 		chart->AddSignal(&signals[signals.size() - 1]);
 	}
 	Signal::EventsToRecord(Signal::Event::MISSED | Signal::Event::DETECTED_OUT);

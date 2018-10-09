@@ -177,12 +177,12 @@ void Chart::CreateAxisMarkers() {
 	}
 }
 
-const sf::FloatRect Chart::GetGraphRegion() {
+const sf::FloatRect& Chart::GraphRegion() {
 	return m_chart_rect;
 }
 
-float* Chart::GetMaxVal() {
-	return &m_max_val;
+float& Chart::MaxVal() {
+	return m_max_val;
 }
 
 void Chart::EnableTriggerFrame() {

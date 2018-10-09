@@ -23,8 +23,8 @@ public:
 	// n_lines - number of one type of lines (vertical or horizontal), there are same number of other lines
 	void CreateGrid(int n_lines);
 	void CreateAxisMarkers();
-	const sf::FloatRect GetGraphRegion();
-	float* GetMaxVal();
+	const sf::FloatRect& GraphRegion();
+	float& MaxVal();
 	void EnableTriggerFrame();
 	void DisableTriggerFrame();
 	void ToggleDrawSignal(int idx);
