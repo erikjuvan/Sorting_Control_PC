@@ -102,6 +102,11 @@ void MainWindow::button_run_Click() {
 		// Order of statements here matters, to insure PC app doesn't get stuck on serial->read function
 		g_running = Running::STOPPED;
 		g_communication->Write("VRBS,0\n");
+		size_t len = 0;
+		while ( (len = g_communication->GetRxBufferLen()) > 0) {
+			g_communication->Purge();
+			std::this_thread::sleep_for(std::chrono::milliseconds(200));
+		}					
 		g_mainWindow->button_run->SetText("Stopped");
 	}
 }
@@ -189,8 +194,8 @@ void MainWindow::button_record_Click() {
 
 void MainWindow::button_analysis_window_Click() {
 	if (!g_analysisWindow->IsOpen()) {
-		g_analysisWindow->Create(390, 360, "Info", sf::Style::None | sf::Style::Close);
-		g_analysisWindow->SetPosition(g_mainWindow->GetPosition() + sf::Vector2i(1850 - 420, 40));
+		g_analysisWindow->Create(450, 360, "Info", sf::Style::None | sf::Style::Close);
+		g_analysisWindow->SetPosition(g_mainWindow->GetPosition() + sf::Vector2i(1850 - 480, 40));
 		g_analysisWindow->AlwaysOnTop(true);
 		g_analysisWindow->MakeTransparent();
 		g_analysisWindow->SetTransparency(120);
