@@ -71,6 +71,7 @@ void MainWindow::button_connect_Click() {
 				g_mainWindow->button_view_mode->SetText("Trained");
 				g_view = View::TRAINED;
 			}				
+			g_mainWindow->textbox_comport->Enabled(false);
 		}
 		else {
 			std::cout << "Can't connect to port " << g_mainWindow->textbox_comport->GetText() << std::endl;
@@ -81,6 +82,7 @@ void MainWindow::button_connect_Click() {
 			button_run_Click();
 		g_communication->Disconnect();
 		g_mainWindow->button_connect->SetText("Connect");
+		g_mainWindow->textbox_comport->Enabled(true);
 	}
 }
 
@@ -321,7 +323,7 @@ void MainWindow::CreateChart(int samples) {
 	signals.reserve(N_CHANNELS);
 	recorded_signals.reserve(N_CHANNELS * 10); // make an arbitrary reservation, just so there aren't so many reallocations when first recording
 	for (int i = 0; i < N_CHANNELS; ++i) {
-		signals.push_back(Signal(g_n_samples, sf::Color(m_Colors[i]), chart->GraphRegion(), chart->MaxVal()));
+		signals.push_back(Signal(g_n_samples, sf::Color(m_Colors[i]), chart->GraphRegion(), &chart->MaxVal()));
 		chart->AddSignal(&signals[signals.size() - 1]);
 	}
 	Signal::EventsToRecord(Signal::Event::MISSED | Signal::Event::DETECTED_OUT);

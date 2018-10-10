@@ -9,7 +9,8 @@ private:
 public:	
 	enum Event { NONE = 0x0, DETECTED_IN = 0x1, DETECTED_OUT = 0x2, MISSED = 0x4 };	
 
-	Signal(int n, sf::Color col, const sf::FloatRect& region, float& max_val);
+	Signal();
+	Signal(int n, sf::Color col, const sf::FloatRect& region, float *max_val);
 
 	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
@@ -51,7 +52,7 @@ private:
 	bool m_draw{ true };
 	bool m_only_draw_on_trigger{ false };
 
-	float& m_max_val;
+	float *m_max_val;
 	float m_threashold_value;
 	bool m_draw_trigger_frame{ false };	
 

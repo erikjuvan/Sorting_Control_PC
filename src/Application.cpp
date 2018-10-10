@@ -72,16 +72,22 @@ static void GetData() {
 						}
 						else if (g_record == Record::EVENTS) {
 							bool tmp_record = false;
-							for (auto& s : g_mainWindow->signals) {
+							for (auto const& s : g_mainWindow->signals) {
 								if (s.AnyEvents()) {
 									tmp_record = true;
-									s.ClearEvents();									
+									break;
 								}
 							}
 							
 							if (tmp_record) {
-								for (auto const& s : g_mainWindow->signals) {									
-									g_mainWindow->recorded_signals.push_back(s);
+								for (auto& s : g_mainWindow->signals) {
+									if (s.AnyEvents()) {
+										g_mainWindow->recorded_signals.push_back(s);
+										s.ClearEvents();
+									}
+									else {
+										g_mainWindow->recorded_signals.push_back(Signal()); // push empty signal
+									}
 								}
 								g_mainWindow->label_recorded_signals_counter->SetText(std::to_string(g_mainWindow->recorded_signals.size() / N_CHANNELS));
 							}							

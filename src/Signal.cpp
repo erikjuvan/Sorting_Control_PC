@@ -14,8 +14,9 @@ Signal::Event Signal::EventsToRecord() {
 
 /////////
 
+Signal::Signal() {}
 
-Signal::Signal(int n, sf::Color col, const sf::FloatRect& region, float& max_val) :
+Signal::Signal(int n, sf::Color col, const sf::FloatRect& region, float *max_val) :
 	m_curve(sf::PrimitiveType::LineStrip, n),
 	m_trigger_frame(sf::PrimitiveType::Lines, N_TRIGGER_FRAME_POINTS),
 	m_draw_trigger_frame(false), m_graph_region(region), m_max_val(max_val),
@@ -108,7 +109,7 @@ void Signal::ClearEvents() {
 // Return false if a signal never reached the threashold value when the window was on
 void Signal::Edit(float* buf, int start, int size) {
 	const float y_zero = m_graph_region.top + m_graph_region.height;
-	const float y_high = y_zero - (m_threashold_value / m_max_val) * m_graph_region.height + 1;
+	const float y_high = y_zero - (m_threashold_value / *m_max_val) * m_graph_region.height + 1;
 
 	if (m_draw_trigger_frame) {
 
@@ -191,6 +192,6 @@ void Signal::Edit(float* buf, int start, int size) {
 	}
 
 	for (int i = 0, s = start; i < size; ++i, ++s) {
-		m_curve[s].position.y = y_zero - (buf[i] / m_max_val) * m_graph_region.height + 1;
+		m_curve[s].position.y = y_zero - (buf[i] / *m_max_val) * m_graph_region.height + 1;
 	}
 }
