@@ -1,9 +1,10 @@
 #include "Application.hpp"
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[])
+{
 
-	Application::Init();
-	Application::Run();
+    Application::Init();
+    Application::Run();
 
-	return 0;
+    return 0;
 }

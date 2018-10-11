@@ -1,78 +1,79 @@
 #pragma once
 
-#include "Window.hpp"
 #include "Application.hpp"
+#include "Window.hpp"
 #include <mygui/Button.hpp>
 #include <mygui/Label.hpp>
 
 struct SortingAnalysis {
-	struct Channel {
-		int min;
-		int max;
-		int avg, prev_avg;
-		int std_dev, S;
-		int last;
-		int cnt;
-		int sum;
+    struct Channel {
+        int min;
+        int max;
+        int avg, prev_avg;
+        int std_dev, S;
+        int last;
+        int cnt;
+        int sum;
 
-		std::vector<int> record_buf;
+        std::vector<int> record_buf;
 
-		Channel();
-		void Clear();
-	};
+        Channel();
+        void Clear();
+    };
 
-	Channel channel[N_CHANNELS];
-	Channel total;
-	bool	m_record{ false };
+    Channel channel[N_CHANNELS];
+    Channel total;
+    bool    m_record{false};
 
-	void ClearAll();
-	void Add(uint32_t* data, int size);
-	void SaveRecord(char const* fname);
+    void ClearAll();
+    void Add(uint32_t* data, int size);
+    void SaveRecord(char const* fname);
 };
 
-class AnalysisWindow : public Window {
-private:	
-	SortingAnalysis	*m_analysis;	
+class AnalysisWindow : public Window
+{
+private:
+    SortingAnalysis* m_analysis;
 
 public:
-	// Methods
-	//////////
+    // Methods
+    //////////
 
-	AnalysisWindow(char const *title);
-	~AnalysisWindow();
-	
-	void NewData(uint32_t *data, int size);	
+    AnalysisWindow(char const* title);
+    ~AnalysisWindow();
 
-	static void button_clear_all_Clicked();
-	static void button_record_Clicked();
-	static void button_save_Clicked();
+    void NewData(uint32_t* data, int size);
 
-	// Members
-	//////////
+    static void button_clear_all_Clicked();
+    static void button_record_Clicked();
+    static void button_save_Clicked();
 
-	mygui::Button	*button_clear_all;
-	mygui::Button	*button_record;
-	mygui::Button	*button_save;
+    // Members
+    //////////
 
-	mygui::Label	*label_info_win_to_det_min;
-	mygui::Label	*label_info_win_to_det_max;
-	mygui::Label	*label_info_win_to_det_avg;
-	mygui::Label	*label_info_win_to_det_std_dev;
-	mygui::Label	*label_info_win_to_det_last;
-	mygui::Label	*label_info_win_to_det_cnt;	
+    mygui::Button* button_clear_all;
+    mygui::Button* button_record;
+    mygui::Button* button_save;
 
-	struct InfoLabel {
-		mygui::Label* channel_number;
-		mygui::Label* label_min;
-		mygui::Label* label_max;
-		mygui::Label* label_avg;
-		mygui::Label* label_std_dev;
-		mygui::Label* label_last;
-		mygui::Label* label_cnt;
+    mygui::Label* label_info_win_to_det_min;
+    mygui::Label* label_info_win_to_det_max;
+    mygui::Label* label_info_win_to_det_avg;
+    mygui::Label* label_info_win_to_det_std_dev;
+    mygui::Label* label_info_win_to_det_last;
+    mygui::Label* label_info_win_to_det_cnt;
 
-		~InfoLabel();
-	};
+    struct InfoLabel {
+        mygui::Label* channel_number;
+        mygui::Label* label_min;
+        mygui::Label* label_max;
+        mygui::Label* label_avg;
+        mygui::Label* label_std_dev;
+        mygui::Label* label_last;
+        mygui::Label* label_cnt;
 
-	InfoLabel labels[N_CHANNELS];
-	InfoLabel label_all;
+        ~InfoLabel();
+    };
+
+    InfoLabel labels[N_CHANNELS];
+    InfoLabel label_all;
 };
