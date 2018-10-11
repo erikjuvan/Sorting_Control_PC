@@ -126,6 +126,18 @@ void Signal::ClearEvents()
     m_events = Event::NONE;
 }
 
+void Signal::TriggerWindowAdd(bool active)
+{
+    static int width = 0;
+    if (active) {
+        width++;
+    } else if (width > 0) {
+        m_trigger_window_stats.Update(width);
+        m_trigger_window_stats.push_back(width);
+        width = 0;
+    }
+}
+
 // Return false if a signal never reached the threashold value when the window was on
 void Signal::Edit(float* buf, int start, int size)
 {
@@ -161,6 +173,7 @@ void Signal::Edit(float* buf, int start, int size)
             }
             m_diff             = m_trigger_val - m_trigger_val_prev;
             m_trigger_val_prev = m_trigger_val;
+            TriggerWindowAdd(m_trigger_val);
             /////////////////
 
             // Threashold detection
@@ -188,7 +201,7 @@ void Signal::Edit(float* buf, int start, int size)
                 if (m_threashold == Threashold::SEARCHING) {
                     m_threashold = Threashold::MISSED;
                     m_detection_missed++;
-                    m_events |= MISSED;
+                    m_events = static_cast<Event>(m_events | MISSED);
                 }
             } else if (m_trigger_val == 1) { // frame active
                 if (s == 0) {                // new start
@@ -199,13 +212,13 @@ void Signal::Edit(float* buf, int start, int size)
                 if (m_threashold == Threashold::REACHED) {
                     m_detected_in_window_cnt++;
                     m_threashold = Threashold::IDLE;
-                    m_events |= DETECTED_IN;
+                    m_events     = static_cast<Event>(m_events | DETECTED_IN);
                 }
             } else { // no frame
                 if (m_threashold == Threashold::REACHED) {
                     m_detected_out_window_cnt++;
                     m_threashold = Threashold::IDLE;
-                    m_events |= DETECTED_OUT;
+                    m_events     = static_cast<Event>(m_events | DETECTED_OUT);
                 }
             }
         }

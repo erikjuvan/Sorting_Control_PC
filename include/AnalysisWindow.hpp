@@ -1,29 +1,16 @@
 #pragma once
 
 #include "Application.hpp"
+#include "Helpers.hpp"
 #include "Window.hpp"
 #include <mygui/Button.hpp>
 #include <mygui/Label.hpp>
 
 struct SortingAnalysis {
-    struct Channel {
-        int min;
-        int max;
-        int avg, prev_avg;
-        int std_dev, S;
-        int last;
-        int cnt;
-        int sum;
 
-        std::vector<int> record_buf;
-
-        Channel();
-        void Clear();
-    };
-
-    Channel channel[N_CHANNELS];
-    Channel total;
-    bool    m_record{false};
+    Statistics<int> channel[N_CHANNELS];
+    Statistics<int> total;
+    bool            m_record{false};
 
     void ClearAll();
     void Add(uint32_t* data, int size);

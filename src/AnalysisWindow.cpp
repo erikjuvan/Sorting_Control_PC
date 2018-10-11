@@ -6,19 +6,6 @@
 
 extern AnalysisWindow* g_analysisWindow;
 
-SortingAnalysis::Channel::Channel()
-{
-    Clear();
-    record_buf.reserve(1000);
-}
-
-void SortingAnalysis::Channel::Clear()
-{
-    min = 1000;
-    max = avg = prev_avg = std_dev = S = last = cnt = sum = 0;
-    record_buf.clear();
-}
-
 void SortingAnalysis::ClearAll()
 {
     for (auto& c : channel) {
@@ -29,51 +16,17 @@ void SortingAnalysis::ClearAll()
 
 void SortingAnalysis::Add(uint32_t* data, int size)
 {
-
     for (int i = 0; i < size; ++i) {
         int val = data[i] & 0x00FFFFFF;
         if (val > 0) {
             int ch = ((data[i] >> 24) & 0xFF);
 
-            ///////////////
-            // Channel i //
-            ///////////////
-            channel[ch].last = val;
-            channel[ch].sum += val;
-            channel[ch].cnt++;
-            if (channel[ch].min > val)
-                channel[ch].min = val;
-            if (channel[ch].max < val)
-                channel[ch].max = val;
+            channel[ch].Update(val);
+            total.Update(val);
 
-            // Std dev
-            channel[ch].prev_avg = channel[ch].avg;
-            channel[ch].avg      = channel[ch].sum / channel[ch].cnt;
-            channel[ch].S        = channel[ch].S + (val - channel[ch].avg) * (val - channel[ch].prev_avg);
-            channel[ch].std_dev  = sqrt(channel[ch].S / channel[ch].cnt);
-
-            ///////////
-            // Total //
-            ///////////
-            total.sum += val;
-            total.cnt++;
-            if (total.min > val)
-                total.min = val;
-            if (total.max < val)
-                total.max = val;
-
-            // Std dev
-            total.prev_avg = total.avg;
-            total.avg      = total.sum / total.cnt;
-            total.S        = total.S + (val - total.avg) * (val - total.prev_avg);
-            total.std_dev  = sqrt(total.S / total.cnt);
-
-            ////////////
-            // Record //
-            ////////////
             if (m_record) {
-                channel[ch].record_buf.push_back(val);
-                total.record_buf.push_back(val);
+                channel[ch].push_back(val);
+                total.push_back(val);
             }
         }
     }
@@ -84,37 +37,36 @@ void SortingAnalysis::SaveRecord(char const* fname)
     std::ofstream f(fname, std::ios::out | std::ios::app); // open for writting and append data
     std::string   buf;
 
-    auto write_to_file = [&f, &buf]() { if (buf[buf.size() - 1] == ',') buf.pop_back(); buf += "]\n"; f << buf; };
+    auto buf_correction = [&buf]() { if (buf[buf.size() - 1] == ',') buf.pop_back(); buf += "]\n"; };
 
     if (f.is_open()) {
-
+        buf.clear();
         // Channels
         for (int i = 0; i < N_CHANNELS; ++i) {
-            buf.clear();
             buf += "ch" + std::to_string(i + 1) + "=[";
-            for (auto const& num : channel[i].record_buf) {
+            for (auto const& num : channel[i].buffer) {
                 buf += std::to_string(num) + ",";
             }
-            write_to_file();
+            buf_correction();
         }
 
         // Total (the way they came)
-        buf.clear();
-        buf = "total=[";
-        for (auto const& num : total.record_buf) {
+        buf += "total=[";
+        for (auto const& num : total.buffer) {
             buf += std::to_string(num) + ",";
         }
-        write_to_file();
+        buf_correction();
 
         // Total (sorted by channels)
-        buf.clear();
-        buf = "total_sorted_by_channel_id=[";
+        buf += "total_sorted_by_channel_id=[";
         for (int i = 0; i < N_CHANNELS; ++i) {
-            for (auto const& num : channel[i].record_buf) {
+            for (auto const& num : channel[i].buffer) {
                 buf += std::to_string(num) + ",";
             }
         }
-        write_to_file();
+        buf_correction();
+
+        f << buf; // Write entire content to file
 
         f.close();
         std::cout << "Analysis info saved to " << fname << std::endl;

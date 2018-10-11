@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Helpers.hpp"
 #include <SFML/Graphics.hpp>
 
 class Signal : public sf::Drawable
@@ -40,6 +41,7 @@ public:
     bool         AnyEvents() const;
     void         ClearEvents();
     void         Edit(float* buf, int start, int size); // Return false if a signal never reached the threashold value when the window was on
+    void         TriggerWindowAdd(bool active);
 
 private:
     static constexpr int N_TRIGGER_FRAME_POINTS = 60; // should be enough for ~ 60 / 3 = 20 windows
@@ -48,6 +50,8 @@ private:
 
     Threashold m_threashold;
     Event      m_events;
+
+    Statistics<int> m_trigger_window_stats;
 
     sf::VertexArray m_curve;
     sf::VertexArray m_trigger_frame;

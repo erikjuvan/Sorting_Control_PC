@@ -229,9 +229,9 @@ void MainWindow::label_info_signal_missed_Clicked()
 static auto TmpSetEvent = [](bool on, Signal::Event e) {
     Signal::Event ev = Signal::EventsToRecord();
     if (on)
-        ev |= e;
+        ev = static_cast<Signal::Event>(ev | e);
     else
-        ev &= ~e;
+        ev = static_cast<Signal::Event>(ev & ~e);
     Signal::EventsToRecord(ev);
 };
 
@@ -335,7 +335,7 @@ void MainWindow::CreateChart(int samples)
         signals.push_back(Signal(g_n_samples, sf::Color(m_Colors[i]), chart->GraphRegion(), &chart->MaxVal()));
         chart->AddSignal(&signals[signals.size() - 1]);
     }
-    Signal::EventsToRecord(Signal::Event::MISSED | Signal::Event::DETECTED_OUT);
+    Signal::EventsToRecord(static_cast<Signal::Event>(Signal::Event::MISSED | Signal::Event::DETECTED_OUT));
 }
 
 void MainWindow::RunClick()
