@@ -35,7 +35,7 @@ public:
     static void button_view_mode_Click();
     static void button_capture_Click();
     static void button_record_Click();
-    static void button_analysis_window_Click();
+    static void button_info_Click();
 
     static void label_info_detected_in_window_Clicked();
     static void label_info_detected_out_window_Clicked();

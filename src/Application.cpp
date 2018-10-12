@@ -1,13 +1,15 @@
 #include "Application.hpp"
 #include "AnalysisWindow.hpp"
 #include "Communication.hpp"
+#include "FrameInfoWindow.hpp"
 #include "MainWindow.hpp"
 #include <fstream>
 #include <thread>
 
-Communication*  g_communication;
-MainWindow*     g_mainWindow;
-AnalysisWindow* g_analysisWindow;
+Communication*   g_communication;
+MainWindow*      g_mainWindow;
+AnalysisWindow*  g_analysisWindow;
+FrameInfoWindow* g_frameInfoWindow;
 
 Running      g_running;
 Record       g_record;
@@ -92,6 +94,7 @@ static void GetData()
                                 g_mainWindow->label_recorded_signals_counter->SetText(std::to_string(g_mainWindow->recorded_signals.size() / N_CHANNELS));
                             }
                         }
+                        g_frameInfoWindow->RefreshTable();
                     }
                 }
             } else if (delim == 0xABCDDCBA) { // Sorting analysis
@@ -127,11 +130,19 @@ void Application::Init()
 {
     g_communication  = new Communication();
     g_mainWindow     = new MainWindow(1850, 900, "Sorting Control", sf::Style::None | sf::Style::Close);
-    g_analysisWindow = new AnalysisWindow("Info");
+    g_analysisWindow = new AnalysisWindow("Detection Info");
     g_analysisWindow->SetPosition(g_mainWindow->GetPosition() + sf::Vector2i(1850 - 480, 40));
     g_analysisWindow->AlwaysOnTop(true);
     g_analysisWindow->MakeTransparent();
     g_analysisWindow->SetTransparency(150);
+    g_frameInfoWindow = new FrameInfoWindow("Frame Info");
+    g_frameInfoWindow->SetPosition(g_mainWindow->GetPosition() + sf::Vector2i(1850 - 1000, 40));
+    g_frameInfoWindow->AlwaysOnTop(true);
+    g_frameInfoWindow->MakeTransparent();
+    g_frameInfoWindow->SetTransparency(150);
+    for (auto& s : g_mainWindow->signals) {
+        g_frameInfoWindow->push_back(&s.GetTriggerWindowStats());
+    }
 
     // Initial parameters from file init
     InitFromFile("config.txt");
@@ -150,12 +161,14 @@ void Application::Run()
     while (g_mainWindow->IsOpen()) {
         g_mainWindow->Update();
         g_analysisWindow->Update();
+        g_frameInfoWindow->Update();
     }
 
     g_thread_info.join();
     g_thread_get_data.join();
 
     delete g_analysisWindow;
+    delete g_frameInfoWindow;
     delete g_mainWindow;
     delete g_communication;
 }

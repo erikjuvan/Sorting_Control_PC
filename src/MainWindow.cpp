@@ -1,5 +1,6 @@
 #include "MainWindow.hpp"
 #include "AnalysisWindow.hpp"
+#include "FrameInfoWindow.hpp"
 #include "Application.hpp"
 #include "Communication.hpp"
 #include "Helpers.hpp"
@@ -7,6 +8,7 @@
 extern Communication*  g_communication;
 extern MainWindow*     g_mainWindow;
 extern AnalysisWindow* g_analysisWindow;
+extern FrameInfoWindow* g_frameInfoWindow;
 
 extern Running      g_running;
 extern Record       g_record;
@@ -193,7 +195,7 @@ void MainWindow::button_record_Click()
     }
 }
 
-void MainWindow::button_analysis_window_Click()
+void MainWindow::button_info_Click()
 {
     if (!g_analysisWindow->IsOpen()) {
         g_analysisWindow->Create(450, 360, "Info", sf::Style::None | sf::Style::Close);
@@ -201,6 +203,13 @@ void MainWindow::button_analysis_window_Click()
         g_analysisWindow->AlwaysOnTop(true);
         g_analysisWindow->MakeTransparent();
         g_analysisWindow->SetTransparency(120);
+    }
+    if (!g_frameInfoWindow->IsOpen()) {
+        g_frameInfoWindow->Create(450, 360, "Info", sf::Style::None | sf::Style::Close);
+        g_frameInfoWindow->SetPosition(g_mainWindow->GetPosition() + sf::Vector2i(1850 - 1000, 40));
+        g_frameInfoWindow->AlwaysOnTop(true);
+        g_frameInfoWindow->MakeTransparent();
+        g_frameInfoWindow->SetTransparency(120);
     }
 }
 
@@ -380,7 +389,7 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     button_record->OnClick(&MainWindow::button_record_Click);
 
     button_analysis_window = new mygui::Button(10, 800, "Info");
-    button_analysis_window->OnClick(&MainWindow::button_analysis_window_Click);
+    button_analysis_window->OnClick(&MainWindow::button_info_Click);
 
     //////////////
     // Texboxes //

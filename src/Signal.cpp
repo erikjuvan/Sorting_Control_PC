@@ -126,18 +126,6 @@ void Signal::ClearEvents()
     m_events = Event::NONE;
 }
 
-void Signal::TriggerWindowAdd(bool active)
-{
-    static int width = 0;
-    if (active) {
-        width++;
-    } else if (width > 0) {
-        m_trigger_window_stats.Update(width);
-        m_trigger_window_stats.push_back(width);
-        width = 0;
-    }
-}
-
 // Return false if a signal never reached the threashold value when the window was on
 void Signal::Edit(float* buf, int start, int size)
 {
@@ -173,7 +161,7 @@ void Signal::Edit(float* buf, int start, int size)
             }
             m_diff             = m_trigger_val - m_trigger_val_prev;
             m_trigger_val_prev = m_trigger_val;
-            TriggerWindowAdd(m_trigger_val);
+            m_trigger_window_stats.Update(m_trigger_val);
             /////////////////
 
             // Threashold detection
