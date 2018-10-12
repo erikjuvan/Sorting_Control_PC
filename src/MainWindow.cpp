@@ -1,14 +1,13 @@
 #include "MainWindow.hpp"
-#include "AnalysisWindow.hpp"
-#include "FrameInfoWindow.hpp"
 #include "Application.hpp"
 #include "Communication.hpp"
 #include "Helpers.hpp"
+#include "InfoWindow.hpp"
+#include <functional>
 
-extern Communication*  g_communication;
-extern MainWindow*     g_mainWindow;
-extern AnalysisWindow* g_analysisWindow;
-extern FrameInfoWindow* g_frameInfoWindow;
+extern Communication* g_communication;
+extern InfoWindow*    g_detectionInfoWindow;
+extern InfoWindow*    g_frameInfoWindow;
 
 extern Running      g_running;
 extern Record       g_record;
@@ -22,9 +21,9 @@ static int chart_frame_idx = -1; // -1 so that when we first press right arrow w
 void MainWindow::button_connect_Click()
 {
     if (!g_communication->IsConnected()) {
-        if (g_communication->Connect(g_mainWindow->textbox_comport->GetText())) {
+        if (g_communication->Connect(textbox_comport->GetText())) {
 
-            g_mainWindow->button_connect->SetText("Disconnect");
+            button_connect->SetText("Disconnect");
 
             std::string              buf;
             std::vector<std::string> strings;
@@ -38,50 +37,50 @@ void MainWindow::button_connect_Click()
             };
 
             read_and_parse("GETFREQ\n");
-            g_mainWindow->textbox_frequency->SetText(buf);
+            textbox_frequency->SetText(buf);
 
             read_and_parse("GETPARAMS\n");
-            for (auto& s : g_mainWindow->signals) {
+            for (auto& s : signals) {
                 s.SetThreashold(std::stof(strings[3]));
             }
-            g_mainWindow->textbox_filter_params->SetText(buf);
+            textbox_filter_params->SetText(buf);
 
             read_and_parse("GETTIMES\n");
-            for (auto& s : g_mainWindow->signals) {
-                s.SetBlindTime(std::stof(strings[2]));
+            for (auto& s : signals) {
+                s.SetBlindTime(std::stoi(strings[2]));
             }
-            g_mainWindow->textbox_times->SetText(buf);
+            textbox_times->SetText(buf);
 
             read_and_parse("GETTRGFRM\n");
             if (TriggerFrame::ON == static_cast<TriggerFrame>(std::stoi(buf))) {
-                g_mainWindow->chart->EnableTriggerFrame();
-                g_mainWindow->button_trigger_frame->SetText("Frame ON");
+                chart->EnableTriggerFrame();
+                button_trigger_frame->SetText("Frame ON");
             } else {
-                g_mainWindow->chart->DisableTriggerFrame();
-                g_mainWindow->button_trigger_frame->SetText("Frame OFF");
+                chart->DisableTriggerFrame();
+                button_trigger_frame->SetText("Frame OFF");
             }
 
             read_and_parse("GETVIEW\n");
             if (View::FILTERED == static_cast<View>(std::stoi(buf))) {
-                g_mainWindow->button_view_mode->SetText("Filtered");
+                button_view_mode->SetText("Filtered");
                 g_view = View::FILTERED;
             } else if (View::RAW == static_cast<View>(std::stoi(buf))) {
-                g_mainWindow->button_view_mode->SetText("Raw");
+                button_view_mode->SetText("Raw");
                 g_view = View::RAW;
             } else if (View::TRAINED == static_cast<View>(std::stoi(buf))) {
-                g_mainWindow->button_view_mode->SetText("Trained");
+                button_view_mode->SetText("Trained");
                 g_view = View::TRAINED;
             }
-            g_mainWindow->textbox_comport->Enabled(false);
+            textbox_comport->Enabled(false);
         } else {
-            std::cout << "Can't connect to port " << g_mainWindow->textbox_comport->GetText() << std::endl;
+            std::cout << "Can't connect to port " << textbox_comport->GetText() << std::endl;
         }
     } else {
         if (g_running == Running::RUNNING)
             button_run_Click();
         g_communication->Disconnect();
-        g_mainWindow->button_connect->SetText("Connect");
-        g_mainWindow->textbox_comport->Enabled(true);
+        button_connect->SetText("Connect");
+        textbox_comport->Enabled(true);
     }
 }
 
@@ -95,10 +94,10 @@ void MainWindow::button_run_Click()
         g_communication->Write("UART_SORT\n");
         g_communication->Write("VRBS,1\n");
         g_running = Running::RUNNING;
-        g_mainWindow->button_run->SetText("Running");
+        button_run->SetText("Running");
 
         for (int i = 0; i < N_CHANNELS; ++i)
-            g_mainWindow->chart->ChangeSignal(i, &g_mainWindow->signals[i]);
+            chart->ChangeSignal(i, &signals[i]);
     } else if (g_running == Running::RUNNING) {
         // Order of statements here matters, to insure PC app doesn't get stuck on serial->read function
         g_running = Running::STOPPED;
@@ -108,7 +107,7 @@ void MainWindow::button_run_Click()
             g_communication->Purge();
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
-        g_mainWindow->button_run->SetText("Stopped");
+        button_run->SetText("Stopped");
     }
 }
 
@@ -117,13 +116,13 @@ void MainWindow::button_trigger_frame_Click()
     if (g_triggerframe == TriggerFrame::OFF) {
         g_triggerframe = TriggerFrame::ON;
         g_communication->Write("SETTRGFRM,1\n");
-        g_mainWindow->chart->EnableTriggerFrame();
-        g_mainWindow->button_trigger_frame->SetText("Frame ON");
+        chart->EnableTriggerFrame();
+        button_trigger_frame->SetText("Frame ON");
     } else {
         g_triggerframe = TriggerFrame::OFF;
-        g_communication->Write("GETTRGFRM,0\n");
-        g_mainWindow->chart->DisableTriggerFrame();
-        g_mainWindow->button_trigger_frame->SetText("Frame OFF");
+        g_communication->Write("SETTRGFRM,0\n");
+        chart->DisableTriggerFrame();
+        button_trigger_frame->SetText("Frame OFF");
     }
 }
 
@@ -132,90 +131,94 @@ void MainWindow::button_view_mode_Click()
     if (g_view == View::FILTERED) {
         g_view = View::RAW;
         g_communication->Write("RAW\n");
-        g_mainWindow->button_view_mode->SetText("Raw");
+        button_view_mode->SetText("Raw");
     } else if (g_view == View::RAW || g_view == View::TRAINED) { // If somehow we end up in TRAINED view, go back to filtered
         g_view = View::FILTERED;
         g_communication->Write("FILTERED\n");
-        g_mainWindow->button_view_mode->SetText("Filtered");
+        button_view_mode->SetText("Filtered");
     }
 }
 
 void MainWindow::button_set_frequency_Click()
 {
-    g_communication->Write("SETFREQ," + g_mainWindow->textbox_frequency->GetText() + "\n");
+    g_communication->Write("SETFREQ," + textbox_frequency->GetText() + "\n");
 }
 
 void MainWindow::button_set_filter_params_Click()
 {
-    g_communication->Write("SETPARAMS," + g_mainWindow->textbox_filter_params->GetText() + "\n");
+    g_communication->Write("SETPARAMS," + textbox_filter_params->GetText() + "\n");
 
     // Set threashold for all signals
-    std::vector<std::string> strings = Help::TokenizeString(g_mainWindow->textbox_filter_params->GetText());
-    for (auto& s : g_mainWindow->signals) {
+    std::vector<std::string> strings = Help::TokenizeString(textbox_filter_params->GetText());
+    for (auto& s : signals) {
         s.SetThreashold(std::stof(strings[3]));
     }
 }
 
 void MainWindow::button_set_times_Click()
 {
-    g_communication->Write("SETTIMES," + g_mainWindow->textbox_times->GetText() + "\n");
+    g_communication->Write("SETTIMES," + textbox_times->GetText() + "\n");
 
     // Set blind time for all signals
-    std::vector<std::string> strings = Help::TokenizeString(g_mainWindow->textbox_times->GetText());
-    for (auto& s : g_mainWindow->signals) {
+    std::vector<std::string> strings = Help::TokenizeString(textbox_times->GetText());
+    for (auto& s : signals) {
         s.SetBlindTime(std::stoi(strings[2]));
     }
 }
 
 void MainWindow::button_record_Click()
 {
-    auto& ResetSignals = []() {for (int i = 0; i < N_CHANNELS; ++i)
-		g_mainWindow->chart->ChangeSignal(i, &g_mainWindow->signals[i]); };
+    auto& ResetSignals = [this]() {for (int i = 0; i < N_CHANNELS; ++i)
+		chart->ChangeSignal(i, &signals[i]); };
 
     chart_frame_idx = -1;
 
     if (g_record == Record::NO) {
         g_record = Record::ALL;
-        g_mainWindow->button_record->SetColor(sf::Color::Red);
-        g_mainWindow->recorded_signals.clear();
+        button_record->SetColor(sf::Color::Red);
+        recorded_signals.clear();
         ResetSignals();
-        g_mainWindow->label_recorded_signals_counter->SetText("0");
+        label_recorded_signals_counter->SetText("0");
     } else if (g_record == Record::ALL) {
         g_record = Record::EVENTS;
-        g_mainWindow->button_record->SetColor(sf::Color::Yellow);
-        g_mainWindow->recorded_signals.clear();
+        button_record->SetColor(sf::Color::Yellow);
+        recorded_signals.clear();
         ResetSignals();
-        g_mainWindow->label_recorded_signals_counter->SetText("0");
+        label_recorded_signals_counter->SetText("0");
     } else if (g_record == Record::EVENTS) {
         g_record = Record::NO;
-        g_mainWindow->button_record->ResetColor();
-        g_mainWindow->recorded_signals.clear();
+        button_record->ResetColor();
+        recorded_signals.clear();
         ResetSignals();
-        g_mainWindow->label_recorded_signals_counter->SetText("0");
+        label_recorded_signals_counter->SetText("0");
     }
 }
 
 void MainWindow::button_info_Click()
 {
-    if (!g_analysisWindow->IsOpen()) {
-        g_analysisWindow->Create(450, 360, "Info", sf::Style::None | sf::Style::Close);
-        g_analysisWindow->SetPosition(g_mainWindow->GetPosition() + sf::Vector2i(1850 - 480, 40));
-        g_analysisWindow->AlwaysOnTop(true);
-        g_analysisWindow->MakeTransparent();
-        g_analysisWindow->SetTransparency(120);
+    if (!g_detectionInfoWindow->IsOpen()) {
+        delete g_detectionInfoWindow;
+        g_detectionInfoWindow = new InfoWindow("Detection Info", "info_det.txt");
+        g_detectionInfoWindow->SetPosition(GetPosition() + sf::Vector2i(1850 - 480, 40));
+        for (auto& s : signals) {
+            g_detectionInfoWindow->push_back(&s.GetDetecionStats());
+        }
+        g_detectionInfoWindow->SetAll(Signal::GetDetecionStatsAll());
     }
     if (!g_frameInfoWindow->IsOpen()) {
-        g_frameInfoWindow->Create(450, 360, "Info", sf::Style::None | sf::Style::Close);
-        g_frameInfoWindow->SetPosition(g_mainWindow->GetPosition() + sf::Vector2i(1850 - 1000, 40));
-        g_frameInfoWindow->AlwaysOnTop(true);
-        g_frameInfoWindow->MakeTransparent();
-        g_frameInfoWindow->SetTransparency(120);
+        delete g_frameInfoWindow;
+        g_frameInfoWindow = new InfoWindow("Frame Info", "info_frm.txt");
+        g_frameInfoWindow->SetPosition(GetPosition() + sf::Vector2i(1850 - 1000, 40));
+        for (auto& s : signals) {
+            g_frameInfoWindow->push_back(&s.GetTriggerWindowStats());
+        }
+        g_frameInfoWindow->SetAll(Signal::GetTriggerWindowStatsAll());
     }
 }
 
 void MainWindow::label_info_detected_in_window_Clicked()
 {
-    for (auto& s : g_mainWindow->signals) {
+    for (auto& s : signals) {
         s.ClearDetectionsInWindow();
     }
 }
@@ -223,14 +226,14 @@ void MainWindow::label_info_detected_in_window_Clicked()
 void MainWindow::label_info_detected_out_window_Clicked()
 {
 
-    for (auto& s : g_mainWindow->signals) {
+    for (auto& s : signals) {
         s.ClearDetectionsOutWindow();
     }
 }
 
 void MainWindow::label_info_signal_missed_Clicked()
 {
-    for (auto& s : g_mainWindow->signals) {
+    for (auto& s : signals) {
         s.ClearMissed();
     }
 }
@@ -246,23 +249,23 @@ static auto TmpSetEvent = [](bool on, Signal::Event e) {
 
 void MainWindow::checkbox_detected_in_Clicked()
 {
-    TmpSetEvent(g_mainWindow->checkbox_detected_in->Checked(), Signal::Event::DETECTED_IN);
+    TmpSetEvent(checkbox_detected_in->Checked(), Signal::Event::DETECTED_IN);
 }
 
 void MainWindow::checkbox_detected_out_Clicked()
 {
-    TmpSetEvent(g_mainWindow->checkbox_detected_out->Checked(), Signal::Event::DETECTED_OUT);
+    TmpSetEvent(checkbox_detected_out->Checked(), Signal::Event::DETECTED_OUT);
 }
 
 void MainWindow::checkbox_missed_Clicked()
 {
-    TmpSetEvent(g_mainWindow->checkbox_missed->Checked(), Signal::Event::MISSED);
+    TmpSetEvent(checkbox_missed->Checked(), Signal::Event::MISSED);
 }
 
 void MainWindow::checkbox_only_show_framed_Clicked()
 {
-    for (auto& s : g_mainWindow->signals) {
-        s.OnlyDrawOnTrigger(g_mainWindow->checkbox_only_show_framed->Checked());
+    for (auto& s : signals) {
+        s.OnlyDrawOnTrigger(checkbox_only_show_framed->Checked());
     }
 }
 
@@ -271,62 +274,62 @@ void MainWindow::checkbox_transparent_Clicked()
     static bool transparent = false;
     if (!transparent) {
         transparent = true;
-        g_mainWindow->MakeTransparent();
-        g_mainWindow->SetTransparency(120);
+        MakeTransparent();
+        SetTransparency(120);
     } else {
         transparent = false;
-        g_mainWindow->SetTransparency(255);
+        SetTransparency(255);
     }
 }
 
 void MainWindow::chart_OnKeyPress(const sf::Event& event)
 {
     if ((g_record == Record::ALL || g_record == Record::EVENTS) && g_running == Running::STOPPED) {
-        const int size = ((int)g_mainWindow->recorded_signals.size() / N_CHANNELS); // conversion from size_t to int (const int size) must be made or the bottom evaluation is wrong since comparing signed to unsigned, compiler promotes signed to unsigned converting -1 to maximum int value
+        const int size = ((int)recorded_signals.size() / N_CHANNELS); // conversion from size_t to int (const int size) must be made or the bottom evaluation is wrong since comparing signed to unsigned, compiler promotes signed to unsigned converting -1 to maximum int value
 
         if (event.key.code == sf::Keyboard::Left) {
             if (chart_frame_idx > 0 && chart_frame_idx < size) {
                 chart_frame_idx--;
                 for (int i = 0; i < N_CHANNELS; ++i)
-                    g_mainWindow->chart->ChangeSignal(i, &g_mainWindow->recorded_signals[chart_frame_idx * N_CHANNELS + i]);
+                    chart->ChangeSignal(i, &recorded_signals[chart_frame_idx * N_CHANNELS + i]);
             }
         }
         if (event.key.code == sf::Keyboard::Right) {
             if (chart_frame_idx < (size - 1)) {
                 chart_frame_idx++;
                 for (int i = 0; i < N_CHANNELS; ++i)
-                    g_mainWindow->chart->ChangeSignal(i, &g_mainWindow->recorded_signals[chart_frame_idx * N_CHANNELS + i]);
+                    chart->ChangeSignal(i, &recorded_signals[chart_frame_idx * N_CHANNELS + i]);
             }
         }
     }
 
     switch (event.key.code) {
     case sf::Keyboard::Num0:
-        g_mainWindow->chart->ToggleDrawAllSignals();
+        chart->ToggleDrawAllSignals();
         break;
     case sf::Keyboard::Num1:
-        g_mainWindow->chart->ToggleDrawSignal(1);
+        chart->ToggleDrawSignal(1);
         break;
     case sf::Keyboard::Num2:
-        g_mainWindow->chart->ToggleDrawSignal(2);
+        chart->ToggleDrawSignal(2);
         break;
     case sf::Keyboard::Num3:
-        g_mainWindow->chart->ToggleDrawSignal(3);
+        chart->ToggleDrawSignal(3);
         break;
     case sf::Keyboard::Num4:
-        g_mainWindow->chart->ToggleDrawSignal(4);
+        chart->ToggleDrawSignal(4);
         break;
     case sf::Keyboard::Num5:
-        g_mainWindow->chart->ToggleDrawSignal(5);
+        chart->ToggleDrawSignal(5);
         break;
     case sf::Keyboard::Num6:
-        g_mainWindow->chart->ToggleDrawSignal(6);
+        chart->ToggleDrawSignal(6);
         break;
     case sf::Keyboard::Num7:
-        g_mainWindow->chart->ToggleDrawSignal(7);
+        chart->ToggleDrawSignal(7);
         break;
     case sf::Keyboard::Num8:
-        g_mainWindow->chart->ToggleDrawSignal(8);
+        chart->ToggleDrawSignal(8);
         break;
     }
 }
@@ -336,7 +339,7 @@ void MainWindow::CreateChart(int samples)
     g_n_samples = samples;
     chart       = new Chart(240, 10, 1600, 880, g_n_samples, 100);
     chart->CreateGrid(9);
-    chart->OnKeyPress(&MainWindow::chart_OnKeyPress);
+    chart->OnKeyPress(std::bind(&MainWindow::chart_OnKeyPress, this, std::placeholders::_1));
     signals.clear();
     signals.reserve(N_CHANNELS);
     recorded_signals.reserve(N_CHANNELS * 10); // make an arbitrary reservation, just so there aren't so many reallocations when first recording
@@ -365,31 +368,31 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     // Buttons //
     /////////////
     button_connect = new mygui::Button(10, 50, "Connect", 100);
-    button_connect->OnClick(&MainWindow::button_connect_Click);
+    button_connect->OnClick(std::bind(&MainWindow::button_connect_Click, this));
 
     button_run = new mygui::Button(10, 90, "Stopped", 100);
-    button_run->OnClick(&MainWindow::button_run_Click);
+    button_run->OnClick(std::bind(&MainWindow::button_run_Click, this));
 
     button_trigger_frame = new mygui::Button(125, 50, "Frame OFF", 100, 30, 18);
-    button_trigger_frame->OnClick(&MainWindow::button_trigger_frame_Click);
+    button_trigger_frame->OnClick(std::bind(&MainWindow::button_trigger_frame_Click, this));
 
     button_view_mode = new mygui::Button(125, 90, "Raw", 100, 30, 18);
-    button_view_mode->OnClick(&MainWindow::button_view_mode_Click);
+    button_view_mode->OnClick(std::bind(&MainWindow::button_view_mode_Click, this));
 
     button_set_frequency = new mygui::Button(10, 260, "Send");
-    button_set_frequency->OnClick(&MainWindow::button_set_frequency_Click);
+    button_set_frequency->OnClick(std::bind(&MainWindow::button_set_frequency_Click, this));
 
     button_set_filter_params = new mygui::Button(10, 380, "Send");
-    button_set_filter_params->OnClick(&MainWindow::button_set_filter_params_Click);
+    button_set_filter_params->OnClick(std::bind(&MainWindow::button_set_filter_params_Click, this));
 
     button_set_times = new mygui::Button(10, 500, "Send");
-    button_set_times->OnClick(&MainWindow::button_set_times_Click);
+    button_set_times->OnClick(std::bind(&MainWindow::button_set_times_Click, this));
 
     button_record = new mygui::Button(10, 650, "Record");
-    button_record->OnClick(&MainWindow::button_record_Click);
+    button_record->OnClick(std::bind(&MainWindow::button_record_Click, this));
 
     button_analysis_window = new mygui::Button(10, 800, "Info");
-    button_analysis_window->OnClick(&MainWindow::button_info_Click);
+    button_analysis_window->OnClick(std::bind(&MainWindow::button_info_Click, this));
 
     //////////////
     // Texboxes //
@@ -408,32 +411,32 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     label_recorded_signals_counter = new mygui::Label(120, 654, "0");
     label_info_rx_bytes            = new mygui::Label(10, 590, "Rx buf: 0 bytes");
     label_info_detected_in_window  = new mygui::Label(120, 698, "0");
-    label_info_detected_in_window->OnClick(&MainWindow::label_info_detected_in_window_Clicked);
+    label_info_detected_in_window->OnClick(std::bind(&MainWindow::label_info_detected_in_window_Clicked, this));
     label_info_detected_out_window = new mygui::Label(120, 729, "0");
-    label_info_detected_out_window->OnClick(&MainWindow::label_info_detected_out_window_Clicked);
+    label_info_detected_out_window->OnClick(std::bind(&MainWindow::label_info_detected_out_window_Clicked, this));
     label_info_signal_missed = new mygui::Label(120, 760, "0");
-    label_info_signal_missed->OnClick(&MainWindow::label_info_signal_missed_Clicked);
+    label_info_signal_missed->OnClick(std::bind(&MainWindow::label_info_signal_missed_Clicked, this));
 
     ////////////////
     // Checkboxes //
     ////////////////
     checkbox_detected_in = new mygui::Checkbox(10, 700, "Det IN: ");
-    checkbox_detected_in->OnClick(&MainWindow::checkbox_detected_in_Clicked);
+    checkbox_detected_in->OnClick(std::bind(&MainWindow::checkbox_detected_in_Clicked, this));
     checkbox_detected_in->Checked(false);
 
     checkbox_detected_out = new mygui::Checkbox(10, 730, "Det OUT: ");
-    checkbox_detected_out->OnClick(&MainWindow::checkbox_detected_out_Clicked);
+    checkbox_detected_out->OnClick(std::bind(&MainWindow::checkbox_detected_out_Clicked, this));
     checkbox_detected_out->Checked(true);
 
     checkbox_missed = new mygui::Checkbox(10, 760, "Missed: ");
-    checkbox_missed->OnClick(&MainWindow::checkbox_missed_Clicked);
+    checkbox_missed->OnClick(std::bind(&MainWindow::checkbox_missed_Clicked, this));
     checkbox_missed->Checked(true);
 
     checkbox_only_show_framed = new mygui::Checkbox(10, 550, "Only show framed");
-    checkbox_only_show_framed->OnClick(&MainWindow::checkbox_only_show_framed_Clicked);
+    checkbox_only_show_framed->OnClick(std::bind(&MainWindow::checkbox_only_show_framed_Clicked, this));
 
     checkbox_transparent = new mygui::Checkbox(10, 850, "Transparent");
-    checkbox_transparent->OnClick(&MainWindow::checkbox_transparent_Clicked);
+    checkbox_transparent->OnClick(std::bind(&MainWindow::checkbox_transparent_Clicked, this));
 
     /////////////////
     // Main window //

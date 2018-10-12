@@ -7,27 +7,28 @@
 #include <mygui/Label.hpp>
 #include <vector>
 
-class FrameInfoWindow : public Window
+class InfoWindow : public Window
 {
 private:
-    std::vector<Statistics<int>*> m_channel;
+    std::vector<Statistics<int64_t>*> m_channel;
+    Statistics<int64_t>*              m_all;
+    std::string                       m_save_filename;
+
+    void Clear();
+    void SaveRecord();
 
 public:
-    static void button_clear_all_Clicked();
-    static void button_save_Clicked();
+    InfoWindow(char const* title, std::string const& save_filename);
+    ~InfoWindow();
 
-    FrameInfoWindow(char const* title);
-    ~FrameInfoWindow();
-
-    void push_back(Statistics<int>*);
+    void push_back(Statistics<int64_t>* s) { m_channel.push_back(s); }
+    void SetAll(Statistics<int64_t>* all) { m_all = all; }
     void RefreshTable();
-    void Clear();
-    void SaveRecord(char const* fname);
 
     // Members
     //////////
 
-    mygui::Button* button_clear_all;
+    mygui::Button* button_clear;
     mygui::Button* button_save;
 
     mygui::Label* label_info_win_to_det_min;
@@ -49,6 +50,6 @@ public:
         ~InfoLabel();
     };
 
-    InfoLabel labels[N_CHANNELS];
-    InfoLabel label_all;
+    InfoLabel infolabels_chs[N_CHANNELS];
+    InfoLabel infolabel_all;
 };

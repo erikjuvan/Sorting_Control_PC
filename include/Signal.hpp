@@ -11,25 +11,36 @@ private:
                             MISSED,
                             SEARCHING };
 
-    class TriggerWindowStats
+    class SignalStats
     {
     private:
-        Statistics<int> m_stats;
-        int             m_width = 0;
+        Statistics<int64_t> m_stats;
+        int                 m_val     = 0;
+        bool                m_updated = false;
 
     public:
-        void Update(bool active)
+        inline void Increment() { m_val++; }
+
+        void Reset()
         {
-            if (active) {
-                m_width++;
-            } else if (m_width > 0) {
-                m_stats.Update(m_width);
-                m_stats.push_back(m_width);
-                m_width = 0;
+            m_val     = 0;
+            m_updated = false;
+        }
+
+        void Update(Statistics<int64_t>* ext_stat)
+        {
+            if (!m_updated) {
+                m_stats.Update(m_val);
+                m_stats.push_back(m_val);
+                if (ext_stat) {
+                    ext_stat->Update(m_val);
+                    ext_stat->push_back(m_val);
+                }
+                m_updated = true;
             }
         }
 
-        auto& Stats() { return m_stats; }
+        auto& Get() { return m_stats; }
     };
 
 public:
@@ -40,6 +51,8 @@ public:
 
     static void  EventsToRecord(Event const events);
     static Event EventsToRecord();
+    static auto* GetTriggerWindowStatsAll() { return &m_trigger_window_stats_all; }
+    static auto* GetDetecionStatsAll() { return &m_detection_stats_all; }
 
     Signal();
     Signal(int n, sf::Color col, const sf::FloatRect& region, float* max_val);
@@ -63,17 +76,21 @@ public:
     bool  AnyEvents() const;
     void  ClearEvents();
     void  Edit(float* buf, int start, int size); // Return false if a signal never reached the threashold value when the window was on
-    auto& GetTriggerWindowStats() { return m_trigger_window_stats.Stats(); }
+    auto& GetTriggerWindowStats() { return m_trigger_window_stats.Get(); }
+    auto& GetDetecionStats() { return m_detection_stats.Get(); }
 
 private:
     static constexpr int N_TRIGGER_FRAME_POINTS = 60; // should be enough for ~ 60 / 3 = 20 windows
 
-    inline static Event m_events_to_record;
+    inline static Event               m_events_to_record;
+    inline static Statistics<int64_t> m_trigger_window_stats_all;
+    inline static Statistics<int64_t> m_detection_stats_all;
 
     Threashold m_threashold;
     Event      m_events;
 
-    TriggerWindowStats m_trigger_window_stats;
+    SignalStats m_trigger_window_stats;
+    SignalStats m_detection_stats;
 
     sf::VertexArray m_curve;
     sf::VertexArray m_trigger_frame;

@@ -1,15 +1,14 @@
 #include "Application.hpp"
-#include "AnalysisWindow.hpp"
 #include "Communication.hpp"
-#include "FrameInfoWindow.hpp"
+#include "InfoWindow.hpp"
 #include "MainWindow.hpp"
 #include <fstream>
 #include <thread>
 
-Communication*   g_communication;
-MainWindow*      g_mainWindow;
-AnalysisWindow*  g_analysisWindow;
-FrameInfoWindow* g_frameInfoWindow;
+Communication* g_communication;
+MainWindow*    g_mainWindow;
+InfoWindow*    g_detectionInfoWindow;
+InfoWindow*    g_frameInfoWindow;
 
 Running      g_running;
 Record       g_record;
@@ -60,7 +59,7 @@ static void GetData()
             uint32_t delim = *((uint32_t*)&fbuf[0]);
 
             if (delim == 0xDEADBEEF) { // Data
-                int read = g_communication->Read(fbuf, sizeof(fbuf));
+                size_t read = g_communication->Read(fbuf, sizeof(fbuf));
                 if (read > 0) {
                     float* fbuf_tmp = fbuf;
                     for (auto& s : g_mainWindow->signals) {
@@ -74,15 +73,15 @@ static void GetData()
                                 g_mainWindow->recorded_signals.push_back(s);
                             g_mainWindow->label_recorded_signals_counter->SetText(std::to_string(g_mainWindow->recorded_signals.size() / N_CHANNELS));
                         } else if (g_record == Record::EVENTS) {
-                            bool tmp_record = false;
+                            bool event_happened = false;
                             for (auto const& s : g_mainWindow->signals) {
                                 if (s.AnyEvents()) {
-                                    tmp_record = true;
+                                    event_happened = true;
                                     break;
                                 }
                             }
 
-                            if (tmp_record) {
+                            if (event_happened) {
                                 for (auto& s : g_mainWindow->signals) {
                                     if (s.AnyEvents()) {
                                         g_mainWindow->recorded_signals.push_back(s);
@@ -94,12 +93,13 @@ static void GetData()
                                 g_mainWindow->label_recorded_signals_counter->SetText(std::to_string(g_mainWindow->recorded_signals.size() / N_CHANNELS));
                             }
                         }
-                        g_frameInfoWindow->RefreshTable();
+
+                        if (g_frameInfoWindow)
+                            g_frameInfoWindow->RefreshTable();
+                        if (g_detectionInfoWindow)
+                            g_detectionInfoWindow->RefreshTable();
                     }
                 }
-            } else if (delim == 0xABCDDCBA) { // Sorting analysis
-                int read = g_communication->Read(fbuf, ANALYSIS_PACKETS * N_CHANNELS * sizeof(uint32_t));
-                g_analysisWindow->NewData((uint32_t*)fbuf, read / sizeof(uint32_t)); // "/sizeof(uint32_t)" because the data is 4 bytes not 1
             }
         }
     }
@@ -128,21 +128,22 @@ void Application::InitFromFile(const std::string& file_name)
 
 void Application::Init()
 {
-    g_communication  = new Communication();
-    g_mainWindow     = new MainWindow(1850, 900, "Sorting Control", sf::Style::None | sf::Style::Close);
-    g_analysisWindow = new AnalysisWindow("Detection Info");
-    g_analysisWindow->SetPosition(g_mainWindow->GetPosition() + sf::Vector2i(1850 - 480, 40));
-    g_analysisWindow->AlwaysOnTop(true);
-    g_analysisWindow->MakeTransparent();
-    g_analysisWindow->SetTransparency(150);
-    g_frameInfoWindow = new FrameInfoWindow("Frame Info");
+    g_communication = new Communication();
+    g_mainWindow    = new MainWindow(1850, 900, "Sorting Control", sf::Style::None | sf::Style::Close);
+
+    g_detectionInfoWindow = new InfoWindow("Detection Info", "info_det.txt");
+    g_detectionInfoWindow->SetPosition(g_mainWindow->GetPosition() + sf::Vector2i(1850 - 480, 40));
+    for (auto& s : g_mainWindow->signals) {
+        g_detectionInfoWindow->push_back(&s.GetDetecionStats());
+    }
+    g_detectionInfoWindow->SetAll(Signal::GetDetecionStatsAll());
+
+    g_frameInfoWindow = new InfoWindow("Frame Info", "info_frm.txt");
     g_frameInfoWindow->SetPosition(g_mainWindow->GetPosition() + sf::Vector2i(1850 - 1000, 40));
-    g_frameInfoWindow->AlwaysOnTop(true);
-    g_frameInfoWindow->MakeTransparent();
-    g_frameInfoWindow->SetTransparency(150);
     for (auto& s : g_mainWindow->signals) {
         g_frameInfoWindow->push_back(&s.GetTriggerWindowStats());
     }
+    g_frameInfoWindow->SetAll(Signal::GetTriggerWindowStatsAll());
 
     // Initial parameters from file init
     InitFromFile("config.txt");
@@ -160,14 +161,14 @@ void Application::Run()
 {
     while (g_mainWindow->IsOpen()) {
         g_mainWindow->Update();
-        g_analysisWindow->Update();
+        g_detectionInfoWindow->Update();
         g_frameInfoWindow->Update();
     }
 
     g_thread_info.join();
     g_thread_get_data.join();
 
-    delete g_analysisWindow;
+    delete g_detectionInfoWindow;
     delete g_frameInfoWindow;
     delete g_mainWindow;
     delete g_communication;

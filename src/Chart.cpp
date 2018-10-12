@@ -201,7 +201,7 @@ void Chart::DisableTriggerFrame()
         s->DisableTriggerFrame();
 }
 
-void Chart::OnKeyPress(const fptr& f)
+void Chart::OnKeyPress(const chart_callback_type& f)
 {
     m_onKeyPress = f;
 }

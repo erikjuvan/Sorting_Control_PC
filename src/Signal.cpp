@@ -161,7 +161,6 @@ void Signal::Edit(float* buf, int start, int size)
             }
             m_diff             = m_trigger_val - m_trigger_val_prev;
             m_trigger_val_prev = m_trigger_val;
-            m_trigger_window_stats.Update(m_trigger_val);
             /////////////////
 
             // Threashold detection
@@ -181,6 +180,8 @@ void Signal::Edit(float* buf, int start, int size)
                 if (m_only_draw_on_trigger)
                     EnableDraw();
                 m_threashold = Threashold::SEARCHING;
+                m_detection_stats.Reset();
+                m_trigger_window_stats.Reset();
             } else if (m_diff == -1) { // falling edge
                 m_trigger_frame[m_trigger_frame_idx++].position = sf::Vector2f(m_curve[s].position.x, y_high);
                 m_trigger_frame[m_trigger_frame_idx++].position = sf::Vector2f(m_curve[s].position.x, y_high);
@@ -191,16 +192,20 @@ void Signal::Edit(float* buf, int start, int size)
                     m_detection_missed++;
                     m_events = static_cast<Event>(m_events | MISSED);
                 }
+                m_trigger_window_stats.Update(&Signal::m_trigger_window_stats_all);
             } else if (m_trigger_val == 1) { // frame active
                 if (s == 0) {                // new start
                     m_trigger_frame[m_trigger_frame_idx++].position = sf::Vector2f(m_curve[0].position.x, y_high);
                 }
                 m_trigger_frame[m_trigger_frame_idx].position = sf::Vector2f(m_curve[s].position.x, y_high);
 
+                m_detection_stats.Increment();
+                m_trigger_window_stats.Increment();
                 if (m_threashold == Threashold::REACHED) {
                     m_detected_in_window_cnt++;
                     m_threashold = Threashold::IDLE;
                     m_events     = static_cast<Event>(m_events | DETECTED_IN);
+                    m_detection_stats.Update(&Signal::m_detection_stats_all);
                 }
             } else { // no frame
                 if (m_threashold == Threashold::REACHED) {
@@ -214,5 +219,11 @@ void Signal::Edit(float* buf, int start, int size)
 
     for (int i = 0, s = start; i < size; ++i, ++s) {
         m_curve[s].position.y = y_zero - (buf[i] / *m_max_val) * m_graph_region.height + 1;
+
+        /* Not implemented because it is not neccessary and just waists cpu 
+        if (m_curve[s].position.y < m_graph_region.top) { // curve out of graph region
+            m_curve[s].position.y = m_graph_region.top;
+		}
+		*/
     }
 }

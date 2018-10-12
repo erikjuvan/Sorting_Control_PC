@@ -5,14 +5,13 @@
 
 class Communication
 {
-
 public:
     Communication();
     ~Communication();
 
     bool        Connect(const std::string& port);
     void        Disconnect();
-    bool        IsConnected();
+    inline bool IsConnected() { return m_is_connected; }
     size_t      GetRxBufferLen();
     size_t      Write(const void* data, int size);
     size_t      Write(const std::string& data);
@@ -26,8 +25,3 @@ private:
     serial::Serial m_serial;
     volatile bool  m_is_connected{false};
 };
-
-inline bool Communication::IsConnected()
-{
-    return m_is_connected;
-}

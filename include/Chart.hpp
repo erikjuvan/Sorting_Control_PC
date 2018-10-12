@@ -5,8 +5,8 @@
 
 class Chart : public mygui::Object
 {
-
-    using fptr = void (*)(const sf::Event&);
+private:
+    using chart_callback_type = std::function<void(const sf::Event&)>;
 
 public:
     Chart(int x, int y, int w, int h, int num_of_points, float max_val, const std::string& font_name = "arial.ttf");
@@ -31,7 +31,7 @@ public:
     void                 ToggleDrawAllSignals();
 
     // Actions
-    void OnKeyPress(const fptr& f);
+    void OnKeyPress(const chart_callback_type& f);
 
 private:
     static constexpr int m_margin{20};
@@ -59,5 +59,5 @@ private:
 
     bool m_mouseover;
 
-    fptr m_onKeyPress{nullptr};
+    chart_callback_type m_onKeyPress{nullptr};
 };

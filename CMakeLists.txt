@@ -18,8 +18,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 	src/Helpers.cpp
 	src/Window.cpp
 	src/MainWindow.cpp
-	src/AnalysisWindow.cpp
-	src/FrameInfoWindow.cpp
+	src/InfoWindow.cpp
 	src/Signal.cpp
 	src/Chart.cpp
 	)
@@ -30,8 +29,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 	include/Helpers.hpp
 	include/Window.hpp
 	include/MainWindow.hpp
-	include/AnalysisWindow.hpp
-	include/FrameInfoWindow.hpp
+	include/InfoWindow.hpp
 	include/Signal.hpp
 	include/Chart.hpp
 	)
