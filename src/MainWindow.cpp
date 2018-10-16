@@ -216,6 +216,46 @@ void MainWindow::button_info_Click()
     }
 }
 
+void MainWindow::textbox_detection_time_min_KeyPress()
+{
+    try {
+        int val = std::stoi(textbox_detection_time_min->GetText());
+        Signal::DetectionTimeMin(val * 10); // * 10 because signal ticks are in 100us
+    } catch (std::invalid_argument) {
+        Signal::DetectionTimeMin(0);
+    }
+}
+
+void MainWindow::textbox_detection_time_max_KeyPress()
+{
+    try {
+        int val = std::stoi(textbox_detection_time_max->GetText());
+        Signal::DetectionTimeMax(val * 10); // * 10 because signal ticks are in 100us
+    } catch (std::invalid_argument) {
+        Signal::DetectionTimeMax(1000000 * 10); // arbitrarily long number
+    }
+}
+
+void MainWindow::textbox_window_time_min_KeyPress()
+{
+    try {
+        int val = std::stoi(textbox_window_time_min->GetText());
+        Signal::WindowTimeMin(val * 10); // * 10 because signal ticks are in 100us
+    } catch (std::invalid_argument) {
+        Signal::WindowTimeMin(0);
+    }
+}
+
+void MainWindow::textbox_window_time_max_KeyPress()
+{
+    try {
+        int val = std::stoi(textbox_window_time_max->GetText());
+        Signal::WindowTimeMax(val * 10); // * 10 because signal ticks are in 100us
+    } catch (std::invalid_argument) {
+        Signal::WindowTimeMax(1000000 * 10); // arbitrarily long number
+    }
+}
+
 void MainWindow::label_info_detected_in_window_Clicked()
 {
     for (auto& s : signals) {
@@ -238,7 +278,37 @@ void MainWindow::label_info_signal_missed_Clicked()
     }
 }
 
-static auto TmpSetEvent = [](bool on, Signal::Event e) {
+void MainWindow::label_detection_time_Clicked()
+{
+    // not yet implemented
+}
+
+void MainWindow::label_window_time_Clicked()
+{
+    // not yet implemented
+}
+
+void MainWindow::checkbox_transparent_Clicked()
+{
+    static bool transparent = false;
+    if (!transparent) {
+        transparent = true;
+        MakeTransparent();
+        SetTransparency(180);
+    } else {
+        transparent = false;
+        SetTransparency(255);
+    }
+}
+
+void MainWindow::checkbox_only_show_framed_Clicked()
+{
+    for (auto& s : signals) {
+        s.OnlyDrawOnTrigger(checkbox_only_show_framed->Checked());
+    }
+}
+
+static auto lambda_SetEvent = [](bool on, Signal::Event e) {
     Signal::Event ev = Signal::EventsToRecord();
     if (on)
         ev = static_cast<Signal::Event>(ev | e);
@@ -249,37 +319,27 @@ static auto TmpSetEvent = [](bool on, Signal::Event e) {
 
 void MainWindow::checkbox_detected_in_Clicked()
 {
-    TmpSetEvent(checkbox_detected_in->Checked(), Signal::Event::DETECTED_IN);
+    lambda_SetEvent(checkbox_detected_in->Checked(), Signal::Event::DETECTED_IN);
 }
 
 void MainWindow::checkbox_detected_out_Clicked()
 {
-    TmpSetEvent(checkbox_detected_out->Checked(), Signal::Event::DETECTED_OUT);
+    lambda_SetEvent(checkbox_detected_out->Checked(), Signal::Event::DETECTED_OUT);
 }
 
 void MainWindow::checkbox_missed_Clicked()
 {
-    TmpSetEvent(checkbox_missed->Checked(), Signal::Event::MISSED);
+    lambda_SetEvent(checkbox_missed->Checked(), Signal::Event::MISSED);
 }
 
-void MainWindow::checkbox_only_show_framed_Clicked()
+void MainWindow::checkbox_detection_time_Clicked()
 {
-    for (auto& s : signals) {
-        s.OnlyDrawOnTrigger(checkbox_only_show_framed->Checked());
-    }
+    lambda_SetEvent(checkbox_detection_time->Checked(), Signal::Event::DETECTION_TIME);
 }
 
-void MainWindow::checkbox_transparent_Clicked()
+void MainWindow::checkbox_window_time_Clicked()
 {
-    static bool transparent = false;
-    if (!transparent) {
-        transparent = true;
-        MakeTransparent();
-        SetTransparency(120);
-    } else {
-        transparent = false;
-        SetTransparency(255);
-    }
+    lambda_SetEvent(checkbox_window_time->Checked(), Signal::Event::WINDOW_TIME);
 }
 
 void MainWindow::chart_OnKeyPress(const sf::Event& event)
@@ -379,6 +439,9 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     button_view_mode = new mygui::Button(125, 90, "Raw", 100, 30, 18);
     button_view_mode->OnClick(std::bind(&MainWindow::button_view_mode_Click, this));
 
+    button_info_windows = new mygui::Button(125, 130, "Info", 100, 30, 18);
+    button_info_windows->OnClick(std::bind(&MainWindow::button_info_Click, this));
+
     button_set_frequency = new mygui::Button(10, 260, "Send");
     button_set_frequency->OnClick(std::bind(&MainWindow::button_set_frequency_Click, this));
 
@@ -391,16 +454,21 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     button_record = new mygui::Button(10, 650, "Record");
     button_record->OnClick(std::bind(&MainWindow::button_record_Click, this));
 
-    button_analysis_window = new mygui::Button(10, 800, "Info");
-    button_analysis_window->OnClick(std::bind(&MainWindow::button_info_Click, this));
-
     //////////////
     // Texboxes //
     //////////////
-    textbox_comport       = new mygui::Textbox(10, 10, "COM", 80);
-    textbox_frequency     = new mygui::Textbox(10, 220, "", 80);
-    textbox_filter_params = new mygui::Textbox(10, 340, "", 170);
-    textbox_times         = new mygui::Textbox(10, 460, "", 140);
+    textbox_comport            = new mygui::Textbox(10, 10, "COM", 80);
+    textbox_frequency          = new mygui::Textbox(10, 220, "", 80);
+    textbox_filter_params      = new mygui::Textbox(10, 340, "", 170);
+    textbox_times              = new mygui::Textbox(10, 460, "", 140);
+    textbox_detection_time_min = new mygui::Textbox(35, 787, "", 40, 25);
+    textbox_detection_time_min->onKeyPress(std::bind(&MainWindow::textbox_detection_time_min_KeyPress, this));
+    textbox_detection_time_max = new mygui::Textbox(185, 787, "", 40, 25);
+    textbox_detection_time_max->onKeyPress(std::bind(&MainWindow::textbox_detection_time_max_KeyPress, this));
+    textbox_window_time_min = new mygui::Textbox(35, 817, "", 40, 25);
+    textbox_window_time_min->onKeyPress(std::bind(&MainWindow::textbox_window_time_min_KeyPress, this));
+    textbox_window_time_max = new mygui::Textbox(185, 817, "", 40, 25);
+    textbox_window_time_max->onKeyPress(std::bind(&MainWindow::textbox_window_time_max_KeyPress, this));
 
     ////////////
     // Labels //
@@ -416,10 +484,20 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     label_info_detected_out_window->OnClick(std::bind(&MainWindow::label_info_detected_out_window_Clicked, this));
     label_info_signal_missed = new mygui::Label(120, 760, "0");
     label_info_signal_missed->OnClick(std::bind(&MainWindow::label_info_signal_missed_Clicked, this));
+    label_detection_time = new mygui::Label(80, 787, "> det time >");
+    label_detection_time->OnClick(std::bind(&MainWindow::label_detection_time_Clicked, this));
+    label_window_time = new mygui::Label(80, 817, "> win time >");
+    label_window_time->OnClick(std::bind(&MainWindow::label_window_time_Clicked, this));
 
     ////////////////
     // Checkboxes //
     ////////////////
+    checkbox_only_show_framed = new mygui::Checkbox(10, 550, "Only show framed");
+    checkbox_only_show_framed->OnClick(std::bind(&MainWindow::checkbox_only_show_framed_Clicked, this));
+
+    checkbox_transparent = new mygui::Checkbox(125, 16, "Transparent", 15, 15, 15);
+    checkbox_transparent->OnClick(std::bind(&MainWindow::checkbox_transparent_Clicked, this));
+
     checkbox_detected_in = new mygui::Checkbox(10, 700, "Det IN: ");
     checkbox_detected_in->OnClick(std::bind(&MainWindow::checkbox_detected_in_Clicked, this));
     checkbox_detected_in->Checked(false);
@@ -432,11 +510,13 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     checkbox_missed->OnClick(std::bind(&MainWindow::checkbox_missed_Clicked, this));
     checkbox_missed->Checked(true);
 
-    checkbox_only_show_framed = new mygui::Checkbox(10, 550, "Only show framed");
-    checkbox_only_show_framed->OnClick(std::bind(&MainWindow::checkbox_only_show_framed_Clicked, this));
+    checkbox_detection_time = new mygui::Checkbox(10, 790, "");
+    checkbox_detection_time->OnClick(std::bind(&MainWindow::checkbox_detection_time_Clicked, this));
+    checkbox_detection_time->Checked(false);
 
-    checkbox_transparent = new mygui::Checkbox(10, 850, "Transparent");
-    checkbox_transparent->OnClick(std::bind(&MainWindow::checkbox_transparent_Clicked, this));
+    checkbox_window_time = new mygui::Checkbox(10, 820, "");
+    checkbox_window_time->OnClick(std::bind(&MainWindow::checkbox_window_time_Clicked, this));
+    checkbox_window_time->Checked(false);
 
     /////////////////
     // Main window //
@@ -451,12 +531,17 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     Add(button_set_times);
     Add(button_view_mode);
     Add(button_record);
-    Add(button_analysis_window);
+    Add(button_info_windows);
     // Texboxes
     Add(textbox_comport);
     Add(textbox_frequency);
     Add(textbox_filter_params);
     Add(textbox_times);
+    Add(textbox_detection_time_min);
+    Add(textbox_detection_time_max);
+    Add(textbox_window_time_min);
+    Add(textbox_window_time_max);
+
     // Labels
     Add(label_frequency);
     Add(label_filter_params);
@@ -466,12 +551,17 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     Add(label_info_detected_in_window);
     Add(label_info_detected_out_window);
     Add(label_info_signal_missed);
+    Add(label_detection_time);
+    Add(label_window_time);
+
     // Checkboxes
     Add(checkbox_detected_in);
     Add(checkbox_detected_out);
     Add(checkbox_missed);
     Add(checkbox_only_show_framed);
     Add(checkbox_transparent);
+    Add(checkbox_detection_time);
+    Add(checkbox_window_time);
 }
 
 MainWindow::~MainWindow()

@@ -44,15 +44,25 @@ private:
     };
 
 public:
-    enum Event { NONE         = 0x0,
-                 DETECTED_IN  = 0x1,
-                 DETECTED_OUT = 0x2,
-                 MISSED       = 0x4 };
+    enum Event { NONE           = 0x0,
+                 DETECTED_IN    = 0x1,
+                 DETECTED_OUT   = 0x2,
+                 MISSED         = 0x4,
+                 WINDOW_TIME    = 0x8,
+                 DETECTION_TIME = 0x10 };
 
-    static void  EventsToRecord(Event const events);
-    static Event EventsToRecord();
-    static auto* GetTriggerWindowStatsAll() { return &m_trigger_window_stats_all; }
-    static auto* GetDetecionStatsAll() { return &m_detection_stats_all; }
+    static void    EventsToRecord(Event const events);
+    static Event   EventsToRecord();
+    static auto*   GetTriggerWindowStatsAll() { return &trigger_window_stats_all; }
+    static auto*   GetDetecionStatsAll() { return &detection_stats_all; }
+    static void    DetectionTimeMin(int64_t time) { detection_time_min = time; }
+    static void    DetectionTimeMax(int64_t time) { detection_time_max = time; }
+    static int64_t DetectionTimeMin() { return detection_time_min; }
+    static int64_t DetectionTimeMax() { return detection_time_max; }
+    static void    WindowTimeMin(int64_t time) { window_time_min = time; }
+    static void    WindowTimeMax(int64_t time) { window_time_max = time; }
+    static int64_t WindowTimeMin() { return window_time_min; }
+    static int64_t WindowTimeMax() { return window_time_max; }
 
     Signal();
     Signal(int n, sf::Color col, const sf::FloatRect& region, float* max_val);
@@ -82,9 +92,14 @@ public:
 private:
     static constexpr int N_TRIGGER_FRAME_POINTS = 60; // should be enough for ~ 60 / 3 = 20 windows
 
-    inline static Event               m_events_to_record;
-    inline static Statistics<int64_t> m_trigger_window_stats_all;
-    inline static Statistics<int64_t> m_detection_stats_all;
+    // Visual C++ compiler has a bug ATM. Initialized inline static variables must be at the top otherwise they get initialized to 0.
+    inline static int64_t             detection_time_min{0};
+    inline static int64_t             detection_time_max{1000000 * 10};
+    inline static int64_t             window_time_min{0};
+    inline static int64_t             window_time_max{1000000 * 10};
+    inline static Event               events_to_record;
+    inline static Statistics<int64_t> trigger_window_stats_all;
+    inline static Statistics<int64_t> detection_stats_all;
 
     Threashold m_threashold;
     Event      m_events;

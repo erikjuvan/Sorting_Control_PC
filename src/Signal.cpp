@@ -6,12 +6,12 @@
 
 void Signal::EventsToRecord(Event const events)
 {
-    m_events_to_record = events;
+    events_to_record = events;
 }
 
 Signal::Event Signal::EventsToRecord()
 {
-    return m_events_to_record;
+    return events_to_record;
 }
 
 /////////
@@ -118,7 +118,7 @@ void Signal::SetColor(sf::Color const& col)
 
 bool Signal::AnyEvents() const
 {
-    return (m_events_to_record & m_events) != 0;
+    return (events_to_record & m_events) != 0;
 }
 
 void Signal::ClearEvents()
@@ -190,9 +190,12 @@ void Signal::Edit(float* buf, int start, int size)
                 if (m_threashold == Threashold::SEARCHING) {
                     m_threashold = Threashold::MISSED;
                     m_detection_missed++;
-                    m_events = static_cast<Event>(m_events | MISSED);
+                    m_events = static_cast<Event>(m_events | Event::MISSED);
                 }
-                m_trigger_window_stats.Update(&Signal::m_trigger_window_stats_all);
+                m_trigger_window_stats.Update(&Signal::trigger_window_stats_all);
+                if (Signal::window_time_min > m_trigger_window_stats.Get().last || m_trigger_window_stats.Get().last > Signal::window_time_max) {
+                    m_events = static_cast<Event>(m_events | Event::WINDOW_TIME);
+                }
             } else if (m_trigger_val == 1) { // frame active
                 if (s == 0) {                // new start
                     m_trigger_frame[m_trigger_frame_idx++].position = sf::Vector2f(m_curve[0].position.x, y_high);
@@ -204,14 +207,17 @@ void Signal::Edit(float* buf, int start, int size)
                 if (m_threashold == Threashold::REACHED) {
                     m_detected_in_window_cnt++;
                     m_threashold = Threashold::IDLE;
-                    m_events     = static_cast<Event>(m_events | DETECTED_IN);
-                    m_detection_stats.Update(&Signal::m_detection_stats_all);
+                    m_events     = static_cast<Event>(m_events | Event::DETECTED_IN);
+                    m_detection_stats.Update(&Signal::detection_stats_all);
+                    if (Signal::detection_time_min > m_detection_stats.Get().last || m_detection_stats.Get().last > Signal::detection_time_max) {
+                        m_events = static_cast<Event>(m_events | Event::DETECTION_TIME);
+                    }
                 }
             } else { // no frame
                 if (m_threashold == Threashold::REACHED) {
                     m_detected_out_window_cnt++;
                     m_threashold = Threashold::IDLE;
-                    m_events     = static_cast<Event>(m_events | DETECTED_OUT);
+                    m_events     = static_cast<Event>(m_events | Event::DETECTED_OUT);
                 }
             }
         }
