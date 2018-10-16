@@ -4,9 +4,15 @@
 namespace Help
 {
 
+#if defined(_WIN32)
+#include <intrin.h>
+#define impl_rdtsc() __rdtsc()
+#else
+#define impl_rdtsc() 0
+#endif
 inline uint64_t rdtsc()
 {
-    return __rdtsc();
+    return impl_rdtsc();
 }
 
 std::vector<std::string> TokenizeString(std::string str)

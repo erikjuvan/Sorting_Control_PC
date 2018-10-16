@@ -216,9 +216,7 @@ void Chart::ToggleDrawAllSignals()
 {
     static bool draw_signals = false;
 
-    for (auto& ds : m_draw_signal) {
-        ds = draw_signals;
-    }
+    std::fill(m_draw_signal.begin(), m_draw_signal.end(), draw_signals);
 
     draw_signals = !draw_signals;
 }

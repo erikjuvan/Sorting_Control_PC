@@ -1,8 +1,8 @@
 #pragma once
 
 #include <chrono>
+#include <cmath>
 #include <cstdint>
-#include <intrin.h>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -65,7 +65,7 @@ struct Statistics {
         prev_avg = avg;
         avg      = sum / cnt;
         S        = S + (val - avg) * (val - prev_avg);
-        std_dev  = static_cast<T>(sqrt(S / cnt));
+        std_dev  = static_cast<T>(std::sqrt(S / cnt));
     }
 
     void push_back(T val)

@@ -77,6 +77,8 @@ void Window::SetPosition(const sf::Vector2i& position)
     m_window->setPosition(position);
 }
 
+#if defined(_WIN32)
+
 #include <Windows.h>
 
 void Window::AlwaysOnTop(bool top)
@@ -94,3 +96,19 @@ void Window::SetTransparency(sf::Uint8 alpha)
 {
     SetLayeredWindowAttributes(m_window->getSystemHandle(), 0, alpha, LWA_ALPHA);
 }
+
+#else
+
+void Window::AlwaysOnTop(bool top)
+{
+}
+
+void Window::MakeTransparent()
+{
+}
+
+void Window::SetTransparency(sf::Uint8 alpha)
+{
+}
+
+#endif

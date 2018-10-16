@@ -17,9 +17,6 @@ static constexpr int DATA_PER_CHANNEL{100};
 static constexpr int N_CHANNELS{8};
 static constexpr int ANALYSIS_PACKETS{10};
 
-void Information();
-void GetData();
-
 class Application
 {
 private:

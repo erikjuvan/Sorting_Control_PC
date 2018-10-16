@@ -1,7 +1,7 @@
 #pragma once
 
 #include <mutex>
-#include <serial\serial.h>
+#include <serial/serial.h>
 
 class Communication
 {
@@ -16,10 +16,10 @@ public:
     size_t      Write(const void* data, int size);
     size_t      Write(const std::string& data);
     size_t      Read(void* data, int size);
-    std::string Communication::Readline();
+    std::string Readline();
     void        Flush();
     void        Purge();
-    void        Communication::SetTimeout(int ms);
+    void        SetTimeout(int ms);
 
 private:
     serial::Serial m_serial;

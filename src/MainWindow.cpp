@@ -4,6 +4,7 @@
 #include "Helpers.hpp"
 #include "InfoWindow.hpp"
 #include <functional>
+#include <thread>
 
 extern Communication* g_communication;
 extern InfoWindow*    g_detectionInfoWindow;
@@ -28,7 +29,7 @@ void MainWindow::button_connect_Click()
             std::string              buf;
             std::vector<std::string> strings;
 
-            auto& read_and_parse = [&buf, &strings](std::string const& str) {
+            auto const& read_and_parse = [&buf, &strings](std::string const& str) {
                 g_communication->Write(str);
                 buf     = g_communication->Readline();
                 strings = Help::TokenizeString(buf);
@@ -168,7 +169,7 @@ void MainWindow::button_set_times_Click()
 
 void MainWindow::button_record_Click()
 {
-    auto& ResetSignals = [this]() {for (int i = 0; i < N_CHANNELS; ++i)
+    auto const& ResetSignals = [this]() {for (int i = 0; i < N_CHANNELS; ++i)
 		chart->ChangeSignal(i, &signals[i]); };
 
     chart_frame_idx = -1;
