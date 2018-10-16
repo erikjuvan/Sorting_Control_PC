@@ -89,5 +89,6 @@ void Communication::Purge()
 
 void Communication::SetTimeout(int ms)
 {
-    m_serial.setTimeout(serial::Timeout::simpleTimeout(ms));
+    auto to = serial::Timeout::simpleTimeout(ms);
+    m_serial.setTimeout(to);
 }
