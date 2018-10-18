@@ -6,13 +6,12 @@ namespace Help
 
 #if defined(_WIN32)
 #include <intrin.h>
-#define impl_rdtsc() __rdtsc()
-#else
-#define impl_rdtsc() 0
+#elif defined()
+#include <x86intrin.h>
 #endif
 inline uint64_t rdtsc()
 {
-    return impl_rdtsc();
+    return __rdtsc();
 }
 
 std::vector<std::string> TokenizeString(std::string str)
