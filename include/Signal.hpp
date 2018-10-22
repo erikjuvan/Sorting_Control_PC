@@ -90,7 +90,10 @@ public:
     auto& GetDetecionStats() { return m_detection_stats.Get(); }
 
 private:
+    void SetIndicator(float const x, Signal::Event const ev);
+
     static constexpr int N_TRIGGER_FRAME_POINTS = 60; // should be enough for ~ 60 / 3 = 20 windows
+    static constexpr int N_INDICATOR_POINTS     = 40; // should be enough for ~ 40 / 2 = 20 indicators
 
     // Visual C++ compiler has a bug ATM. Initialized inline static variables must be at the top otherwise they get initialized to 0.
     inline static int64_t             detection_time_min{0};
@@ -110,6 +113,8 @@ private:
     sf::VertexArray m_curve;
     sf::VertexArray m_trigger_frame;
     int             m_trigger_frame_idx{0};
+    sf::VertexArray m_event_indicator;
+    int             m_event_indicator_idx{0};
     sf::FloatRect   m_graph_region;
 
     bool m_draw{true};
