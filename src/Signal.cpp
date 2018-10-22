@@ -200,9 +200,10 @@ void Signal::Edit(float* buf, int start, int size)
 
             // Edge detection
             /////////////////
-            if ((((uint32_t*)buf)[i] & 0x80000000) != 0) { // trigger is active
+            uint8_t* char_buf = (uint8_t*)&buf[i];
+            if ((char_buf[3] & 0x80) != 0) { // trigger is active
+                char_buf[3] -= 0x80;         // Correct buf by removing the encoding in the MSB
                 m_trigger_val = 1;
-                ((uint32_t*)buf)[i] -= 0x80000000; // Correct buf by removing the encoding in the MSB
             } else {
                 m_trigger_val = 0;
             }
