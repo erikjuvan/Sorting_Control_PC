@@ -39,11 +39,12 @@ Signal::Signal(int n, sf::Color col, const sf::FloatRect& region, float* max_val
 void Signal::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
     if (m_draw) {
-        target.draw(m_curve);
         if (m_draw_trigger_frame) {
-            target.draw(m_trigger_frame);
-            target.draw(m_event_indicator);
+            if (m_draw_event_indicator)
+                target.draw(m_event_indicator); // draw first
+            target.draw(m_trigger_frame);       // draw second
         }
+        target.draw(m_curve); // draw third
     }
 }
 
@@ -57,6 +58,16 @@ void Signal::SetBlindTime(int blind_time_value)
     m_blind_time_value = blind_time_value;
 }
 
+void Signal::EnableDraw()
+{
+    m_draw = true;
+}
+
+void Signal::DisableDraw()
+{
+    m_draw = false;
+}
+
 void Signal::EnableTriggerFrame()
 {
     m_draw_trigger_frame = true;
@@ -67,14 +78,9 @@ void Signal::DisableTriggerFrame()
     m_draw_trigger_frame = false;
 }
 
-void Signal::EnableDraw()
+void Signal::ShowEventIndicator(bool show)
 {
-    m_draw = true;
-}
-
-void Signal::DisableDraw()
-{
-    m_draw = false;
+    m_draw_event_indicator = show;
 }
 
 void Signal::OnlyDrawOnTrigger(bool on)
@@ -136,35 +142,36 @@ void Signal::SetIndicator(float const x, Event const ev)
 
     auto lambda_set_indicator = [this, x, y_zero, y_high](sf::Color const& col) {
         m_event_indicator[m_event_indicator_idx].color      = col;
-        m_event_indicator[m_event_indicator_idx++].position = sf::Vector2f(x, y_zero);
+        m_event_indicator[m_event_indicator_idx++].position = sf::Vector2f(x, y_zero + 20); // make it visible at the bottom
         m_event_indicator[m_event_indicator_idx].color      = col;
-        m_event_indicator[m_event_indicator_idx++].position = sf::Vector2f(x, y_high / 2);
+        m_event_indicator[m_event_indicator_idx++].position = sf::Vector2f(x, y_zero - m_graph_region.height / 2);
     };
 
+    constexpr int alpha = 100;
     switch (ev) {
     case Event::MISSED:
         if (Signal::EventsToRecord() & Event::MISSED) {
-            lambda_set_indicator(sf::Color(255, 0, 0, 80));
+            lambda_set_indicator(sf::Color(255, 0, 0, alpha));
         }
         break;
     case Event::DETECTED_OUT:
         if (Signal::EventsToRecord() & Event::DETECTED_OUT) {
-            lambda_set_indicator(sf::Color(0, 0, 255, 80));
+            lambda_set_indicator(sf::Color(0, 0, 255, alpha));
         }
         break;
     case Event::DETECTED_IN:
         if (Signal::EventsToRecord() & Event::DETECTED_IN) {
-            lambda_set_indicator(sf::Color(0, 255, 0, 80));
+            lambda_set_indicator(sf::Color(0, 255, 0, alpha));
         }
         break;
     case Event::DETECTION_TIME:
         if (Signal::EventsToRecord() & Event::DETECTION_TIME) {
-            lambda_set_indicator(sf::Color(255, 0, 255, 80));
+            lambda_set_indicator(sf::Color(255, 0, 255, alpha));
         }
         break;
     case Event::WINDOW_TIME:
         if (Signal::EventsToRecord() & Event::WINDOW_TIME) {
-            lambda_set_indicator(sf::Color(0, 255, 255, 80));
+            lambda_set_indicator(sf::Color(0, 255, 255, alpha));
         }
         break;
     }

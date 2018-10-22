@@ -40,11 +40,12 @@ private:
     void label_detection_time_Clicked();
     void label_window_time_Clicked();
 
+    void checkbox_transparent_Clicked();
+    void checkbox_only_show_framed_Clicked();
+    void checkbox_show_event_indicator_Clicked();
     void checkbox_detected_in_Clicked();
     void checkbox_detected_out_Clicked();
     void checkbox_missed_Clicked();
-    void checkbox_only_show_framed_Clicked();
-    void checkbox_transparent_Clicked();
     void checkbox_detection_time_Clicked();
     void checkbox_window_time_Clicked();
 
@@ -93,6 +94,7 @@ public:
     // Checkboxes
     mygui::Checkbox* checkbox_transparent;
     mygui::Checkbox* checkbox_only_show_framed;
+    mygui::Checkbox* checkbox_show_event_indicator;
     mygui::Checkbox* checkbox_detected_in;
     mygui::Checkbox* checkbox_detected_out;
     mygui::Checkbox* checkbox_missed;

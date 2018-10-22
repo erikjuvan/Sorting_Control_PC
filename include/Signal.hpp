@@ -71,10 +71,11 @@ public:
 
     void  SetThreashold(float threashold);
     void  SetBlindTime(int blind_time_value);
-    void  EnableTriggerFrame();
-    void  DisableTriggerFrame();
     void  EnableDraw();
     void  DisableDraw();
+    void  EnableTriggerFrame();
+    void  DisableTriggerFrame();
+    void  ShowEventIndicator(bool show);
     void  OnlyDrawOnTrigger(bool on);
     int   GetDetectionsInWindow() const;
     void  ClearDetectionsInWindow();
@@ -123,6 +124,7 @@ private:
     float* m_max_val;
     float  m_threashold_value;
     bool   m_draw_trigger_frame{false};
+    bool   m_draw_event_indicator{true};
 
     int m_diff{0};
     int m_trigger_val{0};

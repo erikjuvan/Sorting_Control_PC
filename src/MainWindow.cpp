@@ -308,6 +308,16 @@ void MainWindow::checkbox_only_show_framed_Clicked()
         s.OnlyDrawOnTrigger(checkbox_only_show_framed->Checked());
     }
 }
+void MainWindow::checkbox_show_event_indicator_Clicked()
+{
+    for (auto& s : signals) {
+        s.ShowEventIndicator(checkbox_show_event_indicator->Checked());
+    }
+
+    for (auto& rs : recorded_signals) {
+        rs.ShowEventIndicator(checkbox_show_event_indicator->Checked());
+    }
+}
 
 static auto lambda_SetEvent = [](bool on, Signal::Event e) {
     Signal::Event ev = Signal::EventsToRecord();
@@ -493,11 +503,15 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     ////////////////
     // Checkboxes //
     ////////////////
+    checkbox_transparent = new mygui::Checkbox(125, 16, "Transparent", 15, 15, 15);
+    checkbox_transparent->OnClick(std::bind(&MainWindow::checkbox_transparent_Clicked, this));
+
     checkbox_only_show_framed = new mygui::Checkbox(10, 550, "Only show framed");
     checkbox_only_show_framed->OnClick(std::bind(&MainWindow::checkbox_only_show_framed_Clicked, this));
 
-    checkbox_transparent = new mygui::Checkbox(125, 16, "Transparent", 15, 15, 15);
-    checkbox_transparent->OnClick(std::bind(&MainWindow::checkbox_transparent_Clicked, this));
+    checkbox_show_event_indicator = new mygui::Checkbox(10, 620, "Show event lines");
+    checkbox_show_event_indicator->OnClick(std::bind(&MainWindow::checkbox_show_event_indicator_Clicked, this));
+    checkbox_show_event_indicator->Checked(true);
 
     checkbox_detected_in = new mygui::Checkbox(10, 700, "Det IN: ");
     checkbox_detected_in->OnClick(std::bind(&MainWindow::checkbox_detected_in_Clicked, this));
@@ -556,11 +570,12 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     Add(label_window_time);
 
     // Checkboxes
+    Add(checkbox_transparent);
+    Add(checkbox_only_show_framed);
+    Add(checkbox_show_event_indicator);
     Add(checkbox_detected_in);
     Add(checkbox_detected_out);
     Add(checkbox_missed);
-    Add(checkbox_only_show_framed);
-    Add(checkbox_transparent);
     Add(checkbox_detection_time);
     Add(checkbox_window_time);
 }
