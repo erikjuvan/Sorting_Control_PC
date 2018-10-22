@@ -14,12 +14,12 @@ private:
     Statistics<int64_t>*              m_all;
     std::string                       m_save_filename;
 
-    void Clear();
-    void SaveRecord();
-
 public:
     InfoWindow(char const* title, std::string const& save_filename);
     ~InfoWindow();
+
+    void Clear();
+    void SaveRecord();
 
     void push_back(Statistics<int64_t>* s) { m_channel.push_back(s); }
     void SetAll(Statistics<int64_t>* all) { m_all = all; }

@@ -28,6 +28,7 @@ private:
     void button_view_mode_Click();
     void button_record_Click();
     void button_info_Click();
+    void button_clear_all_Click();
 
     void textbox_detection_time_min_KeyPress();
     void textbox_detection_time_max_KeyPress();
@@ -59,6 +60,7 @@ public:
     //////////
 
     Chart* chart;
+
     // Button
     mygui::Button* button_connect;
     mygui::Button* button_run;
@@ -69,6 +71,8 @@ public:
     mygui::Button* button_view_mode;
     mygui::Button* button_record;
     mygui::Button* button_info_windows;
+    mygui::Button* button_clear_all;
+
     // Texbox
     mygui::Textbox* textbox_comport;
     mygui::Textbox* textbox_frequency;

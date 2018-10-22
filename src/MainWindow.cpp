@@ -217,6 +217,22 @@ void MainWindow::button_info_Click()
     }
 }
 
+void MainWindow::button_clear_all_Click()
+{
+    auto const& ResetSignals = [this]() {for (int i = 0; i < N_CHANNELS; ++i)
+		chart->ChangeSignal(i, &signals[i]); };
+
+    g_frameInfoWindow->Clear();
+    g_detectionInfoWindow->Clear();
+    label_info_detected_in_window_Clicked();
+    label_info_detected_out_window_Clicked();
+    label_info_signal_missed_Clicked();
+
+    recorded_signals.clear();
+    ResetSignals();
+    label_recorded_signals_counter->SetText("0");
+}
+
 void MainWindow::textbox_detection_time_min_KeyPress()
 {
     try {
@@ -266,7 +282,6 @@ void MainWindow::label_info_detected_in_window_Clicked()
 
 void MainWindow::label_info_detected_out_window_Clicked()
 {
-
     for (auto& s : signals) {
         s.ClearDetectionsOutWindow();
     }
@@ -465,6 +480,9 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     button_record = new mygui::Button(10, 650, "Record");
     button_record->OnClick(std::bind(&MainWindow::button_record_Click, this));
 
+    button_clear_all = new mygui::Button(10, 855, "Clear ALL");
+    button_clear_all->OnClick(std::bind(&MainWindow::button_clear_all_Click, this));
+
     //////////////
     // Texboxes //
     //////////////
@@ -537,6 +555,7 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     // Main window //
     /////////////////
     Add(chart);
+
     // Buttons
     Add(button_connect);
     Add(button_run);
@@ -547,6 +566,8 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     Add(button_view_mode);
     Add(button_record);
     Add(button_info_windows);
+    Add(button_clear_all);
+
     // Texboxes
     Add(textbox_comport);
     Add(textbox_frequency);
