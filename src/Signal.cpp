@@ -250,6 +250,16 @@ void Signal::Edit(float* buf, int start, int size)
                     m_events = static_cast<Event>(m_events | Event::MISSED);
                     SetIndicator(x_position, Event::MISSED);
                 }
+
+                if (m_threashold == Threashold::REACHED) { // Special case where we reached threashold on falling edge
+                    m_threashold = Threashold::MISSED;
+                    m_detection_missed++;
+                    m_detected_out_window_cnt++;
+                    m_events = static_cast<Event>(m_events | Event::MISSED | Event::DETECTED_OUT);
+                    SetIndicator(x_position, Event::MISSED);
+                    SetIndicator(x_position, Event::DETECTED_OUT);
+                }
+
                 m_trigger_window_stats.Update(&Signal::trigger_window_stats_all);
                 if (Signal::window_time_min > m_trigger_window_stats.Get().last || m_trigger_window_stats.Get().last > Signal::window_time_max) {
                     m_events = static_cast<Event>(m_events | Event::WINDOW_TIME);
