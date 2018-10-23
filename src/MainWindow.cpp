@@ -169,10 +169,11 @@ void MainWindow::button_set_times_Click()
 
 void MainWindow::button_record_Click()
 {
-    auto const& ResetSignals = [this]() {for (int i = 0; i < N_CHANNELS; ++i)
-		chart->ChangeSignal(i, &signals[i]); };
-
-    chart_frame_idx = -1;
+    auto const& ResetSignals = [this]() {
+        for (int i = 0; i < N_CHANNELS; ++i)
+            chart->ChangeSignal(i, &signals[i]);
+        chart_frame_idx = -1;
+    };
 
     if (g_record == Record::NO) {
         g_record = Record::ALL;
@@ -219,8 +220,11 @@ void MainWindow::button_info_Click()
 
 void MainWindow::button_clear_all_Click()
 {
-    auto const& ResetSignals = [this]() {for (int i = 0; i < N_CHANNELS; ++i)
-		chart->ChangeSignal(i, &signals[i]); };
+    auto const& ResetSignals = [this]() {
+        for (int i = 0; i < N_CHANNELS; ++i)
+            chart->ChangeSignal(i, &signals[i]);
+        chart_frame_idx = -1;
+    };
 
     g_frameInfoWindow->Clear();
     g_detectionInfoWindow->Clear();
