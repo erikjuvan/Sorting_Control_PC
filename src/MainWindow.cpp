@@ -200,7 +200,7 @@ void MainWindow::button_info_Click()
 {
     if (!g_detectionInfoWindow->IsOpen()) {
         delete g_detectionInfoWindow;
-        g_detectionInfoWindow = new InfoWindow("Detection Info", "info_det.txt");
+        g_detectionInfoWindow = new InfoWindow("Detection Info", "det.py");
         g_detectionInfoWindow->SetPosition(GetPosition() + sf::Vector2i(1850 - 480, 40));
         for (auto& s : signals) {
             g_detectionInfoWindow->push_back(&s.GetDetecionStats());
@@ -209,7 +209,7 @@ void MainWindow::button_info_Click()
     }
     if (!g_frameInfoWindow->IsOpen()) {
         delete g_frameInfoWindow;
-        g_frameInfoWindow = new InfoWindow("Frame Info", "info_frm.txt");
+        g_frameInfoWindow = new InfoWindow("Frame Info", "win.py");
         g_frameInfoWindow->SetPosition(GetPosition() + sf::Vector2i(1850 - 1000, 40));
         for (auto& s : signals) {
             g_frameInfoWindow->push_back(&s.GetTriggerWindowStats());
