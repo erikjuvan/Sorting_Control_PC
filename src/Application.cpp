@@ -131,14 +131,14 @@ void Application::Init()
     g_communication = new Communication();
     g_mainWindow    = new MainWindow(1850, 900, "Sorting Control", sf::Style::None | sf::Style::Close);
 
-    g_detectionInfoWindow = new InfoWindow("Detection Info", "info_det.txt");
+    g_detectionInfoWindow = new InfoWindow("Detection Info", "det.py");
     g_detectionInfoWindow->SetPosition(g_mainWindow->GetPosition() + sf::Vector2i(1850 - 480, 40));
     for (auto& s : g_mainWindow->signals) {
         g_detectionInfoWindow->push_back(&s.GetDetecionStats());
     }
     g_detectionInfoWindow->SetAll(Signal::GetDetecionStatsAll());
 
-    g_frameInfoWindow = new InfoWindow("Frame Info", "info_frm.txt");
+    g_frameInfoWindow = new InfoWindow("Frame Info", "win.py");
     g_frameInfoWindow->SetPosition(g_mainWindow->GetPosition() + sf::Vector2i(1850 - 1000, 40));
     for (auto& s : g_mainWindow->signals) {
         g_frameInfoWindow->push_back(&s.GetTriggerWindowStats());
