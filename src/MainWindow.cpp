@@ -3,6 +3,7 @@
 #include "Communication.hpp"
 #include "Helpers.hpp"
 #include "InfoWindow.hpp"
+#include <fstream>
 #include <functional>
 #include <thread>
 
@@ -109,6 +110,34 @@ void MainWindow::button_run_Click()
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
         button_run->SetText("Stopped");
+    }
+}
+
+void MainWindow::button_save_Click()
+{
+    auto          filename = "sig.py";
+    std::ofstream f(filename, std::ios::out); // open for writting and append data
+    std::string   buf[N_CHANNELS];
+
+    if (f.is_open()) {
+        for (int i = 0; i < N_CHANNELS; ++i) {
+            buf[i].clear();
+            buf[i].reserve(1000000);
+        }
+
+        for (int rc = 0; rc < recorded_signals.size(); ++rc) {
+            Signal const& sig    = recorded_signals[rc];
+            int const     ch_idx = rc % N_CHANNELS;
+            for (int i = 0; i < g_n_samples; ++i)
+                buf[ch_idx] += std::to_string(static_cast<int>(sig.GetADCValue(i))) + ",";
+        }
+        for (int i = 0; i < N_CHANNELS; ++i) {
+            buf[i].pop_back();
+            f << "ch" + std::to_string(i + 1) + "=[" + buf[i] + "]\n"; // Write entire content to file
+        }
+
+        f.close();
+        std::cout << "Signals saved to " << filename << std::endl;
     }
 }
 
@@ -463,6 +492,9 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     button_run = new mygui::Button(10, 90, "Stopped", 100);
     button_run->OnClick(std::bind(&MainWindow::button_run_Click, this));
 
+    button_save = new mygui::Button(10, 130, "Save", 100);
+    button_save->OnClick(std::bind(&MainWindow::button_save_Click, this));
+
     button_trigger_frame = new mygui::Button(125, 50, "Frame OFF", 100, 30, 18);
     button_trigger_frame->OnClick(std::bind(&MainWindow::button_trigger_frame_Click, this));
 
@@ -563,6 +595,7 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     // Buttons
     Add(button_connect);
     Add(button_run);
+    Add(button_save);
     Add(button_trigger_frame);
     Add(button_set_frequency);
     Add(button_set_filter_params);

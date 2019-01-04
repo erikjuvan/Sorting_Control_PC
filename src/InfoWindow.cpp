@@ -1,8 +1,5 @@
 #include "InfoWindow.hpp"
 #include <fstream>
-#include <functional>
-#include <iostream>
-#include <sstream>
 
 InfoWindow::InfoWindow(char const* title, std::string const& save_filename) :
     Window(450, 360, title, sf::Style::None | sf::Style::Close), m_save_filename(save_filename)

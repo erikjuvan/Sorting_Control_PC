@@ -21,6 +21,7 @@ private:
 
     void button_connect_Click();
     void button_run_Click();
+    void button_save_Click();
     void button_trigger_frame_Click();
     void button_set_frequency_Click();
     void button_set_filter_params_Click();
@@ -64,6 +65,7 @@ public:
     // Button
     mygui::Button* button_connect;
     mygui::Button* button_run;
+    mygui::Button* button_save;
     mygui::Button* button_trigger_frame;
     mygui::Button* button_set_frequency;
     mygui::Button* button_set_filter_params;

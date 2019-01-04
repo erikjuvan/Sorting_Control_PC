@@ -305,3 +305,10 @@ void Signal::Edit(float* buf, int start, int size)
 		*/
     }
 }
+
+float Signal::GetADCValue(int idx) const
+{
+    const float y_zero = m_graph_region.top + m_graph_region.height;
+
+    return (1 + y_zero - m_curve[idx].position.y) * (*m_max_val) / m_graph_region.height;
+}

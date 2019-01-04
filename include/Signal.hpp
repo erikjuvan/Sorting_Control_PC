@@ -87,6 +87,7 @@ public:
     bool  AnyEvents() const;
     void  ClearEvents();
     void  Edit(float* buf, int start, int size); // Return false if a signal never reached the threashold value when the window was on
+    float GetADCValue(int idx) const;            // Get back the actual ADC value
     auto& GetTriggerWindowStats() { return m_trigger_window_stats.Get(); }
     auto& GetDetecionStats() { return m_detection_stats.Get(); }
 
