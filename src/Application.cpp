@@ -18,8 +18,6 @@ TriggerFrame g_triggerframe;
 static std::thread g_thread_info;
 static std::thread g_thread_get_data;
 
-int g_n_samples;
-
 static void Information()
 {
     static int cnt                    = 0;
@@ -46,7 +44,7 @@ static void Information()
 
 static void GetData()
 {
-    static float fbuf[N_CHANNELS * DATA_PER_CHANNEL];
+    static float fbuf[N_CHANNELS * MAX_DATA_PER_CHANNEL];
     static int   cntr    = 0;
     bool         running = true;
 
@@ -59,14 +57,20 @@ static void GetData()
             uint32_t delim = *((uint32_t*)&fbuf[0]);
 
             if (delim == 0xDEADBEEF) { // Data
-                size_t read = g_communication->Read(fbuf, sizeof(fbuf));
+                static int sample_freq = 0;
+                if (sample_freq != Application::sampling_freq)
+                    cntr = 0;
+                sample_freq                = Application::sampling_freq;
+                const int Data_per_channel = Application::sampling_freq / PC_SEND_FREQ;
+                const int Recv_size        = N_CHANNELS * Data_per_channel * sizeof(fbuf[0]);
+                size_t    read             = g_communication->Read(fbuf, Recv_size);
                 if (read > 0) {
                     float* fbuf_tmp = fbuf;
                     for (auto& s : g_mainWindow->signals) {
-                        s.Edit(fbuf_tmp, cntr * DATA_PER_CHANNEL, DATA_PER_CHANNEL);
-                        fbuf_tmp += DATA_PER_CHANNEL;
+                        s.Edit(fbuf_tmp, cntr * Data_per_channel, Data_per_channel);
+                        fbuf_tmp += Data_per_channel;
                     }
-                    if (++cntr >= (g_n_samples / DATA_PER_CHANNEL)) {
+                    if (++cntr >= (Application::config_number_of_samples / Data_per_channel)) {
                         cntr = 0;
                         if (g_record == Record::ALL) {
                             for (auto const& s : g_mainWindow->signals)
@@ -120,7 +124,10 @@ void Application::InitFromFile(const std::string& file_name)
     for (int i = 0; i < tokens.size(); ++i) {
         switch (i) {
         case 0: // COM port
-            g_mainWindow->textbox_comport->SetText(tokens[i]);
+            Application::config_com_port = tokens[i];
+            break;
+        case 1: // number of samples
+            Application::config_number_of_samples = std::stoi(tokens[i]);
             break;
         }
     }
@@ -128,6 +135,9 @@ void Application::InitFromFile(const std::string& file_name)
 
 void Application::Init()
 {
+    // Initial parameters from file init
+    InitFromFile("config.txt");
+
     g_communication = new Communication();
     g_mainWindow    = new MainWindow(1850, 900, "Sorting Control", sf::Style::None | sf::Style::Close);
 
@@ -144,9 +154,6 @@ void Application::Init()
         g_frameInfoWindow->push_back(&s.GetTriggerWindowStats());
     }
     g_frameInfoWindow->SetAll(Signal::GetTriggerWindowStatsAll());
-
-    // Initial parameters from file init
-    InitFromFile("config.txt");
 
     g_running      = Running::STOPPED;
     g_record       = Record::NO;

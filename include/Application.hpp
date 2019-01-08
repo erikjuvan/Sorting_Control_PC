@@ -13,9 +13,9 @@ enum class View { RAW,
 enum class TriggerFrame { OFF,
                           ON };
 
-static constexpr int DATA_PER_CHANNEL{100};
+static constexpr int PC_SEND_FREQ{20}; // Hz
+static constexpr int MAX_DATA_PER_CHANNEL{1000};
 static constexpr int N_CHANNELS{8};
-static constexpr int ANALYSIS_PACKETS{10};
 
 class Application
 {
@@ -25,4 +25,8 @@ private:
 public:
     static void Init();
     static void Run();
+
+    static inline std::string config_com_port;
+    static inline int         config_number_of_samples{10000}; // 10k
+    static inline int         sampling_freq{10000};            // 10 kHz
 };
