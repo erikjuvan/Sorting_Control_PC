@@ -521,7 +521,7 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     textbox_comport = new mygui::Textbox(10, 10, "COM", 80);
     textbox_comport->SetText(Application::config_com_port);
     textbox_frequency          = new mygui::Textbox(10, 220, "", 80);
-    textbox_filter_params      = new mygui::Textbox(10, 340, "", 170);
+    textbox_filter_params      = new mygui::Textbox(10, 340, "", 210);
     textbox_times              = new mygui::Textbox(10, 460, "", 140);
     textbox_detection_time_min = new mygui::Textbox(35, 787, "", 40, 25);
     textbox_detection_time_min->onKeyPress(std::bind(&MainWindow::textbox_detection_time_min_KeyPress, this));
