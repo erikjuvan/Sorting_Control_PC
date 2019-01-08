@@ -16,8 +16,6 @@ extern Record       g_record;
 extern View         g_view;
 extern TriggerFrame g_triggerframe;
 
-extern int g_n_samples;
-
 static int chart_frame_idx = -1; // -1 so that when we first press right arrow we get the first [0] frame
 
 void MainWindow::button_connect_Click()
@@ -128,7 +126,7 @@ void MainWindow::button_save_Click()
         for (int rc = 0; rc < recorded_signals.size(); ++rc) {
             Signal const& sig    = recorded_signals[rc];
             int const     ch_idx = rc % N_CHANNELS;
-            for (int i = 0; i < g_n_samples; ++i)
+            for (int i = 0; i < Application::config_number_of_samples; ++i)
                 buf[ch_idx] += std::to_string(static_cast<int>(sig.GetADCValue(i))) + ",";
         }
         for (int i = 0; i < N_CHANNELS; ++i) {
@@ -455,15 +453,14 @@ void MainWindow::chart_OnKeyPress(const sf::Event& event)
 
 void MainWindow::CreateChart(int samples)
 {
-    g_n_samples = samples;
-    chart       = new Chart(240, 10, 1600, 880, g_n_samples, 100);
+    chart = new Chart(240, 10, 1600, 880, samples, 100);
     chart->CreateGrid(9);
     chart->OnKeyPress(std::bind(&MainWindow::chart_OnKeyPress, this, std::placeholders::_1));
     signals.clear();
     signals.reserve(N_CHANNELS);
     recorded_signals.reserve(N_CHANNELS * 10); // make an arbitrary reservation, just so there aren't so many reallocations when first recording
     for (int i = 0; i < N_CHANNELS; ++i) {
-        signals.push_back(Signal(g_n_samples, sf::Color(m_Colors[i]), chart->GraphRegion(), &chart->MaxVal()));
+        signals.push_back(Signal(samples, sf::Color(m_Colors[i]), chart->GraphRegion(), &chart->MaxVal()));
         chart->AddSignal(&signals[signals.size() - 1]);
     }
     Signal::EventsToRecord(static_cast<Signal::Event>(Signal::Event::MISSED | Signal::Event::DETECTED_OUT));
@@ -480,8 +477,7 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     ///////////
     // Chart //
     ///////////
-    constexpr int N_SAMPLES = 10000;
-    CreateChart(N_SAMPLES);
+    CreateChart(Application::config_number_of_samples);
 
     /////////////
     // Buttons //
@@ -522,7 +518,8 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     //////////////
     // Texboxes //
     //////////////
-    textbox_comport            = new mygui::Textbox(10, 10, "COM", 80);
+    textbox_comport = new mygui::Textbox(10, 10, "COM", 80);
+    textbox_comport->SetText(Application::config_com_port);
     textbox_frequency          = new mygui::Textbox(10, 220, "", 80);
     textbox_filter_params      = new mygui::Textbox(10, 340, "", 170);
     textbox_times              = new mygui::Textbox(10, 460, "", 140);

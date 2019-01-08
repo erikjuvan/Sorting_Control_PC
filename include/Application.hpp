@@ -25,4 +25,7 @@ private:
 public:
     static void Init();
     static void Run();
+
+    static inline std::string config_com_port;
+    static inline int         config_number_of_samples{10000}; // 10k
 };
