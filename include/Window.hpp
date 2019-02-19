@@ -31,4 +31,5 @@ public:
     virtual void         AlwaysOnTop(bool top) final;
     virtual void         MakeTransparent() final;
     virtual void         SetTransparency(sf::Uint8 alpha) final;
+    void                 SetTitle(std::string const& title) { m_window->setTitle(title); }
 };

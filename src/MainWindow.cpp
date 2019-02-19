@@ -95,6 +95,7 @@ void MainWindow::button_run_Click()
         g_communication->Write("VRBS,1\n");
         g_running = Running::RUNNING;
         button_run->SetText("Running");
+        Application::run_start_time = std::chrono::steady_clock::now();
 
         for (int i = 0; i < N_CHANNELS; ++i)
             chart->ChangeSignal(i, &signals[i]);
@@ -108,6 +109,7 @@ void MainWindow::button_run_Click()
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
         button_run->SetText("Stopped");
+        Application::run_start_time = std::nullopt;
     }
 }
 

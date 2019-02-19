@@ -3,6 +3,7 @@
 #include "InfoWindow.hpp"
 #include "MainWindow.hpp"
 #include <fstream>
+#include <iomanip>
 #include <thread>
 
 Communication* g_communication;
@@ -22,6 +23,7 @@ static void Information()
 {
     static int cnt                    = 0;
     static int detected_in_window_cnt = 0, detected_out_window_cnt = 0, signal_missed_cnt = 0;
+    auto       time_at_start = std::chrono::steady_clock::now();
 
     while (g_mainWindow->IsOpen()) {
         if (g_communication->IsConnected()) {
@@ -36,9 +38,23 @@ static void Information()
             g_mainWindow->label_info_detected_in_window->SetText(std::to_string(detected_in_window_cnt));
             g_mainWindow->label_info_detected_out_window->SetText(std::to_string(detected_out_window_cnt));
             g_mainWindow->label_info_signal_missed->SetText(std::to_string(signal_missed_cnt));
-
-            sf::sleep(sf::milliseconds(100));
         }
+
+        auto time_now  = std::chrono::steady_clock::now();
+        auto alive_sec = std::chrono::duration_cast<std::chrono::seconds>(time_now - time_at_start).count();
+
+        std::stringstream run_strs;
+        if (Application::run_start_time) {
+            auto run_sec = std::chrono::duration_cast<std::chrono::seconds>(time_now - *Application::run_start_time).count();
+            run_strs << "  running: " << std::to_string(run_sec / 60) << ":" << std::setw(2) << std::setfill('0') << std::to_string(run_sec % 60);
+        }
+
+        std::stringstream str;
+        str << "Sorting Control    alive: " << std::to_string(alive_sec / 60) << ":" << std::setw(2) << std::setfill('0') << std::to_string(alive_sec % 60) << run_strs.str();
+        g_mainWindow->SetTitle(str.str());
+
+        using namespace std::chrono_literals;
+        std::this_thread::sleep_for(100ms);
     }
 }
 
