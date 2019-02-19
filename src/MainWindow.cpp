@@ -113,29 +113,40 @@ void MainWindow::button_run_Click()
 
 void MainWindow::button_save_Click()
 {
-    auto          filename = "sig.py";
-    std::ofstream f(filename, std::ios::out); // open for writting and append data
-    std::string   buf[N_CHANNELS];
+    if (signals.size() <= 0)
+        return;
+    if (signals[0].GetRawData().size() <= 0)
+        return;
 
-    if (f.is_open()) {
-        for (int i = 0; i < N_CHANNELS; ++i) {
-            buf[i].clear();
-            buf[i].reserve(1000000);
+    struct header {
+        uint32_t num_of_channels;
+        uint32_t sizeof_sample;
+        uint32_t num_of_samples_per_ch;
+    } head;
+
+    auto fname  = "STREAM_SC_sig_log.bin";
+    auto myfile = std::fstream(fname, std::ios::out | std::ios::binary);
+
+    if (myfile.is_open()) {
+        head.num_of_channels       = N_CHANNELS;
+        head.sizeof_sample         = sizeof(signals[0].GetRawData()[0]);
+        head.num_of_samples_per_ch = signals[0].GetRawData().size();
+
+        myfile.write((const char*)&head, sizeof(head));
+
+        for (auto const& signal : signals) {
+            auto const& vec = signal.GetRawData();
+            if (vec.size() != head.num_of_samples_per_ch) {
+                std::cerr << "Error saving to file: signal channel size mismatch!\n";
+                myfile.close();
+                return;
+            }
+
+            myfile.write((const char*)&vec[0], head.num_of_samples_per_ch * sizeof(vec[0]));
         }
 
-        for (int rc = 0; rc < recorded_signals.size(); ++rc) {
-            Signal const& sig    = recorded_signals[rc];
-            int const     ch_idx = rc % N_CHANNELS;
-            for (int i = 0; i < Application::config_number_of_samples; ++i)
-                buf[ch_idx] += std::to_string(static_cast<int>(sig.GetADCValue(i))) + ",";
-        }
-        for (int i = 0; i < N_CHANNELS; ++i) {
-            buf[i].pop_back();
-            f << "ch" + std::to_string(i + 1) + "=[" + buf[i] + "]\n"; // Write entire content to file
-        }
-
-        f.close();
-        std::cout << "Signals saved to " << filename << std::endl;
+        myfile.close();
+        std::cout << "Signals saved to " << fname << std::endl;
     }
 }
 
@@ -260,6 +271,8 @@ void MainWindow::button_clear_all_Click()
     label_info_signal_missed_Clicked();
 
     recorded_signals.clear();
+    for (auto& signal : signals)
+        signal.ClearRawData();
     ResetSignals();
     label_recorded_signals_counter->SetText("0");
 }

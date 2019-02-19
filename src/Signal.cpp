@@ -25,6 +25,7 @@ Signal::Signal(int n, sf::Color col, const sf::FloatRect& region, float* max_val
     m_draw_trigger_frame(false), m_graph_region(region), m_max_val(max_val),
     m_events(Event::NONE)
 {
+    m_raw_data.reserve(10000 * 10 * 60); // reserve larger chunk of memory to avoid too many malloc/realloc's
 
     for (int i = 0; i < n; ++i) {
         m_curve[i].color      = col;
@@ -178,8 +179,14 @@ void Signal::SetIndicator(float const x, Event const ev)
 }
 
 // Return false if a signal never reached the threashold value when the window was on
-void Signal::Edit(float* buf, int start, int size)
+void Signal::Edit(const float* buf, int start, int size)
 {
+    // union used to make conversion from int<->float conform to standard (strict aliasing)
+    union float_int {
+        uint32_t i;
+        float    f;
+    };
+
     const float y_zero = m_graph_region.top + m_graph_region.height;
     const float y_high = y_zero - (m_threashold_value / *m_max_val) * m_graph_region.height + 1;
 
@@ -204,24 +211,24 @@ void Signal::Edit(float* buf, int start, int size)
         }
 
         for (int i = 0, s = start; i < size; ++i, ++s) {
+            float_int sig_val_conv;
+            sig_val_conv.f = buf[i];
 
             // Edge detection
             /////////////////
-            uint8_t* char_buf = (uint8_t*)&buf[i];
-            if ((char_buf[3] & 0x80) != 0) { // trigger is active
-                char_buf[3] -= 0x80;         // Correct buf by removing the encoding in the MSB
-                m_trigger_val = 1;
-            } else {
-                m_trigger_val = 0;
-            }
-            m_diff             = m_trigger_val - m_trigger_val_prev;
-            m_trigger_val_prev = m_trigger_val;
+            bool trigger_active   = sig_val_conv.i & (1 << 31); // check MSB bit
+            m_diff                = trigger_active - m_trigger_active_prev;
+            m_trigger_active_prev = trigger_active;
             /////////////////
+
+            // Value correction
+            sig_val_conv.i = sig_val_conv.i & 0x7FFFFFFF;
+            float sig_val  = sig_val_conv.f;
 
             // Threashold detection
             ///////////////////////
             m_blind_time -= (m_blind_time > 0);
-            if (buf[i] >= m_threashold_value && m_blind_time <= 0) {
+            if (sig_val >= m_threashold_value && m_blind_time <= 0) {
                 m_threashold = Threashold::REACHED;
                 m_blind_time = m_blind_time_value;
             }
@@ -265,8 +272,8 @@ void Signal::Edit(float* buf, int start, int size)
                     m_events = static_cast<Event>(m_events | Event::WINDOW_TIME);
                     SetIndicator(x_position, Event::WINDOW_TIME);
                 }
-            } else if (m_trigger_val == 1) { // frame active
-                if (s == 0) {                // new start
+            } else if (trigger_active) { // frame active
+                if (s == 0) {            // new start
                     m_trigger_frame[m_trigger_frame_idx++].position = sf::Vector2f(m_curve[0].position.x, y_high);
                 }
                 m_trigger_frame[m_trigger_frame_idx].position = sf::Vector2f(x_position, y_high);
@@ -292,23 +299,25 @@ void Signal::Edit(float* buf, int start, int size)
                     SetIndicator(x_position, Event::DETECTED_OUT);
                 }
             }
+
+            // Added to speed up in case we draw frame (so we don't need to iterate throught it again)
+            m_curve[s].position.y = y_zero - (sig_val / *m_max_val) * m_graph_region.height + 1;
+            m_raw_data.push_back(buf[i]);
+        }
+    } else {
+        for (int i = 0, s = start; i < size; ++i, ++s) {
+            float_int sig_val_conv;
+            sig_val_conv.f        = buf[i];
+            sig_val_conv.i        = sig_val_conv.i & 0x7FFFFFFF;
+            float sig_val         = sig_val_conv.f;
+            m_curve[s].position.y = y_zero - (sig_val / *m_max_val) * m_graph_region.height + 1;
+            m_raw_data.push_back(buf[i]);
+
+            /* Not implemented because it is not neccessary and just waists cpu
+			if (m_curve[s].position.y < m_graph_region.top) { // curve out of graph region
+			m_curve[s].position.y = m_graph_region.top;
+			}
+			*/
         }
     }
-
-    for (int i = 0, s = start; i < size; ++i, ++s) {
-        m_curve[s].position.y = y_zero - (buf[i] / *m_max_val) * m_graph_region.height + 1;
-
-        /* Not implemented because it is not neccessary and just waists cpu 
-        if (m_curve[s].position.y < m_graph_region.top) { // curve out of graph region
-            m_curve[s].position.y = m_graph_region.top;
-		}
-		*/
-    }
-}
-
-float Signal::GetADCValue(int idx) const
-{
-    const float y_zero = m_graph_region.top + m_graph_region.height;
-
-    return (1 + y_zero - m_curve[idx].position.y) * (*m_max_val) / m_graph_region.height;
 }

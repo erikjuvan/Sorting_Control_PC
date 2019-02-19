@@ -4,6 +4,8 @@ Window::Window(int w, int h, const std::string& title, sf::Uint32 style)
 {
     m_window = new sf::RenderWindow(sf::VideoMode(w, h), title, style);
     m_event  = new sf::Event();
+
+    //m_window->setFramerateLimit(60); // currently already running at 60 fps even without limit
 }
 
 Window::~Window()
