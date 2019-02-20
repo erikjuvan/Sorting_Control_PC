@@ -143,7 +143,7 @@ void MainWindow::button_save_Click()
         head.sizeof_sample         = sizeof(signals[0].GetRawData()[0]);
         head.num_of_samples_per_ch = signals[0].GetRawData().size();
 
-        write_file.write((const char*)&head, sizeof(head));
+        write_file.write((const char*)&head, sizeof(Header));
 
         for (auto const& signal : signals) {
             auto const& vec = signal.GetRawData();
@@ -167,7 +167,7 @@ void MainWindow::button_save_Click()
     std::ifstream read_file(fname, std::ifstream::binary);
     if (read_file.is_open()) {
         Header tmp;
-        read_file.read((char*)&tmp, sizeof(head));
+        read_file.read((char*)&tmp, sizeof(Header));
         if (std::memcmp(&tmp, &head, sizeof(Header))) {
             std::cerr << "Error: incorrect header data when reading file!\n";
             read_file.close();
@@ -185,7 +185,7 @@ void MainWindow::button_save_Click()
     if (in.is_open()) {
         fsize = in.tellg();
         in.close();
-        if (fsize != (sizeof(head) + head.num_of_channels * head.num_of_samples_per_ch * head.sizeof_sample)) {
+        if (fsize != (sizeof(Header) + head.num_of_channels * head.num_of_samples_per_ch * head.sizeof_sample)) {
             std::cerr << "Error: file size incorrect!\n";
             return;
         }
