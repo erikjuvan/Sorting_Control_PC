@@ -115,41 +115,86 @@ void MainWindow::button_run_Click()
 
 void MainWindow::button_save_Click()
 {
-    if (signals.size() <= 0)
+    if (signals.size() <= 0) {
+        std::cerr << "Error saving to file: signals.size() is 0 !\n";
         return;
-    if (signals[0].GetRawData().size() <= 0)
+    }
+    if (signals[0].GetRawData().size() <= 0) {
+        std::cerr << "Error saving to file: there is no data to save!\n";
         return;
+    }
 
-    struct header {
+    struct Header {
+        uint32_t start_id = 0x43535453; // "STSC" - STream Sorting Control
+        uint32_t time_since_epoch_s;
         uint32_t num_of_channels;
         uint32_t sizeof_sample;
         uint32_t num_of_samples_per_ch;
-    } head;
+    };
 
-    auto fname  = "STREAM_SC_sig_log.bin";
-    auto myfile = std::fstream(fname, std::ios::out | std::ios::binary);
+    Header        head;
+    auto          fname = "STREAM_SC_sig_log.bin";
+    std::ofstream write_file(fname, std::ofstream::binary);
 
-    if (myfile.is_open()) {
+    if (write_file.is_open()) {
+        using namespace std::chrono;
+        head.time_since_epoch_s    = static_cast<uint32_t>(duration_cast<seconds>(system_clock::now().time_since_epoch()).count());
         head.num_of_channels       = N_CHANNELS;
         head.sizeof_sample         = sizeof(signals[0].GetRawData()[0]);
         head.num_of_samples_per_ch = signals[0].GetRawData().size();
 
-        myfile.write((const char*)&head, sizeof(head));
+        write_file.write((const char*)&head, sizeof(head));
 
         for (auto const& signal : signals) {
             auto const& vec = signal.GetRawData();
             if (vec.size() != head.num_of_samples_per_ch) {
                 std::cerr << "Error saving to file: signal channel size mismatch!\n";
-                myfile.close();
+                write_file.close();
                 return;
             }
 
-            myfile.write((const char*)&vec[0], head.num_of_samples_per_ch * sizeof(vec[0]));
+            write_file.write((const char*)&vec[0], head.num_of_samples_per_ch * head.sizeof_sample);
         }
 
-        myfile.close();
-        std::cout << "Signals saved to " << fname << std::endl;
+        write_file.close();
+    } else {
+        std::cerr << "Error: can't open file for writting!\n";
+        return;
     }
+
+    // Check file for correct header data
+    /////////////////////////////////////
+    std::ifstream read_file(fname, std::ifstream::binary);
+    if (read_file.is_open()) {
+        Header tmp;
+        read_file.read((char*)&tmp, sizeof(head));
+        if (std::memcmp(&tmp, &head, sizeof(Header))) {
+            std::cerr << "Error: incorrect header data when reading file!\n";
+            read_file.close();
+            return;
+        }
+    } else {
+        std::cerr << "Error: can't open file for reading!\n";
+        return;
+    }
+
+    // Check file for correct size
+    //////////////////////////////
+    std::ifstream in(fname, std::ifstream::ate | std::ifstream::binary);
+    if (in.is_open()) {
+        int fsize = in.tellg();
+        in.close();
+        if (fsize != (sizeof(head) + head.num_of_channels * head.num_of_samples_per_ch * head.sizeof_sample)) {
+            std::cerr << "Error: file size incorrect!\n";
+            return;
+        }
+    } else {
+        std::cerr << "Error: can't open file for reading!\n";
+        return;
+    }
+
+    // All is well :)
+    std::cout << "Data successfully saved to " << fname << std::endl;
 }
 
 void MainWindow::button_trigger_frame_Click()

@@ -43,14 +43,16 @@ static void Information()
         auto time_now  = std::chrono::steady_clock::now();
         auto alive_sec = std::chrono::duration_cast<std::chrono::seconds>(time_now - time_at_start).count();
 
-        std::stringstream run_strs;
-        if (Application::run_start_time) {
-            auto run_sec = std::chrono::duration_cast<std::chrono::seconds>(time_now - *Application::run_start_time).count();
-            run_strs << "  running: " << std::to_string(run_sec / 60) << ":" << std::setw(2) << std::setfill('0') << std::to_string(run_sec % 60);
-        }
+        uint64_t run_sec = 0;
+        if (Application::run_start_time)
+            run_sec = std::chrono::duration_cast<std::chrono::seconds>(time_now - *Application::run_start_time).count();
 
+        int               size     = g_mainWindow->signals.size() * g_mainWindow->signals[0].GetRawData().size() * sizeof(g_mainWindow->signals[0].GetRawData()[0]) / 1000000;
+        int               capacity = g_mainWindow->signals.size() * g_mainWindow->signals[0].GetRawData().capacity() * sizeof(g_mainWindow->signals[0].GetRawData()[0]) / 1000000;
         std::stringstream str;
-        str << "Sorting Control    alive: " << std::to_string(alive_sec / 60) << ":" << std::setw(2) << std::setfill('0') << std::to_string(alive_sec % 60) << run_strs.str();
+        str << "Sorting Control    alive: " << std::to_string(alive_sec / 60) << ":" << std::setw(2) << std::setfill('0') << std::to_string(alive_sec % 60)
+            << "  running: " << std::to_string(run_sec / 60) << ":" << std::setw(2) << std::setfill('0') << std::to_string(run_sec % 60) << "   Buffer size: " << size << " MB"
+            << " / " << capacity << " MB";
         g_mainWindow->SetTitle(str.str());
 
         using namespace std::chrono_literals;
