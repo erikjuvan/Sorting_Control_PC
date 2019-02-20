@@ -133,7 +133,7 @@ void MainWindow::button_save_Click()
     };
 
     Header        head;
-    auto          fname = "STREAM_SC_sig_log.bin";
+    auto          fname = "sc_data.bin";
     std::ofstream write_file(fname, std::ofstream::binary);
 
     if (write_file.is_open()) {
