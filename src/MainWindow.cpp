@@ -181,8 +181,9 @@ void MainWindow::button_save_Click()
     // Check file for correct size
     //////////////////////////////
     std::ifstream in(fname, std::ifstream::ate | std::ifstream::binary);
+    int           fsize = 0;
     if (in.is_open()) {
-        int fsize = in.tellg();
+        fsize = in.tellg();
         in.close();
         if (fsize != (sizeof(head) + head.num_of_channels * head.num_of_samples_per_ch * head.sizeof_sample)) {
             std::cerr << "Error: file size incorrect!\n";
@@ -194,7 +195,7 @@ void MainWindow::button_save_Click()
     }
 
     // All is well :)
-    std::cout << "Data successfully saved to " << fname << std::endl;
+    std::cout << "Successfully written " << fsize << " bytes to " << fname << std::endl;
 }
 
 void MainWindow::button_trigger_frame_Click()
