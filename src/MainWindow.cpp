@@ -156,12 +156,14 @@ void MainWindow::button_save_Click()
         head.sizeof_sample         = sizeof(signals[0].GetRawData()[0]);
         head.num_of_samples_per_ch = signals[0].GetRawData().size();
 
+        std::cout << "Saving data to " << fname << " ... ";
+
         write_file.write((const char*)&head, sizeof(Header));
 
         for (auto const& signal : signals) {
             auto const& vec = signal.GetRawData();
             if (vec.size() != head.num_of_samples_per_ch) {
-                std::cerr << "Error saving to file: signal channel size mismatch!\n";
+                std::cerr << "Error saving to file: channel size mismatch!\n";
                 write_file.close();
                 return;
             }
@@ -182,7 +184,7 @@ void MainWindow::button_save_Click()
         Header tmp;
         read_file.read((char*)&tmp, sizeof(Header));
         if (std::memcmp(&tmp, &head, sizeof(Header))) {
-            std::cerr << "Error: incorrect header data when reading file!\n";
+            std::cerr << "Error write failed: Incorrect header when reading back file!\n";
             read_file.close();
             return;
         }
@@ -200,7 +202,7 @@ void MainWindow::button_save_Click()
         std::ifstream::pos_type correct_size = sizeof(Header) + head.num_of_channels * head.num_of_samples_per_ch * head.sizeof_sample;
         in.close();
         if (fsize != correct_size) {
-            std::cerr << "Error: file size incorrect! is " << fsize << " bytes, should be " << correct_size << "bytes.\n";
+            std::cerr << "Error write failed: Written " << fsize << " bytes to file. Should have written " << correct_size << " bytes.\n";
             return;
         }
     } else {
