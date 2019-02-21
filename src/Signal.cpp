@@ -25,7 +25,7 @@ Signal::Signal(int n, sf::Color col, const sf::FloatRect& region, float* max_val
     m_draw_trigger_frame(false), m_graph_region(region), m_max_val(max_val),
     m_events(Event::NONE)
 {
-    m_raw_data.reserve(10000 * 10 * 60); // reserve larger chunk of memory to avoid too many malloc/realloc's
+    m_raw_data.reserve(10000 * 15 * 60); // reserve larger chunk of memory to avoid too many malloc/realloc's
 
     for (int i = 0; i < n; ++i) {
         m_curve[i].color      = col;

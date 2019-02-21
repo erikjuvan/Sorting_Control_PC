@@ -131,8 +131,22 @@ void MainWindow::button_save_Click()
         uint32_t num_of_samples_per_ch;
     };
 
+    auto get_available_filename = [](std::string base_name) -> auto
+    {
+        std::string suffix;
+        std::string extension{".bin"};
+        int         cnt = 0;
+        while (true) {
+            std::string   fname = base_name + suffix + extension;
+            std::ifstream f(fname);
+            if (!f.good())
+                return fname;
+            suffix = "_" + std::to_string(++cnt);
+        }
+    };
+
     Header        head;
-    auto          fname = "sc_data.bin";
+    auto          fname = get_available_filename("sc_data");
     std::ofstream write_file(fname, std::ofstream::binary);
 
     if (write_file.is_open()) {
@@ -179,13 +193,14 @@ void MainWindow::button_save_Click()
 
     // Check file for correct size
     //////////////////////////////
-    std::ifstream in(fname, std::ifstream::ate | std::ifstream::binary);
-    int           fsize = 0;
+    std::ifstream           in(fname, std::ifstream::ate | std::ifstream::binary);
+    std::ifstream::pos_type fsize = 0;
     if (in.is_open()) {
-        fsize = in.tellg();
+        fsize                                = in.tellg();
+        std::ifstream::pos_type correct_size = sizeof(Header) + head.num_of_channels * head.num_of_samples_per_ch * head.sizeof_sample;
         in.close();
-        if (fsize != (sizeof(Header) + head.num_of_channels * head.num_of_samples_per_ch * head.sizeof_sample)) {
-            std::cerr << "Error: file size incorrect!\n";
+        if (fsize != correct_size) {
+            std::cerr << "Error: file size incorrect! is " << fsize << " bytes, should be " << correct_size << "bytes.\n";
             return;
         }
     } else {
