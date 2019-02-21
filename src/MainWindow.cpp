@@ -11,10 +11,9 @@ extern Communication* g_communication;
 extern InfoWindow*    g_detectionInfoWindow;
 extern InfoWindow*    g_frameInfoWindow;
 
-extern Running      g_running;
-extern Record       g_record;
-extern View         g_view;
-extern TriggerFrame g_triggerframe;
+extern Running g_running;
+extern Record  g_record;
+extern View    g_view;
 
 static int chart_frame_idx = -1; // -1 so that when we first press right arrow we get the first [0] frame
 
@@ -50,27 +49,6 @@ void MainWindow::button_connect_Click()
                 s.SetBlindTime(std::stoi(strings[2]));
             }
             textbox_times->SetText(buf);
-
-            read_and_parse("GETTRGFRM\n");
-            if (TriggerFrame::ON == static_cast<TriggerFrame>(std::stoi(buf))) {
-                chart->EnableTriggerFrame();
-                button_trigger_frame->SetText("Frame ON");
-            } else {
-                chart->DisableTriggerFrame();
-                button_trigger_frame->SetText("Frame OFF");
-            }
-
-            read_and_parse("GETVIEW\n");
-            if (View::FILTERED == static_cast<View>(std::stoi(buf))) {
-                button_view_mode->SetText("Filtered");
-                g_view = View::FILTERED;
-            } else if (View::RAW == static_cast<View>(std::stoi(buf))) {
-                button_view_mode->SetText("Raw");
-                g_view = View::RAW;
-            } else if (View::TRAINED == static_cast<View>(std::stoi(buf))) {
-                button_view_mode->SetText("Trained");
-                g_view = View::TRAINED;
-            }
             textbox_comport->Enabled(false);
         } else {
             std::cout << "Can't connect to port " << textbox_comport->GetText() << std::endl;
@@ -214,30 +192,13 @@ void MainWindow::button_save_Click()
     std::cout << "Successfully written " << fsize << " bytes to " << fname << std::endl;
 }
 
-void MainWindow::button_trigger_frame_Click()
-{
-    if (g_triggerframe == TriggerFrame::OFF) {
-        g_triggerframe = TriggerFrame::ON;
-        g_communication->Write("SETTRGFRM,1\n");
-        chart->EnableTriggerFrame();
-        button_trigger_frame->SetText("Frame ON");
-    } else {
-        g_triggerframe = TriggerFrame::OFF;
-        g_communication->Write("SETTRGFRM,0\n");
-        chart->DisableTriggerFrame();
-        button_trigger_frame->SetText("Frame OFF");
-    }
-}
-
 void MainWindow::button_view_mode_Click()
 {
     if (g_view == View::FILTERED) {
         g_view = View::RAW;
-        g_communication->Write("RAW\n");
         button_view_mode->SetText("Raw");
-    } else if (g_view == View::RAW || g_view == View::TRAINED) { // If somehow we end up in TRAINED view, go back to filtered
+    } else if (g_view == View::RAW) {
         g_view = View::FILTERED;
-        g_communication->Write("FILTERED\n");
         button_view_mode->SetText("Filtered");
     }
 }
@@ -568,13 +529,10 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     button_save = new mygui::Button(10, 130, "Save", 100);
     button_save->OnClick(std::bind(&MainWindow::button_save_Click, this));
 
-    button_trigger_frame = new mygui::Button(125, 50, "Frame OFF", 100, 30, 18);
-    button_trigger_frame->OnClick(std::bind(&MainWindow::button_trigger_frame_Click, this));
-
-    button_view_mode = new mygui::Button(125, 90, "Raw", 100, 30, 18);
+    button_view_mode = new mygui::Button(125, 50, "Filtered", 100, 30, 18);
     button_view_mode->OnClick(std::bind(&MainWindow::button_view_mode_Click, this));
 
-    button_info_windows = new mygui::Button(125, 130, "Info", 100, 30, 18);
+    button_info_windows = new mygui::Button(125, 90, "Info", 100, 30, 18);
     button_info_windows->OnClick(std::bind(&MainWindow::button_info_Click, this));
 
     button_set_frequency = new mygui::Button(10, 260, "Send");
@@ -670,7 +628,6 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     Add(button_connect);
     Add(button_run);
     Add(button_save);
-    Add(button_trigger_frame);
     Add(button_set_frequency);
     Add(button_set_filter_params);
     Add(button_set_times);

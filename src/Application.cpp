@@ -11,10 +11,9 @@ MainWindow*    g_mainWindow;
 InfoWindow*    g_detectionInfoWindow;
 InfoWindow*    g_frameInfoWindow;
 
-Running      g_running;
-Record       g_record;
-View         g_view;
-TriggerFrame g_triggerframe;
+Running g_running;
+Record  g_record;
+View    g_view;
 
 static std::thread g_thread_info;
 static std::thread g_thread_get_data;
@@ -167,10 +166,9 @@ void Application::Init()
     }
     g_frameInfoWindow->SetAll(Signal::GetTriggerWindowStatsAll());
 
-    g_running      = Running::STOPPED;
-    g_record       = Record::NO;
-    g_view         = View::FILTERED;
-    g_triggerframe = TriggerFrame::OFF;
+    g_running = Running::STOPPED;
+    g_record  = Record::NO;
+    g_view    = View::FILTERED;
 
     g_thread_info     = std::thread(Information);
     g_thread_get_data = std::thread(GetData);

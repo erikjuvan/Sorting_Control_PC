@@ -66,7 +66,6 @@ public:
     mygui::Button* button_connect;
     mygui::Button* button_run;
     mygui::Button* button_save;
-    mygui::Button* button_trigger_frame;
     mygui::Button* button_set_frequency;
     mygui::Button* button_set_filter_params;
     mygui::Button* button_set_times;
