@@ -43,9 +43,9 @@ static void Information()
         auto time_now  = std::chrono::steady_clock::now();
         auto alive_sec = std::chrono::duration_cast<std::chrono::seconds>(time_now - time_at_start).count();
 
-        uint64_t run_sec = 0;
-        if (Application::run_start_time)
-            run_sec = std::chrono::duration_cast<std::chrono::seconds>(time_now - *Application::run_start_time).count();
+        static uint64_t run_sec = 0;
+        if (g_running == Running::RUNNING)
+            run_sec = std::chrono::duration_cast<std::chrono::seconds>(time_now - Application::run_start_time).count();
 
         int               size     = g_mainWindow->signals.size() * g_mainWindow->signals[0].GetRawData().size() * sizeof(g_mainWindow->signals[0].GetRawData()[0]) / 1000000;
         int               capacity = g_mainWindow->signals.size() * g_mainWindow->signals[0].GetRawData().capacity() * sizeof(g_mainWindow->signals[0].GetRawData()[0]) / 1000000;

@@ -31,5 +31,5 @@ public:
     static inline std::string config_com_port;
     static inline int         config_number_of_samples{10000}; // 10k
 
-    static inline std::optional<std::chrono::time_point<std::chrono::steady_clock>> run_start_time = std::nullopt;
+    static inline std::chrono::time_point<std::chrono::steady_clock> run_start_time;
 };

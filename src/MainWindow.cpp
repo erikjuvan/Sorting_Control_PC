@@ -109,7 +109,6 @@ void MainWindow::button_run_Click()
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
         button_run->SetText("Stopped");
-        Application::run_start_time = std::nullopt;
     }
 }
 
