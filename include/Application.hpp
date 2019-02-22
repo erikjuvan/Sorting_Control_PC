@@ -11,6 +11,8 @@ enum class Record { NO,
                     EVENTS };
 enum class View { RAW,
                   FILTERED };
+enum class TriggerFrame { OFF,
+                          ON };
 
 static constexpr int DATA_PER_CHANNEL{100};
 static constexpr int N_CHANNELS{8};
