@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Application.hpp"
 #include "Helpers.hpp"
 #include <SFML/Graphics.hpp>
 
@@ -86,9 +87,9 @@ public:
     void        SetColor(sf::Color const& col);
     bool        AnyEvents() const;
     void        ClearEvents();
-    void        Edit(float const* buf, int start, int size); // Return false if a signal never reached the threashold value when the window was on
-    const auto& GetRawData() const { return m_raw_data; }
-    void        ClearRawData() { m_raw_data.clear(); }
+    void        Edit(ProtocolDataType const* data, int start, int size); // Return false if a signal never reached the threashold value when the window was on
+    const auto& GetRXData() const { return m_rx_data; }
+    void        ClearRXData() { m_rx_data.clear(); }
     auto&       GetTriggerWindowStats() { return m_trigger_window_stats.Get(); }
     auto&       GetDetecionStats() { return m_detection_stats.Get(); }
 
@@ -113,13 +114,13 @@ private:
     SignalStats m_trigger_window_stats;
     SignalStats m_detection_stats;
 
-    std::vector<float> m_raw_data;
-    sf::VertexArray    m_curve;
-    sf::VertexArray    m_trigger_frame;
-    int                m_trigger_frame_idx{0};
-    sf::VertexArray    m_event_indicator;
-    int                m_event_indicator_idx{0};
-    sf::FloatRect      m_graph_region;
+    std::vector<uint64_t> m_rx_data;
+    sf::VertexArray       m_curve;
+    sf::VertexArray       m_trigger_frame;
+    int                   m_trigger_frame_idx{0};
+    sf::VertexArray       m_event_indicator;
+    int                   m_event_indicator_idx{0};
+    sf::FloatRect         m_graph_region;
 
     bool m_draw{true};
     bool m_only_draw_on_trigger{false};
@@ -130,7 +131,7 @@ private:
     bool   m_draw_event_indicator{true};
 
     int  m_diff{0};
-    bool m_trigger_active_prev{false};
+    bool m_ejection_win_prev{false};
 
     int m_detected_in_window_cnt{0};
     int m_detected_out_window_cnt{0};

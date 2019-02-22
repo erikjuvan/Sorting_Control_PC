@@ -96,7 +96,7 @@ void MainWindow::button_save_Click()
         std::cerr << "Error saving to file: signals.size() is 0 !\n";
         return;
     }
-    if (signals[0].GetRawData().size() <= 0) {
+    if (signals[0].GetRXData().size() <= 0) {
         std::cerr << "Error saving to file: there is no data to save!\n";
         return;
     }
@@ -107,6 +107,17 @@ void MainWindow::button_save_Click()
         uint32_t num_of_channels;
         uint32_t sizeof_sample;
         uint32_t num_of_samples_per_ch;
+
+        struct {
+            uint32_t sample_frequency_hz;
+            uint32_t delay_ms;
+            uint32_t duration_ms;
+            uint32_t blind_ms;
+            float    lpf1_K;
+            float    hpf_K;
+            float    lpf2_K;
+            float    threshold;
+        } sorting_parameters;
     };
 
     auto get_available_filename = [](std::string base_name) -> auto
@@ -131,15 +142,15 @@ void MainWindow::button_save_Click()
         using namespace std::chrono;
         head.time_since_epoch_s    = static_cast<uint32_t>(duration_cast<seconds>(system_clock::now().time_since_epoch()).count());
         head.num_of_channels       = N_CHANNELS;
-        head.sizeof_sample         = sizeof(signals[0].GetRawData()[0]);
-        head.num_of_samples_per_ch = signals[0].GetRawData().size();
+        head.sizeof_sample         = sizeof(signals[0].GetRXData()[0]);
+        head.num_of_samples_per_ch = signals[0].GetRXData().size();
 
         std::cout << "Saving data to " << fname << " ... ";
 
         write_file.write((const char*)&head, sizeof(Header));
 
         for (auto const& signal : signals) {
-            auto const& vec = signal.GetRawData();
+            auto const& vec = signal.GetRXData();
             if (vec.size() != head.num_of_samples_per_ch) {
                 std::cerr << "Error saving to file: channel size mismatch!\n";
                 write_file.close();
@@ -297,7 +308,7 @@ void MainWindow::button_clear_all_Click()
 
     recorded_signals.clear();
     for (auto& signal : signals)
-        signal.ClearRawData();
+        signal.ClearRXData();
     ResetSignals();
     label_recorded_signals_counter->SetText("0");
 }

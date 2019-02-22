@@ -1,6 +1,8 @@
 #include "Signal.hpp"
 #include "Helpers.hpp"
 
+extern View g_view;
+
 // Static
 /////////
 
@@ -25,7 +27,7 @@ Signal::Signal(int n, sf::Color col, const sf::FloatRect& region, float* max_val
     m_draw_trigger_frame(false), m_graph_region(region), m_max_val(max_val),
     m_events(Event::NONE)
 {
-    m_raw_data.reserve(10000 * 15 * 60); // reserve larger chunk of memory to avoid too many malloc/realloc's
+    m_rx_data.reserve(10000 * 10 * 60); // reserve larger chunk of memory to avoid too many malloc/realloc's
 
     for (int i = 0; i < n; ++i) {
         m_curve[i].color      = col;
@@ -179,56 +181,54 @@ void Signal::SetIndicator(float const x, Event const ev)
 }
 
 // Return false if a signal never reached the threashold value when the window was on
-void Signal::Edit(const float* buf, int start, int size)
+void Signal::Edit(ProtocolDataType const* data, int start, int size)
 {
-    // union used to make conversion from int<->float conform to standard (strict aliasing)
-    union float_int {
-        uint32_t i;
-        float    f;
-    };
-
     const float y_zero = m_graph_region.top + m_graph_region.height;
     const float y_high = y_zero - (m_threashold_value / *m_max_val) * m_graph_region.height + 1;
 
-    if (m_draw_trigger_frame) {
+    for (int i = 0, s = start; i < size; ++i, ++s) {
+        m_rx_data.push_back(data[i].u64);
 
-        if (start == 0) {
-            // Clear all frames
-            for (int i = 0; i <= m_trigger_frame_idx; ++i)
-                m_trigger_frame[i].position = sf::Vector2f(0.f, 0.f);
-            m_trigger_frame_idx = 0;
+        uint32_t raw_data     = data[i].u32.raw_data;
+        bool     ejection_win = data[i].u32.ejection_window;
+        float    filt_data    = std::abs(data[i].f32.filtered_data_w_obj_det); // we have to take the absolute value (obj_det is on MSB)
+        bool     obj_det      = data[i].u32.object_detected;
 
-            for (int i = 0; i <= m_event_indicator_idx; ++i)
-                m_event_indicator[i].position = sf::Vector2f(0.f, 0.f);
-            m_event_indicator_idx = 0;
+        if (g_view == View::RAW)
+            m_curve[s].position.y = y_zero - (raw_data / *m_max_val) * m_graph_region.height + 1;
+        else if (g_view == View::FILTERED)
+            m_curve[s].position.y = y_zero - (filt_data / *m_max_val) * m_graph_region.height + 1;
 
-            if (m_only_draw_on_trigger)
-                DisableDraw();
-            else
-                EnableDraw();
+        if (m_draw_trigger_frame) {
 
-            ClearEvents();
-        }
+            if (start == 0) {
+                // Clear all frames
+                for (int i = 0; i <= m_trigger_frame_idx; ++i)
+                    m_trigger_frame[i].position = sf::Vector2f(0.f, 0.f);
+                m_trigger_frame_idx = 0;
 
-        for (int i = 0, s = start; i < size; ++i, ++s) {
-            float_int sig_val_conv;
-            sig_val_conv.f = buf[i];
+                for (int i = 0; i <= m_event_indicator_idx; ++i)
+                    m_event_indicator[i].position = sf::Vector2f(0.f, 0.f);
+                m_event_indicator_idx = 0;
+
+                if (m_only_draw_on_trigger)
+                    DisableDraw();
+                else
+                    EnableDraw();
+
+                ClearEvents();
+            }
 
             // Edge detection
             /////////////////
-            bool trigger_active   = sig_val_conv.i & (1 << 31); // check MSB bit
-            m_diff                = trigger_active - m_trigger_active_prev;
-            m_trigger_active_prev = trigger_active;
+            m_diff              = ejection_win - m_ejection_win_prev;
+            m_ejection_win_prev = ejection_win;
             /////////////////
-
-            // Value correction
-            sig_val_conv.i = sig_val_conv.i & 0x7FFFFFFF;
-            float sig_val  = sig_val_conv.f;
 
             // Threashold detection
             ///////////////////////
             m_blind_time -= (m_blind_time > 0);
-            if (sig_val >= m_threashold_value && m_blind_time <= 0) {
+            if (filt_data >= m_threashold_value && m_blind_time <= 0) {
                 m_threashold = Threashold::REACHED;
                 m_blind_time = m_blind_time_value;
             }
@@ -272,8 +272,8 @@ void Signal::Edit(const float* buf, int start, int size)
                     m_events = static_cast<Event>(m_events | Event::WINDOW_TIME);
                     SetIndicator(x_position, Event::WINDOW_TIME);
                 }
-            } else if (trigger_active) { // frame active
-                if (s == 0) {            // new start
+            } else if (ejection_win) { // frame active
+                if (s == 0) {          // new start
                     m_trigger_frame[m_trigger_frame_idx++].position = sf::Vector2f(m_curve[0].position.x, y_high);
                 }
                 m_trigger_frame[m_trigger_frame_idx].position = sf::Vector2f(x_position, y_high);
@@ -299,25 +299,6 @@ void Signal::Edit(const float* buf, int start, int size)
                     SetIndicator(x_position, Event::DETECTED_OUT);
                 }
             }
-
-            // Added to speed up in case we draw frame (so we don't need to iterate throught it again)
-            m_curve[s].position.y = y_zero - (sig_val / *m_max_val) * m_graph_region.height + 1;
-            m_raw_data.push_back(buf[i]);
-        }
-    } else {
-        for (int i = 0, s = start; i < size; ++i, ++s) {
-            float_int sig_val_conv;
-            sig_val_conv.f        = buf[i];
-            sig_val_conv.i        = sig_val_conv.i & 0x7FFFFFFF;
-            float sig_val         = sig_val_conv.f;
-            m_curve[s].position.y = y_zero - (sig_val / *m_max_val) * m_graph_region.height + 1;
-            m_raw_data.push_back(buf[i]);
-
-            /* Not implemented because it is not neccessary and just waists cpu
-			if (m_curve[s].position.y < m_graph_region.top) { // curve out of graph region
-			m_curve[s].position.y = m_graph_region.top;
-			}
-			*/
         }
     }
 }

@@ -46,8 +46,9 @@ static void Information()
         if (g_running == Running::RUNNING)
             run_sec = std::chrono::duration_cast<std::chrono::seconds>(time_now - Application::run_start_time).count();
 
-        int               size     = g_mainWindow->signals.size() * g_mainWindow->signals[0].GetRawData().size() * sizeof(g_mainWindow->signals[0].GetRawData()[0]) / 1000000;
-        int               capacity = g_mainWindow->signals.size() * g_mainWindow->signals[0].GetRawData().capacity() * sizeof(g_mainWindow->signals[0].GetRawData()[0]) / 1000000;
+        int size     = g_mainWindow->signals.size() * g_mainWindow->signals[0].GetRXData().size() * sizeof(g_mainWindow->signals[0].GetRXData()[0]) / 1000000;
+        int capacity = g_mainWindow->signals.size() * g_mainWindow->signals[0].GetRXData().capacity() * sizeof(g_mainWindow->signals[0].GetRXData()[0]) / 1000000;
+
         std::stringstream str;
         str << "Sorting Control    alive: " << std::to_string(alive_sec / 60) << ":" << std::setw(2) << std::setfill('0') << std::to_string(alive_sec % 60)
             << "  running: " << std::to_string(run_sec / 60) << ":" << std::setw(2) << std::setfill('0') << std::to_string(run_sec % 60) << "   Buffer size: " << size << " MB"
@@ -61,26 +62,39 @@ static void Information()
 
 static void GetData()
 {
-    static float fbuf[N_CHANNELS * DATA_PER_CHANNEL];
-    static int   cntr    = 0;
-    bool         running = true;
+    Header           header = {0, 0};
+    ProtocolDataType data[N_CHANNELS * DATA_PER_CHANNEL];
+    int              cntr           = 0;
+    bool             running        = true;
+    auto             prev_packet_id = header.packet_id;
 
     while (g_mainWindow->IsOpen()) {
 
         if (g_communication->IsConnected() &&
             g_running == Running::RUNNING) {
 
-            g_communication->Read(fbuf, 4);
-            uint32_t delim = *((uint32_t*)&fbuf[0]);
+            g_communication->Read(&header, sizeof(header.delim));
 
-            if (delim == 0xDEADBEEF) { // Data
-                size_t read = g_communication->Read(fbuf, sizeof(fbuf));
+            if (header.delim == 0xDEADBEEF) { // Data
+
+                // Check header for valid packet ID
+                g_communication->Read(&header.packet_id, sizeof(header.packet_id));
+                if (header.packet_id != (prev_packet_id + 1)) // if we missed a packet
+                    std::cerr << "Packets lost: previous packet_id: " << prev_packet_id << " received packet_id: " << header.packet_id << std::endl;
+                prev_packet_id = header.packet_id;
+
+                // Read data
+                size_t read = g_communication->Read(data, sizeof(data));
                 if (read > 0) {
-                    float* fbuf_tmp = fbuf;
+
+                    // Update signals with new data
+                    ProtocolDataType* p_data = data;
                     for (auto& s : g_mainWindow->signals) {
-                        s.Edit(fbuf_tmp, cntr * DATA_PER_CHANNEL, DATA_PER_CHANNEL);
-                        fbuf_tmp += DATA_PER_CHANNEL;
+                        s.Edit(p_data, cntr * DATA_PER_CHANNEL, DATA_PER_CHANNEL);
+                        p_data += DATA_PER_CHANNEL;
                     }
+
+                    // If we filled up char/signal
                     if (++cntr >= (Application::config_number_of_samples / DATA_PER_CHANNEL)) {
                         cntr = 0;
                         if (g_record == Record::ALL) {
