@@ -618,7 +618,8 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     label_filter_params            = new mygui::Label(10, 310, "Filter params(a1,a2,a3,thr):");
     label_times                    = new mygui::Label(10, 430, "Times (dly, dur, blind):");
     label_recorded_signals_counter = new mygui::Label(120, 654, "0");
-    label_info_rx_bytes            = new mygui::Label(10, 590, "Rx buf: 0 bytes");
+    label_info_rx_bytes            = new mygui::Label(10, 570, "Rx cnt: 0 available: 0 bytes", 14);
+    label_info_rx_time_took        = new mygui::Label(10, 590, "Rx took: 0 ms", 14);
     label_info_detected_in_window  = new mygui::Label(120, 698, "0");
     label_info_detected_in_window->OnClick(std::bind(&MainWindow::label_info_detected_in_window_Clicked, this));
     label_info_detected_out_window = new mygui::Label(120, 729, "0");
@@ -636,7 +637,7 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     checkbox_transparent = new mygui::Checkbox(125, 16, "Transparent", 15, 15, 15);
     checkbox_transparent->OnClick(std::bind(&MainWindow::checkbox_transparent_Clicked, this));
 
-    checkbox_only_show_framed = new mygui::Checkbox(10, 550, "Only show framed");
+    checkbox_only_show_framed = new mygui::Checkbox(10, 545, "Only show framed");
     checkbox_only_show_framed->OnClick(std::bind(&MainWindow::checkbox_only_show_framed_Clicked, this));
 
     checkbox_show_event_indicator = new mygui::Checkbox(10, 620, "Show event lines");
@@ -697,6 +698,7 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     Add(label_times);
     Add(label_recorded_signals_counter);
     Add(label_info_rx_bytes);
+    Add(label_info_rx_time_took);
     Add(label_info_detected_in_window);
     Add(label_info_detected_out_window);
     Add(label_info_signal_missed);

@@ -21,7 +21,8 @@ static std::thread g_thread_info;
 static std::thread g_thread_get_data;
 static std::thread g_thread_parse_data;
 
-static int rcv_packet_cntr = 0; // it should be atomic but it is not neccessary since it's just informative counter
+static int rcv_packet_cntr           = 0; // it should be atomic but it is not neccessary since it's just informative counter
+static int time_took_to_read_data_ms = 0;
 
 static ProtocolDataType g_data[N_CHANNELS * DATA_PER_CHANNEL];
 static std::atomic_bool g_data_in_buffer = false;
@@ -34,7 +35,8 @@ static void Information()
     while (g_mainWindow->IsOpen()) {
         if (g_communication->IsConnected()) {
             // Output number of received packets
-            g_mainWindow->label_info_rx_bytes->SetText(std::to_string(rcv_packet_cntr) + " Rx buf: " + std::to_string(g_communication->GetRxBufferLen()) + " bytes");
+            g_mainWindow->label_info_rx_bytes->SetText("Rx cnt: " + std::to_string(rcv_packet_cntr) + " available: " + std::to_string(g_communication->GetRxBufferLen()) + " bytes");
+            g_mainWindow->label_info_rx_time_took->SetText("Rx took: " + std::to_string(time_took_to_read_data_ms) + " ms");
 
             detected_in_window_cnt = detected_out_window_cnt = signal_missed_cnt = 0;
             for (const auto& s : g_mainWindow->signals) {
@@ -93,7 +95,9 @@ static void GetData()
                 if (g_data_in_buffer.load())
                     std::cerr << "Data parsing too slow: overwritting unparsed packet\n";
 
-                size_t read = g_communication->Read(g_data, sizeof(g_data));
+                auto   start              = std::chrono::high_resolution_clock::now();
+                size_t read               = g_communication->Read(g_data, sizeof(g_data));
+                time_took_to_read_data_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
                 if (read > 0)
                     g_data_in_buffer.store(true);
 
