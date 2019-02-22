@@ -579,13 +579,13 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     button_info_windows = new mygui::Button(125, 130, "Info", 100, 30, 18);
     button_info_windows->OnClick(std::bind(&MainWindow::button_info_Click, this));
 
-    button_set_frequency = new mygui::Button(10, 260, "Send");
+    button_set_frequency = new mygui::Button(10, 240, "Send");
     button_set_frequency->OnClick(std::bind(&MainWindow::button_set_frequency_Click, this));
 
-    button_set_filter_params = new mygui::Button(10, 380, "Send");
+    button_set_filter_params = new mygui::Button(10, 350, "Send");
     button_set_filter_params->OnClick(std::bind(&MainWindow::button_set_filter_params_Click, this));
 
-    button_set_times = new mygui::Button(10, 500, "Send");
+    button_set_times = new mygui::Button(10, 460, "Send");
     button_set_times->OnClick(std::bind(&MainWindow::button_set_times_Click, this));
 
     button_record = new mygui::Button(10, 650, "Record");
@@ -599,9 +599,9 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     //////////////
     textbox_comport = new mygui::Textbox(10, 10, "COM", 80);
     textbox_comport->SetText(Application::config_com_port);
-    textbox_frequency          = new mygui::Textbox(10, 220, "", 80);
-    textbox_filter_params      = new mygui::Textbox(10, 340, "", 210);
-    textbox_times              = new mygui::Textbox(10, 460, "", 140);
+    textbox_frequency          = new mygui::Textbox(10, 200, "", 80);
+    textbox_filter_params      = new mygui::Textbox(10, 310, "", 210);
+    textbox_times              = new mygui::Textbox(10, 420, "", 140);
     textbox_detection_time_min = new mygui::Textbox(35, 787, "", 40, 25);
     textbox_detection_time_min->onKeyPress(std::bind(&MainWindow::textbox_detection_time_min_KeyPress, this));
     textbox_detection_time_max = new mygui::Textbox(185, 787, "", 40, 25);
@@ -614,12 +614,13 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     ////////////
     // Labels //
     ////////////
-    label_frequency                = new mygui::Label(10, 190, "Sample frequency:");
-    label_filter_params            = new mygui::Label(10, 310, "Filter params(a1,a2,a3,thr):");
-    label_times                    = new mygui::Label(10, 430, "Times (dly, dur, blind):");
+    label_frequency                = new mygui::Label(10, 170, "Sample frequency:");
+    label_filter_params            = new mygui::Label(10, 280, "Filter params(a1,a2,a3,thr):");
+    label_times                    = new mygui::Label(10, 390, "Times (dly, dur, blind):");
     label_recorded_signals_counter = new mygui::Label(120, 654, "0");
-    label_info_rx_cnt_avail        = new mygui::Label(10, 570, "Rx cnt: 0 available: 0 bytes", 14);
-    label_info_rx_time_took_speed  = new mygui::Label(10, 590, "Rx took: 0 ms at: 0 kB/s", 14);
+    label_info_rx_id_avail         = new mygui::Label(10, 530, "Rx cnt: 0 available: 0 bytes", 14);
+    label_info_rx_time_took_speed  = new mygui::Label(10, 550, "Rx took: 0 ms at: 0 kB/s", 14);
+    label_info_parse_data_time     = new mygui::Label(10, 570, "Parsing data took: 0 ms", 14);
     label_info_detected_in_window  = new mygui::Label(120, 698, "0");
     label_info_detected_in_window->OnClick(std::bind(&MainWindow::label_info_detected_in_window_Clicked, this));
     label_info_detected_out_window = new mygui::Label(120, 729, "0");
@@ -637,7 +638,7 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     checkbox_transparent = new mygui::Checkbox(125, 16, "Transparent", 15, 15, 15);
     checkbox_transparent->OnClick(std::bind(&MainWindow::checkbox_transparent_Clicked, this));
 
-    checkbox_only_show_framed = new mygui::Checkbox(10, 545, "Only show framed");
+    checkbox_only_show_framed = new mygui::Checkbox(10, 500, "Only show framed");
     checkbox_only_show_framed->OnClick(std::bind(&MainWindow::checkbox_only_show_framed_Clicked, this));
 
     checkbox_show_event_indicator = new mygui::Checkbox(10, 620, "Show event lines");
@@ -697,8 +698,9 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     Add(label_filter_params);
     Add(label_times);
     Add(label_recorded_signals_counter);
-    Add(label_info_rx_cnt_avail);
+    Add(label_info_rx_id_avail);
     Add(label_info_rx_time_took_speed);
+    Add(label_info_parse_data_time);
     Add(label_info_detected_in_window);
     Add(label_info_detected_out_window);
     Add(label_info_signal_missed);

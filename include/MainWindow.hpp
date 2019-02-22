@@ -90,8 +90,9 @@ public:
     mygui::Label* label_filter_params;
     mygui::Label* label_times;
     mygui::Label* label_recorded_signals_counter;
-    mygui::Label* label_info_rx_cnt_avail;
+    mygui::Label* label_info_rx_id_avail;
     mygui::Label* label_info_rx_time_took_speed;
+    mygui::Label* label_info_parse_data_time;
     mygui::Label* label_info_detected_in_window;
     mygui::Label* label_info_detected_out_window;
     mygui::Label* label_info_signal_missed;

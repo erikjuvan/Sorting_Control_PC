@@ -21,10 +21,11 @@ static std::thread g_thread_info;
 static std::thread g_thread_get_data;
 static std::thread g_thread_parse_data;
 
-static int rcv_packet_cntr           = 0; // it should be atomic but it is not neccessary since it's just informative counter
-static int time_took_to_read_data_us = 0;
-static int comm_speed_kb_s           = 0;
-static int available_bytes           = 0;
+static int rcv_packet_id              = 0; // it should be atomic but it is not neccessary since it's just informative counter
+static int time_took_to_read_data_us  = 0;
+static int time_took_to_parse_data_us = 0;
+static int comm_speed_kb_s            = 0;
+static int available_bytes            = 0;
 
 static ProtocolDataType g_data[N_CHANNELS * DATA_PER_CHANNEL];
 static std::atomic_bool g_data_in_buffer = false;
@@ -36,8 +37,11 @@ static void Information()
 
     while (g_mainWindow->IsOpen()) {
         // Output number of received packets
-        g_mainWindow->label_info_rx_cnt_avail->SetText("Rx cnt: " + std::to_string(rcv_packet_cntr) + " available: " + std::to_string(available_bytes) + " bytes");
+        g_mainWindow->label_info_rx_id_avail->SetText("Rx id: " + std::to_string(rcv_packet_id) + " available: " + std::to_string(available_bytes) + " bytes");
         g_mainWindow->label_info_rx_time_took_speed->SetText("Rx took: " + std::to_string(time_took_to_read_data_us / 1000) + " ms at: " + std::to_string(comm_speed_kb_s) + " kB/s");
+        std::stringstream ss;
+        ss << std::setw(4) << time_took_to_parse_data_us;
+        g_mainWindow->label_info_parse_data_time->SetText("Parsing data took: " + ss.str() + " us");
 
         detected_in_window_cnt = detected_out_window_cnt = signal_missed_cnt = 0;
         for (const auto& s : g_mainWindow->signals) {
@@ -89,10 +93,11 @@ static void GetData()
                 // Check header for valid packet ID
                 g_communication->Read(&header.packet_id, sizeof(header.packet_id));
                 if (header.packet_id != (prev_packet_id + 1)) // if we missed a packet
-                    std::cerr << "Packets lost: Should receive: " << prev_packet_id + 1 << " received: " << header.packet_id << std::endl;
+                    std::cerr << "Packet(s) lost: Should receive: " << prev_packet_id + 1 << " received: " << header.packet_id << ". Info: previous packet took: " << time_took_to_read_data_us / 1000 << " ms to read." << std::endl;
 
                 // Remember latest packet ID
                 prev_packet_id = header.packet_id;
+                rcv_packet_id  = header.packet_id;
 
                 if (g_data_in_buffer.load())
                     std::cerr << "Data parsing too slow: overwritting unparsed packet\n";
@@ -103,9 +108,6 @@ static void GetData()
                 comm_speed_kb_s           = (read * 1000) / time_took_to_read_data_us; // kB/s
                 if (read > 0)
                     g_data_in_buffer.store(true);
-
-                // Update received packet counter
-                rcv_packet_cntr++;
             }
         }
     }
@@ -119,6 +121,8 @@ static void ParseData()
     while (g_mainWindow->IsOpen()) {
 
         if (g_data_in_buffer.load()) {
+            auto start = std::chrono::high_resolution_clock::now();
+
             std::memcpy(data_buf, g_data, sizeof(g_data));
             g_data_in_buffer.store(false);
             ProtocolDataType* p_data = data_buf;
@@ -162,6 +166,8 @@ static void ParseData()
                 if (g_detectionInfoWindow)
                     g_detectionInfoWindow->RefreshTable();
             }
+
+            time_took_to_parse_data_us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count();
         }
     }
 }
