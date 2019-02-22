@@ -25,6 +25,9 @@ void MainWindow::button_connect_Click()
 
             button_connect->SetText("Disconnect");
 
+            // If we previously crashed we could still be receving data, so make sure we stop before configuring
+            g_communication->Write("VRBS,0\n");
+
             std::string              buf;
             std::vector<std::string> strings;
 
@@ -40,15 +43,19 @@ void MainWindow::button_connect_Click()
             textbox_frequency->SetText(buf);
 
             read_and_parse("GETPARAMS\n");
-            for (auto& s : signals) {
-                s.SetThreashold(std::stof(strings[3]));
-            }
+            if (strings.size() < 4)
+                std::cerr << "Received invalid params\n";
+            else
+                for (auto& s : signals)
+                    s.SetThreashold(std::stof(strings[3]));
             textbox_filter_params->SetText(buf);
 
             read_and_parse("GETTIMES\n");
-            for (auto& s : signals) {
-                s.SetBlindTime(std::stoi(strings[2]));
-            }
+            if (strings.size() < 3)
+                std::cerr << "Received invalid times\n";
+            else
+                for (auto& s : signals)
+                    s.SetBlindTime(std::stoi(strings[2]));
             textbox_times->SetText(buf);
 
             if (g_triggerframe == TriggerFrame::ON) {

@@ -140,6 +140,10 @@ void Signal::ClearEvents()
 
 void Signal::SetIndicator(float const x, Event const ev)
 {
+    // Check if we are trying to draw too many indicators and reset
+    if (m_event_indicator_idx + 1 >= m_event_indicator.getVertexCount())
+        m_event_indicator_idx = 0;
+
     const float y_zero = m_graph_region.top + m_graph_region.height;
     const float y_high = y_zero - (m_threashold_value / *m_max_val) * m_graph_region.height + 1;
 

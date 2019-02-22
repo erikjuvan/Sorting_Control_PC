@@ -19,15 +19,17 @@ TriggerFrame g_triggerframe = TriggerFrame::ON;
 static std::thread g_thread_info;
 static std::thread g_thread_get_data;
 
+static int rcv_packet_cntr = 0; // it should be atomic but it is not neccessary since it's just informative counter
+
 static void Information()
 {
-    static int cnt                    = 0;
-    static int detected_in_window_cnt = 0, detected_out_window_cnt = 0, signal_missed_cnt = 0;
-    auto       time_at_start = std::chrono::steady_clock::now();
+    int  detected_in_window_cnt = 0, detected_out_window_cnt = 0, signal_missed_cnt = 0;
+    auto time_at_start = std::chrono::steady_clock::now();
 
     while (g_mainWindow->IsOpen()) {
         if (g_communication->IsConnected()) {
-            g_mainWindow->label_info_rx_bytes->SetText(std::to_string(cnt++) + " Rx buf: " + std::to_string(g_communication->GetRxBufferLen()) + " bytes");
+            // Output number of received packets
+            g_mainWindow->label_info_rx_bytes->SetText(std::to_string(rcv_packet_cntr) + " Rx buf: " + std::to_string(g_communication->GetRxBufferLen()) + " bytes");
 
             detected_in_window_cnt = detected_out_window_cnt = signal_missed_cnt = 0;
             for (const auto& s : g_mainWindow->signals) {
@@ -81,12 +83,15 @@ static void GetData()
                 // Check header for valid packet ID
                 g_communication->Read(&header.packet_id, sizeof(header.packet_id));
                 if (header.packet_id != (prev_packet_id + 1)) // if we missed a packet
-                    std::cerr << "Packets lost: previous packet_id: " << prev_packet_id << " received packet_id: " << header.packet_id << std::endl;
+                    std::cerr << "Packets lost: Should receive: " << prev_packet_id + 1 << " received: " << header.packet_id << std::endl;
                 prev_packet_id = header.packet_id;
 
                 // Read data
                 size_t read = g_communication->Read(data, sizeof(data));
                 if (read > 0) {
+
+                    // Update receive packet counter
+                    rcv_packet_cntr++;
 
                     // Update signals with new data
                     ProtocolDataType* p_data = data;
