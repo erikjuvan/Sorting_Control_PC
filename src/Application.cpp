@@ -2,6 +2,7 @@
 #include "Communication.hpp"
 #include "InfoWindow.hpp"
 #include "MainWindow.hpp"
+#include <atomic>
 #include <fstream>
 #include <iomanip>
 #include <thread>
@@ -18,8 +19,12 @@ TriggerFrame g_triggerframe = TriggerFrame::ON;
 
 static std::thread g_thread_info;
 static std::thread g_thread_get_data;
+static std::thread g_thread_parse_data;
 
 static int rcv_packet_cntr = 0; // it should be atomic but it is not neccessary since it's just informative counter
+
+static ProtocolDataType g_data[N_CHANNELS * DATA_PER_CHANNEL];
+static std::atomic_bool g_data_in_buffer = false;
 
 static void Information()
 {
@@ -65,76 +70,90 @@ static void Information()
 
 static void GetData()
 {
-    Header           header = {0, 0};
-    ProtocolDataType data[N_CHANNELS * DATA_PER_CHANNEL];
-    int              cntr           = 0;
-    bool             running        = true;
-    auto             prev_packet_id = header.packet_id;
+    Header header          = {0, 0};
+    auto   prev_packet_id  = header.packet_id;
+    bool   packet_received = false;
 
     while (g_mainWindow->IsOpen()) {
 
-        if (g_communication->IsConnected() &&
-            g_running == Running::RUNNING) {
+        if (g_communication->IsConnected() && g_running == Running::RUNNING) {
 
             g_communication->Read(&header, sizeof(header.delim));
-
-            if (header.delim == 0xDEADBEEF) { // Data
+            // If start of new packet
+            if (header.delim == 0xDEADBEEF) {
 
                 // Check header for valid packet ID
                 g_communication->Read(&header.packet_id, sizeof(header.packet_id));
                 if (header.packet_id != (prev_packet_id + 1)) // if we missed a packet
                     std::cerr << "Packets lost: Should receive: " << prev_packet_id + 1 << " received: " << header.packet_id << std::endl;
+
+                // Remember latest packet ID
                 prev_packet_id = header.packet_id;
 
-                // Read data
-                size_t read = g_communication->Read(data, sizeof(data));
-                if (read > 0) {
+                if (g_data_in_buffer.load())
+                    std::cerr << "Data parsing too slow: overwritting unparsed packet\n";
 
-                    // Update receive packet counter
-                    rcv_packet_cntr++;
+                size_t read = g_communication->Read(g_data, sizeof(g_data));
+                if (read > 0)
+                    g_data_in_buffer.store(true);
 
-                    // Update signals with new data
-                    ProtocolDataType* p_data = data;
-                    for (auto& s : g_mainWindow->signals) {
-                        s.Edit(p_data, cntr * DATA_PER_CHANNEL, DATA_PER_CHANNEL);
-                        p_data += DATA_PER_CHANNEL;
+                // Update received packet counter
+                rcv_packet_cntr++;
+            }
+        }
+    }
+}
+
+static void ParseData()
+{
+    ProtocolDataType data_buf[sizeof(g_data)];
+    int              cntr = 0;
+
+    while (g_mainWindow->IsOpen()) {
+
+        if (g_data_in_buffer.load()) {
+            std::memcpy(data_buf, g_data, sizeof(g_data));
+            g_data_in_buffer.store(false);
+            ProtocolDataType* p_data = data_buf;
+            // Update signals with new data
+            for (auto& s : g_mainWindow->signals) {
+                s.Edit(p_data, cntr * DATA_PER_CHANNEL, DATA_PER_CHANNEL);
+                p_data += DATA_PER_CHANNEL;
+            }
+
+            // If we filled up char/signal
+            if (++cntr >= (Application::config_number_of_samples / DATA_PER_CHANNEL)) {
+                cntr = 0;
+                if (g_record == Record::ALL) {
+                    for (auto const& s : g_mainWindow->signals)
+                        g_mainWindow->recorded_signals.push_back(s);
+                    g_mainWindow->label_recorded_signals_counter->SetText(std::to_string(g_mainWindow->recorded_signals.size() / N_CHANNELS));
+                } else if (g_record == Record::EVENTS) {
+                    bool event_happened = false;
+                    for (auto const& s : g_mainWindow->signals) {
+                        if (s.AnyEvents()) {
+                            event_happened = true;
+                            break;
+                        }
                     }
 
-                    // If we filled up char/signal
-                    if (++cntr >= (Application::config_number_of_samples / DATA_PER_CHANNEL)) {
-                        cntr = 0;
-                        if (g_record == Record::ALL) {
-                            for (auto const& s : g_mainWindow->signals)
+                    if (event_happened) {
+                        for (auto& s : g_mainWindow->signals) {
+                            if (s.AnyEvents()) {
                                 g_mainWindow->recorded_signals.push_back(s);
-                            g_mainWindow->label_recorded_signals_counter->SetText(std::to_string(g_mainWindow->recorded_signals.size() / N_CHANNELS));
-                        } else if (g_record == Record::EVENTS) {
-                            bool event_happened = false;
-                            for (auto const& s : g_mainWindow->signals) {
-                                if (s.AnyEvents()) {
-                                    event_happened = true;
-                                    break;
-                                }
-                            }
-
-                            if (event_happened) {
-                                for (auto& s : g_mainWindow->signals) {
-                                    if (s.AnyEvents()) {
-                                        g_mainWindow->recorded_signals.push_back(s);
-                                        s.ClearEvents();
-                                    } else {
-                                        g_mainWindow->recorded_signals.push_back(Signal()); // push empty signal
-                                    }
-                                }
-                                g_mainWindow->label_recorded_signals_counter->SetText(std::to_string(g_mainWindow->recorded_signals.size() / N_CHANNELS));
+                                s.ClearEvents();
+                            } else {
+                                g_mainWindow->recorded_signals.push_back(Signal()); // push empty signal
                             }
                         }
-
-                        if (g_frameInfoWindow)
-                            g_frameInfoWindow->RefreshTable();
-                        if (g_detectionInfoWindow)
-                            g_detectionInfoWindow->RefreshTable();
+                        g_mainWindow->label_recorded_signals_counter->SetText(std::to_string(g_mainWindow->recorded_signals.size() / N_CHANNELS));
                     }
                 }
+
+                if (g_frameInfoWindow)
+                    g_frameInfoWindow->RefreshTable();
+                if (g_detectionInfoWindow)
+                    g_detectionInfoWindow->RefreshTable();
             }
         }
     }
@@ -186,8 +205,9 @@ void Application::Init()
     }
     g_frameInfoWindow->SetAll(Signal::GetTriggerWindowStatsAll());
 
-    g_thread_info     = std::thread(Information);
-    g_thread_get_data = std::thread(GetData);
+    g_thread_info       = std::thread(Information);
+    g_thread_get_data   = std::thread(GetData);
+    g_thread_parse_data = std::thread(ParseData);
 }
 
 void Application::Run()
@@ -200,6 +220,7 @@ void Application::Run()
 
     g_thread_info.join();
     g_thread_get_data.join();
+    g_thread_parse_data.join();
 
     delete g_detectionInfoWindow;
     delete g_frameInfoWindow;

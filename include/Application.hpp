@@ -34,8 +34,8 @@ union ProtocolDataType {
 };
 
 struct Header {
-    uint32_t delim;
-    uint32_t packet_id;
+    uint32_t delim     = 0;
+    uint32_t packet_id = 0;
 };
 
 class Application
