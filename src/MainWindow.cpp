@@ -96,13 +96,13 @@ void MainWindow::button_run_Click()
             chart->ChangeSignal(i, &signals[i]);
     } else if (g_running == Running::RUNNING) {
         // Order of statements here matters, to insure PC app doesn't get stuck on serial->read function
-        g_running = Running::STOPPED;
         g_communication->Write("VRBS,0\n");
         size_t len = 0;
         while ((len = g_communication->GetRxBufferLen()) > 0) {
             g_communication->Purge();
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
+        g_running = Running::STOPPED;
         button_run->SetText("Stopped");
     }
 }
@@ -618,8 +618,8 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     label_filter_params            = new mygui::Label(10, 310, "Filter params(a1,a2,a3,thr):");
     label_times                    = new mygui::Label(10, 430, "Times (dly, dur, blind):");
     label_recorded_signals_counter = new mygui::Label(120, 654, "0");
-    label_info_rx_bytes            = new mygui::Label(10, 570, "Rx cnt: 0 available: 0 bytes", 14);
-    label_info_rx_time_took        = new mygui::Label(10, 590, "Rx took: 0 ms", 14);
+    label_info_rx_cnt_avail        = new mygui::Label(10, 570, "Rx cnt: 0 available: 0 bytes", 14);
+    label_info_rx_time_took_speed  = new mygui::Label(10, 590, "Rx took: 0 ms at: 0 kB/s", 14);
     label_info_detected_in_window  = new mygui::Label(120, 698, "0");
     label_info_detected_in_window->OnClick(std::bind(&MainWindow::label_info_detected_in_window_Clicked, this));
     label_info_detected_out_window = new mygui::Label(120, 729, "0");
@@ -697,8 +697,8 @@ MainWindow::MainWindow(int w, int h, const char* title, sf::Uint32 style) :
     Add(label_filter_params);
     Add(label_times);
     Add(label_recorded_signals_counter);
-    Add(label_info_rx_bytes);
-    Add(label_info_rx_time_took);
+    Add(label_info_rx_cnt_avail);
+    Add(label_info_rx_time_took_speed);
     Add(label_info_detected_in_window);
     Add(label_info_detected_out_window);
     Add(label_info_signal_missed);

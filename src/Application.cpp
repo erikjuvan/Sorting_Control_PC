@@ -22,7 +22,9 @@ static std::thread g_thread_get_data;
 static std::thread g_thread_parse_data;
 
 static int rcv_packet_cntr           = 0; // it should be atomic but it is not neccessary since it's just informative counter
-static int time_took_to_read_data_ms = 0;
+static int time_took_to_read_data_us = 0;
+static int comm_speed_kb_s           = 0;
+static int available_bytes           = 0;
 
 static ProtocolDataType g_data[N_CHANNELS * DATA_PER_CHANNEL];
 static std::atomic_bool g_data_in_buffer = false;
@@ -33,21 +35,19 @@ static void Information()
     auto time_at_start = std::chrono::steady_clock::now();
 
     while (g_mainWindow->IsOpen()) {
-        if (g_communication->IsConnected()) {
-            // Output number of received packets
-            g_mainWindow->label_info_rx_bytes->SetText("Rx cnt: " + std::to_string(rcv_packet_cntr) + " available: " + std::to_string(g_communication->GetRxBufferLen()) + " bytes");
-            g_mainWindow->label_info_rx_time_took->SetText("Rx took: " + std::to_string(time_took_to_read_data_ms) + " ms");
+        // Output number of received packets
+        g_mainWindow->label_info_rx_cnt_avail->SetText("Rx cnt: " + std::to_string(rcv_packet_cntr) + " available: " + std::to_string(available_bytes) + " bytes");
+        g_mainWindow->label_info_rx_time_took_speed->SetText("Rx took: " + std::to_string(time_took_to_read_data_us / 1000) + " ms at: " + std::to_string(comm_speed_kb_s) + " kB/s");
 
-            detected_in_window_cnt = detected_out_window_cnt = signal_missed_cnt = 0;
-            for (const auto& s : g_mainWindow->signals) {
-                detected_in_window_cnt += s.GetDetectionsInWindow();
-                detected_out_window_cnt += s.GetDetectionsOutWindow();
-                signal_missed_cnt += s.GetMissed();
-            }
-            g_mainWindow->label_info_detected_in_window->SetText(std::to_string(detected_in_window_cnt));
-            g_mainWindow->label_info_detected_out_window->SetText(std::to_string(detected_out_window_cnt));
-            g_mainWindow->label_info_signal_missed->SetText(std::to_string(signal_missed_cnt));
+        detected_in_window_cnt = detected_out_window_cnt = signal_missed_cnt = 0;
+        for (const auto& s : g_mainWindow->signals) {
+            detected_in_window_cnt += s.GetDetectionsInWindow();
+            detected_out_window_cnt += s.GetDetectionsOutWindow();
+            signal_missed_cnt += s.GetMissed();
         }
+        g_mainWindow->label_info_detected_in_window->SetText(std::to_string(detected_in_window_cnt));
+        g_mainWindow->label_info_detected_out_window->SetText(std::to_string(detected_out_window_cnt));
+        g_mainWindow->label_info_signal_missed->SetText(std::to_string(signal_missed_cnt));
 
         auto time_now  = std::chrono::steady_clock::now();
         auto alive_sec = std::chrono::duration_cast<std::chrono::seconds>(time_now - time_at_start).count();
@@ -78,6 +78,8 @@ static void GetData()
 
     while (g_mainWindow->IsOpen()) {
 
+        available_bytes = g_communication->GetRxBufferLen();
+
         if (g_communication->IsConnected() && g_running == Running::RUNNING) {
 
             g_communication->Read(&header, sizeof(header.delim));
@@ -97,7 +99,8 @@ static void GetData()
 
                 auto   start              = std::chrono::high_resolution_clock::now();
                 size_t read               = g_communication->Read(g_data, sizeof(g_data));
-                time_took_to_read_data_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
+                time_took_to_read_data_us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count();
+                comm_speed_kb_s           = (read * 1000) / time_took_to_read_data_us; // kB/s
                 if (read > 0)
                     g_data_in_buffer.store(true);
 
@@ -226,8 +229,8 @@ void Application::Run()
     g_thread_get_data.join();
     g_thread_parse_data.join();
 
-    delete g_detectionInfoWindow;
     delete g_frameInfoWindow;
+    delete g_detectionInfoWindow;
     delete g_mainWindow;
     delete g_communication;
 }
