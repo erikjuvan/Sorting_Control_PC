@@ -2,172 +2,110 @@
 #include "Communication.hpp"
 #include "InfoWindow.hpp"
 #include "MainWindow.hpp"
-#include <atomic>
 #include <fstream>
 #include <iomanip>
-#include <thread>
+#include <sstream>
 
-Communication* g_communication;
-MainWindow*    g_mainWindow;
-InfoWindow*    g_detectionInfoWindow;
-InfoWindow*    g_frameInfoWindow;
-
-Running      g_running      = Running::STOPPED;
-Record       g_record       = Record::NO;
-View         g_view         = View::FILTERED;
-TriggerFrame g_triggerframe = TriggerFrame::ON;
-
-static std::thread g_thread_info;
-static std::thread g_thread_get_data;
-static std::thread g_thread_parse_data;
-
-static int rcv_packet_id              = 0; // it should be atomic but it is not neccessary since it's just informative counter
-static int time_took_to_read_data_us  = 0;
-static int time_took_to_parse_data_us = 0;
-static int comm_speed_kb_s            = 0;
-static int available_bytes            = 0;
-
-static ProtocolDataType g_data[N_CHANNELS * DATA_PER_CHANNEL];
-static std::atomic_bool g_data_in_buffer = false;
-
-static void Information()
+void Application::Information()
 {
     int  detected_in_window_cnt = 0, detected_out_window_cnt = 0, signal_missed_cnt = 0;
     auto time_at_start = std::chrono::steady_clock::now();
 
-    while (g_mainWindow->IsOpen()) {
+    while (m_mainWindow->IsOpen()) {
         // Output number of received packets
-        g_mainWindow->label_info_rx_id_avail->SetText("Rx id: " + std::to_string(rcv_packet_id) + " available: " + std::to_string(available_bytes) + " bytes");
-        g_mainWindow->label_info_rx_time_took_speed->SetText("Rx took: " + std::to_string(time_took_to_read_data_us / 1000) + " ms at: " + std::to_string(comm_speed_kb_s) + " kB/s");
+        m_mainWindow->label_info_rx_id_avail->SetText("Rx id: " + std::to_string(m_rcv_packet_id) + " available: " + std::to_string(m_available_bytes) + " bytes");
+        m_mainWindow->label_info_rx_time_took_speed->SetText("Rx took: " + std::to_string(m_time_took_to_read_data_us / 1000) + " ms at: " + std::to_string(m_comm_speed_kb_s) + " kB/s");
         std::stringstream ss;
-        ss << std::setw(4) << time_took_to_parse_data_us;
-        g_mainWindow->label_info_parse_data_time->SetText("Parsing data took: " + ss.str() + " us");
+        ss << std::setw(4) << m_time_took_to_parse_data_us;
+        m_mainWindow->label_info_parse_data_time->SetText("Parsing data took: " + ss.str() + " us");
 
         detected_in_window_cnt = detected_out_window_cnt = signal_missed_cnt = 0;
-        for (const auto& s : g_mainWindow->signals) {
-            detected_in_window_cnt += s.GetDetectionsInWindow();
-            detected_out_window_cnt += s.GetDetectionsOutWindow();
-            signal_missed_cnt += s.GetMissed();
+        for (const auto& s : m_mainWindow->signals) {
+            detected_in_window_cnt += s->GetDetectionsInWindow();
+            detected_out_window_cnt += s->GetDetectionsOutWindow();
+            signal_missed_cnt += s->GetMissed();
         }
-        g_mainWindow->label_info_detected_in_window->SetText(std::to_string(detected_in_window_cnt));
-        g_mainWindow->label_info_detected_out_window->SetText(std::to_string(detected_out_window_cnt));
-        g_mainWindow->label_info_signal_missed->SetText(std::to_string(signal_missed_cnt));
+        m_mainWindow->label_info_detected_in_window->SetText(std::to_string(detected_in_window_cnt));
+        m_mainWindow->label_info_detected_out_window->SetText(std::to_string(detected_out_window_cnt));
+        m_mainWindow->label_info_signal_missed->SetText(std::to_string(signal_missed_cnt));
 
         auto time_now  = std::chrono::steady_clock::now();
         auto alive_sec = std::chrono::duration_cast<std::chrono::seconds>(time_now - time_at_start).count();
 
         static uint64_t run_sec = 0;
-        if (g_running == Running::RUNNING)
-            run_sec = std::chrono::duration_cast<std::chrono::seconds>(time_now - Application::run_start_time).count();
+        if (*m_running == Running::RUNNING)
+            run_sec = std::chrono::duration_cast<std::chrono::seconds>(time_now - m_mainWindow->GetRunStartTime()).count();
 
-        int size     = g_mainWindow->signals.size() * g_mainWindow->signals[0].GetRXData().size() * sizeof(g_mainWindow->signals[0].GetRXData()[0]) / 1000000;
-        int capacity = g_mainWindow->signals.size() * g_mainWindow->signals[0].GetRXData().capacity() * sizeof(g_mainWindow->signals[0].GetRXData()[0]) / 1000000;
+        int size     = m_mainWindow->signals.size() * m_mainWindow->signals[0]->GetRXData().size() * sizeof(m_mainWindow->signals[0]->GetRXData()[0]) / 1000000;
+        int capacity = m_mainWindow->signals.size() * m_mainWindow->signals[0]->GetRXData().capacity() * sizeof(m_mainWindow->signals[0]->GetRXData()[0]) / 1000000;
 
         std::stringstream str;
         str << "Sorting Control    alive: " << std::to_string(alive_sec / 60) << ":" << std::setw(2) << std::setfill('0') << std::to_string(alive_sec % 60)
             << "  running: " << std::to_string(run_sec / 60) << ":" << std::setw(2) << std::setfill('0') << std::to_string(run_sec % 60) << "   Buffer size: " << size << " MB"
             << " / " << capacity << " MB";
-        g_mainWindow->SetTitle(str.str());
+        m_mainWindow->SetTitle(str.str());
 
         using namespace std::chrono_literals;
         std::this_thread::sleep_for(100ms);
     }
 }
 
-static void GetData()
+void Application::GetData()
 {
     Header header          = {0, 0};
     auto   prev_packet_id  = header.packet_id;
     bool   packet_received = false;
 
-    while (g_mainWindow->IsOpen()) {
+    while (m_mainWindow->IsOpen()) {
 
-        available_bytes = g_communication->GetRxBufferLen();
+        m_available_bytes = m_communication->GetRxBufferLen();
 
-        if (g_communication->IsConnected() && g_running == Running::RUNNING) {
+        if (m_communication->IsConnected() && *m_running == Running::RUNNING) {
 
-            g_communication->Read(&header, sizeof(header.delim));
+            m_communication->Read(&header, sizeof(header.delim));
             // If start of new packet
             if (header.delim == 0xDEADBEEF) {
 
                 // Check header for valid packet ID
-                g_communication->Read(&header.packet_id, sizeof(header.packet_id));
+                m_communication->Read(&header.packet_id, sizeof(header.packet_id));
                 if (header.packet_id != (prev_packet_id + 1)) // if we missed a packet
-                    std::cerr << "Packet(s) lost: Should receive: " << prev_packet_id + 1 << " received: " << header.packet_id << ". Info: previous packet took: " << time_took_to_read_data_us / 1000 << " ms to read." << std::endl;
+                    std::cerr << "Packet(s) lost: Should receive: " << prev_packet_id + 1 << " received: " << header.packet_id << ". Info: previous packet took: " << m_time_took_to_read_data_us / 1000 << " ms to read." << std::endl;
 
                 // Remember latest packet ID
-                prev_packet_id = header.packet_id;
-                rcv_packet_id  = header.packet_id;
+                prev_packet_id  = header.packet_id;
+                m_rcv_packet_id = header.packet_id;
 
-                if (g_data_in_buffer.load())
+                if (m_data_in_buffer.load())
                     std::cerr << "Data parsing too slow: overwritting unparsed packet\n";
 
-                auto   start              = std::chrono::high_resolution_clock::now();
-                size_t read               = g_communication->Read(g_data, sizeof(g_data));
-                time_took_to_read_data_us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count();
-                comm_speed_kb_s           = (read * 1000) / time_took_to_read_data_us; // kB/s
+                auto   start                = std::chrono::high_resolution_clock::now();
+                size_t read                 = m_communication->Read(m_data, sizeof(m_data));
+                m_time_took_to_read_data_us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count();
+                m_comm_speed_kb_s           = (read * 1000) / m_time_took_to_read_data_us; // kB/s
                 if (read > 0)
-                    g_data_in_buffer.store(true);
+                    m_data_in_buffer.store(true);
             }
         }
     }
 }
 
-static void ParseData()
+void Application::ParseData()
 {
-    ProtocolDataType data_buf[sizeof(g_data)];
+    ProtocolDataType data_buf[sizeof(m_data)];
     int              cntr = 0;
 
-    while (g_mainWindow->IsOpen()) {
+    while (m_mainWindow->IsOpen()) {
 
-        if (g_data_in_buffer.load()) {
+        if (m_data_in_buffer.load()) {
             auto start = std::chrono::high_resolution_clock::now();
 
-            std::memcpy(data_buf, g_data, sizeof(g_data));
-            g_data_in_buffer.store(false);
+            std::memcpy(data_buf, m_data, sizeof(m_data));
+            m_data_in_buffer.store(false);
+
             ProtocolDataType* p_data = data_buf;
-            // Update signals with new data
-            for (auto& s : g_mainWindow->signals) {
-                s.Edit(p_data, cntr * DATA_PER_CHANNEL, DATA_PER_CHANNEL);
-                p_data += DATA_PER_CHANNEL;
-            }
+            m_mainWindow->UpdateSignals(p_data);
 
-            // If we filled up char/signal
-            if (++cntr >= (Application::config_number_of_samples / DATA_PER_CHANNEL)) {
-                cntr = 0;
-                if (g_record == Record::ALL) {
-                    for (auto const& s : g_mainWindow->signals)
-                        g_mainWindow->recorded_signals.push_back(s);
-                    g_mainWindow->label_recorded_signals_counter->SetText(std::to_string(g_mainWindow->recorded_signals.size() / N_CHANNELS));
-                } else if (g_record == Record::EVENTS) {
-                    bool event_happened = false;
-                    for (auto const& s : g_mainWindow->signals) {
-                        if (s.AnyEvents()) {
-                            event_happened = true;
-                            break;
-                        }
-                    }
-
-                    if (event_happened) {
-                        for (auto& s : g_mainWindow->signals) {
-                            if (s.AnyEvents()) {
-                                g_mainWindow->recorded_signals.push_back(s);
-                                s.ClearEvents();
-                            } else {
-                                g_mainWindow->recorded_signals.push_back(Signal()); // push empty signal
-                            }
-                        }
-                        g_mainWindow->label_recorded_signals_counter->SetText(std::to_string(g_mainWindow->recorded_signals.size() / N_CHANNELS));
-                    }
-                }
-
-                if (g_frameInfoWindow)
-                    g_frameInfoWindow->RefreshTable();
-                if (g_detectionInfoWindow)
-                    g_detectionInfoWindow->RefreshTable();
-            }
-
-            time_took_to_parse_data_us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count();
+            m_time_took_to_parse_data_us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count();
         }
     }
 }
@@ -187,56 +125,58 @@ void Application::InitFromFile(const std::string& file_name)
     for (int i = 0; i < tokens.size(); ++i) {
         switch (i) {
         case 0: // COM port
-            Application::config_com_port = tokens[i];
+            m_config_com_port = tokens[i];
             break;
         case 1: // number of samples
-            Application::config_number_of_samples = std::stoi(tokens[i]);
+            m_config_number_of_samples = std::stoi(tokens[i]);
             break;
         }
     }
 }
 
-void Application::Init()
+void Application::Run()
+{
+    while (m_mainWindow->IsOpen()) {
+        m_mainWindow->Update();
+        m_detectionInfoWindow->Update();
+        m_frameInfoWindow->Update();
+    }
+}
+
+Application::Application()
 {
     // Initial parameters from file init
     InitFromFile("config.txt");
 
-    g_communication = new Communication();
-    g_mainWindow    = new MainWindow(1850, 900, "Sorting Control", sf::Style::None | sf::Style::Close);
+    m_running = std::make_shared<Running>(Running::STOPPED);
+    m_record  = std::make_shared<Record>(Record::NO);
 
-    g_detectionInfoWindow = new InfoWindow("Detection Info", "det.py");
-    g_detectionInfoWindow->SetPosition(g_mainWindow->GetPosition() + sf::Vector2i(1850 - 480, 40));
-    for (auto& s : g_mainWindow->signals) {
-        g_detectionInfoWindow->push_back(&s.GetDetecionStats());
+    m_communication = std::make_shared<Communication>();
+    m_mainWindow    = std::make_unique<MainWindow>(1850, 900, "Sorting Control", m_config_com_port, m_config_number_of_samples, sf::Style::None | sf::Style::Close);
+    m_mainWindow->ConnectCrossData(m_communication, m_detectionInfoWindow, m_frameInfoWindow, m_running, m_record);
+
+    m_detectionInfoWindow = std::make_shared<InfoWindow>("Detection Info", "det.py");
+    m_detectionInfoWindow->SetPosition(m_mainWindow->GetPosition() + sf::Vector2i(1850 - 480, 40));
+    for (auto& s : m_mainWindow->signals) {
+        m_detectionInfoWindow->push_back(s->GetDetectionStats());
     }
-    g_detectionInfoWindow->SetAll(Signal::GetDetecionStatsAll());
+    //m_detectionInfoWindow->SetAll(Signal::GetDetectionStatsAll());
 
-    g_frameInfoWindow = new InfoWindow("Frame Info", "win.py");
-    g_frameInfoWindow->SetPosition(g_mainWindow->GetPosition() + sf::Vector2i(1850 - 1000, 40));
-    for (auto& s : g_mainWindow->signals) {
-        g_frameInfoWindow->push_back(&s.GetTriggerWindowStats());
+    m_frameInfoWindow = std::make_shared<InfoWindow>("Frame Info", "win.py");
+    m_frameInfoWindow->SetPosition(m_mainWindow->GetPosition() + sf::Vector2i(1850 - 1000, 40));
+    for (auto& s : m_mainWindow->signals) {
+        m_frameInfoWindow->push_back(s->GetTriggerWindowStats());
     }
-    g_frameInfoWindow->SetAll(Signal::GetTriggerWindowStatsAll());
+    //m_frameInfoWindow->SetAll(Signal::GetTriggerWindowStatsAll());
 
-    g_thread_info       = std::thread(Information);
-    g_thread_get_data   = std::thread(GetData);
-    g_thread_parse_data = std::thread(ParseData);
+    m_thread_info       = std::thread(std::bind(&Application::Information, this));
+    m_thread_get_data   = std::thread(std::bind(&Application::GetData, this));
+    m_thread_parse_data = std::thread(std::bind(&Application::ParseData, this));
 }
 
-void Application::Run()
+Application::~Application()
 {
-    while (g_mainWindow->IsOpen()) {
-        g_mainWindow->Update();
-        g_detectionInfoWindow->Update();
-        g_frameInfoWindow->Update();
-    }
-
-    g_thread_info.join();
-    g_thread_get_data.join();
-    g_thread_parse_data.join();
-
-    delete g_frameInfoWindow;
-    delete g_detectionInfoWindow;
-    delete g_mainWindow;
-    delete g_communication;
+    m_thread_info.join();
+    m_thread_get_data.join();
+    m_thread_parse_data.join();
 }

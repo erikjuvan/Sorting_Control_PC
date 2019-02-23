@@ -2,9 +2,9 @@
 
 int main(int argc, char* argv[])
 {
+    Application app;
 
-    Application::Init();
-    Application::Run();
+    app.Run();
 
     return 0;
 }

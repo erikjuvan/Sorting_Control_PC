@@ -3,7 +3,7 @@
 #include <sstream>
 
 Chart::Chart(int x, int y, int w, int h, int num_of_points, float max_val, const std::string& font_name) :
-    m_num_of_points(num_of_points), m_max_val(max_val), m_background(sf::Vector2f(w, h)),
+    m_num_of_points(num_of_points), m_max_val(std::make_shared<float>(max_val)), m_background(sf::Vector2f(w, h)),
     m_chart_region(sf::Vector2f(w - 6 * m_margin, h - 5 * m_margin))
 {
 
@@ -64,13 +64,13 @@ void Chart::Handle(const sf::Event& event)
     //  && m_chart_region.getGlobalBounds().contains(sf::Vector2f(event.mouseButton.x, event.mouseButton.y))
     if (event.type == sf::Event::MouseWheelScrolled && m_mouseover) {
         if (event.mouseWheelScroll.wheel == sf::Mouse::VerticalWheel) {
-            if (m_max_val >= 100.f) {
-                m_max_val -= event.mouseWheelScroll.delta * 50.f;
-            } else if (m_max_val > 5.f) {
-                m_max_val -= event.mouseWheelScroll.delta * 5.f;
+            if (*m_max_val >= 100.f) {
+                *m_max_val -= event.mouseWheelScroll.delta * 50.f;
+            } else if (*m_max_val > 5.f) {
+                *m_max_val -= event.mouseWheelScroll.delta * 5.f;
             } else {
                 if (event.mouseWheelScroll.delta < 0.f)
-                    m_max_val -= event.mouseWheelScroll.delta * 5.f;
+                    *m_max_val -= event.mouseWheelScroll.delta * 5.f;
             }
 
             CreateAxisMarkers();
@@ -99,13 +99,13 @@ bool Chart::Enabled() const
     return m_enabled;
 }
 
-void Chart::AddSignal(Signal* signal)
+void Chart::AddSignal(std::shared_ptr<Signal> const& signal)
 {
     m_signals.push_back(signal);
     m_draw_signal.push_back(true);
 }
 
-void Chart::ChangeSignal(int idx, Signal* signal)
+void Chart::ChangeSignal(int idx, std::shared_ptr<Signal> const& signal)
 {
     if (idx < m_signals.size()) {
         m_signals[idx] = signal;
@@ -169,7 +169,7 @@ void Chart::CreateAxisMarkers()
         marker.setFont(m_font);
         marker.setFillColor(sf::Color::Black);
         marker.setCharacterSize(18);
-        float             tmp = i * m_max_val / (n - 1);
+        float             tmp = i * *m_max_val / (n - 1);
         std::stringstream ss;
         ss << std::fixed << std::setprecision(1) << tmp;
         marker.setString(ss.str());
@@ -184,7 +184,7 @@ const sf::FloatRect& Chart::GraphRegion()
     return m_chart_rect;
 }
 
-float& Chart::MaxVal()
+std::shared_ptr<float const> Chart::MaxVal()
 {
     return m_max_val;
 }

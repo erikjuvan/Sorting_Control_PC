@@ -1,26 +1,9 @@
 #include "Signal.hpp"
 #include "Helpers.hpp"
 
-extern View g_view;
-
-// Static
-/////////
-
-void Signal::EventsToRecord(Event const events)
-{
-    events_to_record = events;
-}
-
-Signal::Event Signal::EventsToRecord()
-{
-    return events_to_record;
-}
-
-/////////
-
 Signal::Signal() {}
 
-Signal::Signal(int n, sf::Color col, const sf::FloatRect& region, float* max_val) :
+Signal::Signal(int n, sf::Color col, const sf::FloatRect& region, std::shared_ptr<float const> const& max_val) :
     m_curve(sf::PrimitiveType::LineStrip, n),
     m_trigger_frame(sf::PrimitiveType::Lines, N_TRIGGER_FRAME_POINTS),
     m_event_indicator(sf::PrimitiveType::Lines, N_INDICATOR_POINTS),
@@ -49,6 +32,23 @@ void Signal::draw(sf::RenderTarget& target, sf::RenderStates states) const
         }
         target.draw(m_curve); // draw third
     }
+}
+
+void Signal::EventsToRecord(std::shared_ptr<Event const> events_to_record)
+{
+    m_events_to_record = events_to_record;
+}
+
+void Signal::WindowAndDetectionTimeLimits(
+    std::shared_ptr<uint32_t const> detection_time_min,
+    std::shared_ptr<uint32_t const> detection_time_max,
+    std::shared_ptr<uint32_t const> window_time_min,
+    std::shared_ptr<uint32_t const> window_time_max)
+{
+    m_detection_time_min = detection_time_min;
+    m_detection_time_max = detection_time_max;
+    m_window_time_min    = window_time_min;
+    m_window_time_max    = window_time_max;
 }
 
 void Signal::SetThreashold(float threashold)
@@ -130,7 +130,7 @@ void Signal::SetColor(sf::Color const& col)
 
 bool Signal::AnyEvents() const
 {
-    return (events_to_record & m_events) != 0;
+    return (*m_events_to_record & m_events) != 0;
 }
 
 void Signal::ClearEvents()
@@ -157,27 +157,27 @@ void Signal::SetIndicator(float const x, Event const ev)
     constexpr int alpha = 100;
     switch (ev) {
     case Event::MISSED:
-        if (Signal::EventsToRecord() & Event::MISSED) {
+        if (*m_events_to_record & Event::MISSED) {
             lambda_set_indicator(sf::Color(255, 0, 0, alpha));
         }
         break;
     case Event::DETECTED_OUT:
-        if (Signal::EventsToRecord() & Event::DETECTED_OUT) {
+        if (*m_events_to_record & Event::DETECTED_OUT) {
             lambda_set_indicator(sf::Color(0, 0, 255, alpha));
         }
         break;
     case Event::DETECTED_IN:
-        if (Signal::EventsToRecord() & Event::DETECTED_IN) {
+        if (*m_events_to_record & Event::DETECTED_IN) {
             lambda_set_indicator(sf::Color(0, 255, 0, alpha));
         }
         break;
     case Event::DETECTION_TIME:
-        if (Signal::EventsToRecord() & Event::DETECTION_TIME) {
+        if (*m_events_to_record & Event::DETECTION_TIME) {
             lambda_set_indicator(sf::Color(255, 0, 255, alpha));
         }
         break;
     case Event::WINDOW_TIME:
-        if (Signal::EventsToRecord() & Event::WINDOW_TIME) {
+        if (*m_events_to_record & Event::WINDOW_TIME) {
             lambda_set_indicator(sf::Color(0, 255, 255, alpha));
         }
         break;
@@ -185,22 +185,22 @@ void Signal::SetIndicator(float const x, Event const ev)
 }
 
 // Return false if a signal never reached the threashold value when the window was on
-void Signal::Edit(ProtocolDataType const* data, int start, int size)
+void Signal::Edit(ProtocolDataType const* m_data, int start, int size, View view)
 {
     const float y_zero = m_graph_region.top + m_graph_region.height;
     const float y_high = y_zero - (m_threashold_value / *m_max_val) * m_graph_region.height + 1;
 
     for (int i = 0, s = start; i < size; ++i, ++s) {
-        m_rx_data.push_back(data[i].u64);
+        m_rx_data.push_back(m_data[i].u64);
 
-        uint32_t raw_data     = data[i].u32.raw_data;
-        bool     ejection_win = data[i].u32.ejection_window;
-        float    filt_data    = std::abs(data[i].f32.filtered_data_w_obj_det); // we have to take the absolute value (obj_det is on MSB)
-        bool     obj_det      = data[i].u32.object_detected;
+        uint32_t raw_data     = m_data[i].u32.raw_data;
+        bool     ejection_win = m_data[i].u32.ejection_window;
+        float    filt_data    = std::abs(m_data[i].f32.filtered_data_w_obj_det); // we have to take the absolute value (obj_det is on MSB)
+        bool     obj_det      = m_data[i].u32.object_detected;
 
-        if (g_view == View::RAW)
+        if (view == View::RAW)
             m_curve[s].position.y = y_zero - (raw_data / *m_max_val) * m_graph_region.height + 1;
-        else if (g_view == View::FILTERED)
+        else if (view == View::FILTERED)
             m_curve[s].position.y = y_zero - (filt_data / *m_max_val) * m_graph_region.height + 1;
 
         if (m_draw_trigger_frame) {
@@ -229,11 +229,11 @@ void Signal::Edit(ProtocolDataType const* data, int start, int size)
             m_ejection_win_prev = ejection_win;
             /////////////////
 
-            // Threashold detection
+            // Threshold detection
             ///////////////////////
             m_blind_time -= (m_blind_time > 0);
             if (filt_data >= m_threashold_value && m_blind_time <= 0) {
-                m_threashold = Threashold::REACHED;
+                m_threshold  = Threshold::REACHED;
                 m_blind_time = m_blind_time_value;
             }
             ///////////////////////
@@ -247,23 +247,23 @@ void Signal::Edit(ProtocolDataType const* data, int start, int size)
 
                 if (m_only_draw_on_trigger)
                     EnableDraw();
-                m_threashold = Threashold::SEARCHING;
-                m_detection_stats.Reset();
-                m_trigger_window_stats.Reset();
+                m_threshold                  = Threshold::SEARCHING;
+                m_ejection_window_width_cntr = 0;
+                m_detection_time_cntr        = 0;
             } else if (m_diff == -1) { // falling edge
                 m_trigger_frame[m_trigger_frame_idx++].position = sf::Vector2f(x_position, y_high);
                 m_trigger_frame[m_trigger_frame_idx++].position = sf::Vector2f(x_position, y_high);
                 m_trigger_frame[m_trigger_frame_idx++].position = sf::Vector2f(x_position, y_zero);
 
-                if (m_threashold == Threashold::SEARCHING) {
-                    m_threashold = Threashold::MISSED;
+                if (m_threshold == Threshold::SEARCHING) {
+                    m_threshold = Threshold::MISSED;
                     m_detection_missed++;
                     m_events = static_cast<Event>(m_events | Event::MISSED);
                     SetIndicator(x_position, Event::MISSED);
                 }
 
-                if (m_threashold == Threashold::REACHED) { // Special case where we reached threashold on falling edge
-                    m_threashold = Threashold::MISSED;
+                if (m_threshold == Threshold::REACHED) { // Special case where we reached threashold on falling edge
+                    m_threshold = Threshold::MISSED;
                     m_detection_missed++;
                     m_detected_out_window_cnt++;
                     m_events = static_cast<Event>(m_events | Event::MISSED | Event::DETECTED_OUT);
@@ -271,8 +271,8 @@ void Signal::Edit(ProtocolDataType const* data, int start, int size)
                     SetIndicator(x_position, Event::DETECTED_OUT);
                 }
 
-                m_trigger_window_stats.Update(&Signal::trigger_window_stats_all);
-                if (Signal::window_time_min > m_trigger_window_stats.Get().last || m_trigger_window_stats.Get().last > Signal::window_time_max) {
+                m_ejection_window_stats->Update(m_ejection_window_width_cntr / (m_sample_freq_hz / 1000.f)); // convert to milliseconds
+                if (m_ejection_window_stats->last < *m_window_time_min || m_ejection_window_stats->last > *m_window_time_max) {
                     m_events = static_cast<Event>(m_events | Event::WINDOW_TIME);
                     SetIndicator(x_position, Event::WINDOW_TIME);
                 }
@@ -282,24 +282,26 @@ void Signal::Edit(ProtocolDataType const* data, int start, int size)
                 }
                 m_trigger_frame[m_trigger_frame_idx].position = sf::Vector2f(x_position, y_high);
 
-                m_detection_stats.Increment();
-                m_trigger_window_stats.Increment();
-                if (m_threashold == Threashold::REACHED) {
+                // Increment window width and detection time counters
+                m_ejection_window_width_cntr++;
+                m_detection_time_cntr++;
+
+                if (m_threshold == Threshold::REACHED) {
                     m_detected_in_window_cnt++;
-                    m_threashold = Threashold::IDLE;
-                    m_events     = static_cast<Event>(m_events | Event::DETECTED_IN);
-                    m_detection_stats.Update(&Signal::detection_stats_all);
+                    m_threshold = Threshold::IDLE;
+                    m_events    = static_cast<Event>(m_events | Event::DETECTED_IN);
+                    m_detection_time_stats->Update(m_detection_time_cntr / (m_sample_freq_hz / 1000.f)); // convert to milliseconds
                     SetIndicator(x_position, Event::DETECTED_IN);
-                    if (Signal::detection_time_min > m_detection_stats.Get().last || m_detection_stats.Get().last > Signal::detection_time_max) {
+                    if (m_detection_time_stats->last < *m_detection_time_min || m_detection_time_stats->last > *m_detection_time_max) {
                         m_events = static_cast<Event>(m_events | Event::DETECTION_TIME);
                         SetIndicator(x_position, Event::DETECTION_TIME);
                     }
                 }
             } else { // no frame
-                if (m_threashold == Threashold::REACHED) {
+                if (m_threshold == Threshold::REACHED) {
                     m_detected_out_window_cnt++;
-                    m_threashold = Threashold::IDLE;
-                    m_events     = static_cast<Event>(m_events | Event::DETECTED_OUT);
+                    m_threshold = Threshold::IDLE;
+                    m_events    = static_cast<Event>(m_events | Event::DETECTED_OUT);
                     SetIndicator(x_position, Event::DETECTED_OUT);
                 }
             }
