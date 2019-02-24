@@ -28,6 +28,7 @@ private:
 
     std::vector<std::shared_ptr<Signal>> m_signals;
     std::vector<bool>                    m_draw_signal;
+    bool                                 m_draw_all_signals = true;
 
     std::shared_ptr<float> m_max_val;
 

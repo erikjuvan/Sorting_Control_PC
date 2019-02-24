@@ -55,6 +55,8 @@ InfoWindow::InfoWindow(std::string const& title, std::string const& save_filenam
     Add(infolabel_all.label_avg);
     infolabel_all.label_std_dev = std::make_shared<mygui::Label>(260, 80 + 8 * 30, ("N/A"));
     Add(infolabel_all.label_std_dev);
+    infolabel_all.label_last = std::make_shared<mygui::Label>(320, 80 + 8 * 30, ("N/A"));
+    Add(infolabel_all.label_last);
     infolabel_all.label_cnt = std::make_shared<mygui::Label>(380, 80 + 8 * 30, ("N/A"));
     Add(infolabel_all.label_cnt);
 }

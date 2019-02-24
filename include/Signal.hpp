@@ -63,7 +63,6 @@ private:
     const int N_TRIGGER_FRAME_POINTS = 60; // should be enough for ~ 60 / 3 = 20 windows
     const int N_INDICATOR_POINTS     = 40; // should be enough for ~ 40 / 2 = 20 indicators
 
-    // Visual C++ compiler has a bug ATM. Initialized inline static variables must be at the top otherwise they get initialized to 0.
     std::shared_ptr<uint32_t const> m_detection_time_min;
     std::shared_ptr<uint32_t const> m_detection_time_max;
     std::shared_ptr<uint32_t const> m_window_time_min;

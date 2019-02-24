@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <optional>
 #include <string>
 #include <thread>
@@ -68,8 +69,12 @@ private:
     int m_comm_speed_kb_s            = 0;
     int m_available_bytes            = 0;
 
-    ProtocolDataType m_data[N_CHANNELS * DATA_PER_CHANNEL];
-    std::atomic_bool m_data_in_buffer = false;
+    std::mutex              m_mtx;
+    std::condition_variable m_cv;
+    ProtocolDataType        m_data[N_CHANNELS * DATA_PER_CHANNEL];
+    bool                    m_data_in_buffer = false;
+    ;
+    bool m_parsing_too_slow = false;
 
     // Methods
     void InitFromFile(const std::string& file_name);

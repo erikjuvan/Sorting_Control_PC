@@ -14,9 +14,9 @@ void MainWindow::SetSampleFreq()
         for (auto& s : signals)
             s->SetSampleFreq(freq_hz);
     } catch (std::invalid_argument& ia) {
-        puts("Invalid argument passed to stoi");
+        std::cerr << ia.what() << std::endl;
     } catch (std::out_of_range& oor) {
-        puts("Number passed to stoi is too large");
+        std::cerr << oor.what() << std::endl;
     }
 }
 
@@ -404,13 +404,12 @@ void MainWindow::label_window_time_Clicked()
 
 void MainWindow::checkbox_transparent_Clicked()
 {
-    static bool transparent = false;
-    if (!transparent) {
-        transparent = true;
+    if (!m_transparent) {
+        m_transparent = true;
         MakeTransparent();
         SetTransparency(180);
     } else {
-        transparent = false;
+        m_transparent = false;
         SetTransparency(255);
     }
 }

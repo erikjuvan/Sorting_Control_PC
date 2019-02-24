@@ -20,6 +20,8 @@ private:
 
     std::chrono::time_point<std::chrono::steady_clock> m_run_start_time;
 
+    bool m_transparent = false;
+
     int m_config_number_of_samples = 0;
     int m_signal_update_cntr       = 0;
 
