@@ -72,9 +72,7 @@ private:
     std::mutex              m_mtx;
     std::condition_variable m_cv;
     ProtocolDataType        m_data[N_CHANNELS * DATA_PER_CHANNEL];
-    bool                    m_data_in_buffer = false;
-    ;
-    bool m_parsing_too_slow = false;
+    std::atomic_bool        m_data_in_buffer = false;
 
     // Methods
     void InitFromFile(const std::string& file_name);

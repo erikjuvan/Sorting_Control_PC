@@ -210,11 +210,12 @@ void Signal::Edit(ProtocolDataType const* m_data, int start, int size, View view
 
             if (start == 0) {
                 // Clear all frames
-                for (int i = 0; i <= m_trigger_frame_idx; ++i)
+                for (int i = 0; i < m_trigger_frame_idx; ++i)
                     m_trigger_frame[i].position = sf::Vector2f(0.f, 0.f);
                 m_trigger_frame_idx = 0;
 
-                for (int i = 0; i <= m_event_indicator_idx; ++i)
+                // Clear all indicators
+                for (int i = 0; i < m_event_indicator_idx; ++i)
                     m_event_indicator[i].position = sf::Vector2f(0.f, 0.f);
                 m_event_indicator_idx = 0;
 

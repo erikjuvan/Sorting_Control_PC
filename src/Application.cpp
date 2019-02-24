@@ -62,6 +62,8 @@ void Application::GetData()
 
         if (m_communication->IsConnected() && *m_running == Running::RUNNING) {
 
+            header.delim = 0; // reset value
+
             m_communication->Read(&header, sizeof(header.delim));
             // If start of new packet
             if (header.delim == 0xDEADBEEF) {
@@ -83,14 +85,15 @@ void Application::GetData()
                     std::scoped_lock<std::mutex> lk(m_mtx);
 
                     if (m_data_in_buffer) {
-                        m_parsing_too_slow = true;
-                        std::cerr << "Data parsing too slow: overwritting unparsed packet. ";
+                        std::cerr << "Data parsing too slow: overwritting unparsed packet.\n";
                     }
 
                     read = m_communication->Read(m_data, sizeof(m_data));
                     if (read == sizeof(m_data)) {
                         m_data_in_buffer = true;
                         m_cv.notify_one();
+                    } else {
+                        std::cerr << "Read insufficent bytes. Read " << read << " bytes insted " << sizeof(m_data) << "\n";
                     }
                 }
 
@@ -99,6 +102,9 @@ void Application::GetData()
                 m_comm_speed_kb_s           = (read * 1000) / m_time_took_to_read_data_us; // kB/s
             }
         }
+
+        if (*m_running == Running::STOPPED)
+            prev_packet_id = 0;
     }
 }
 
@@ -109,24 +115,24 @@ void Application::ParseData()
 
     while (m_mainWindow->IsOpen()) {
 
-        // Wait until GetData() sends data
-        std::unique_lock<std::mutex> lk(m_mtx);
-        m_cv.wait(lk, [this] { return m_data_in_buffer; });
+        if (*m_running == Running::RUNNING) {
+            // Wait until GetData() receives data
+            {
+                std::unique_lock<std::mutex> lk(m_mtx);
+                m_cv.wait(lk);
+            }
 
-        auto start = std::chrono::high_resolution_clock::now();
+            if (m_data_in_buffer) {
+                auto start = std::chrono::high_resolution_clock::now();
 
-        std::memcpy(data_buf, m_data, sizeof(m_data));
-        m_data_in_buffer = false;
+                std::memcpy(data_buf, m_data, sizeof(m_data));
+                m_data_in_buffer = false;
 
-        m_mainWindow->UpdateSignals(data_buf);
+                m_mainWindow->UpdateSignals(data_buf);
 
-        m_time_took_to_parse_data_us = std::chrono::duration_cast<std::chrono::microseconds>(
-                                           std::chrono::high_resolution_clock::now() - start)
-                                           .count();
-
-        if (m_parsing_too_slow) {
-            m_parsing_too_slow = false;
-            std::cerr << "Parsing took " << m_time_took_to_parse_data_us << " us." << std::endl;
+                auto finished                = std::chrono::high_resolution_clock::now();
+                m_time_took_to_parse_data_us = std::chrono::duration_cast<std::chrono::microseconds>(finished - start).count();
+            }
         }
     }
 }

@@ -99,13 +99,13 @@ void MainWindow::button_run_Click()
             chart->ChangeSignal(i, signals[i]);
     } else if (*m_running == Running::RUNNING) {
         // Order of statements here matters, to insure PC app doesn't get stuck on serial->read function
+        *m_running = Running::STOPPED;
         m_communication->Write("VRBS,0\n");
         size_t len = 0;
         while ((len = m_communication->GetRxBufferLen()) > 0) {
             m_communication->Purge();
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
-        *m_running = Running::STOPPED;
         button_run->SetText("Stopped");
     }
 }
