@@ -48,14 +48,9 @@ void Window::Update()
     Draw();
 }
 
-void Window::Show()
+void Window::SetVisible(bool visible)
 {
-    m_window->setVisible(true);
-}
-
-void Window::Hide()
-{
-    m_window->setVisible(false);
+    m_window->setVisible(visible);
 }
 
 bool Window::IsOpen() const

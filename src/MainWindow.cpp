@@ -9,9 +9,15 @@
 
 void MainWindow::SetSampleFreq()
 {
-    int freq_hz = std::stoi(textbox_frequency->GetText());
-    for (auto& s : signals)
-        s->SetSampleFreq(freq_hz);
+    try {
+        int freq_hz = std::stoi(textbox_frequency->GetText());
+        for (auto& s : signals)
+            s->SetSampleFreq(freq_hz);
+    } catch (std::invalid_argument& ia) {
+        puts("Invalid argument passed to stoi");
+    } catch (std::out_of_range& oor) {
+        puts("Number passed to stoi is too large");
+    }
 }
 
 void MainWindow::button_connect_Click()
@@ -300,22 +306,8 @@ void MainWindow::button_record_Click()
 
 void MainWindow::button_info_Click()
 {
-    if (!m_detectionInfoWindow->IsOpen()) {
-        m_detectionInfoWindow = std::make_shared<InfoWindow>("Detection Info", "det.py");
-        m_detectionInfoWindow->SetPosition(GetPosition() + sf::Vector2i(1850 - 480, 40));
-        for (auto& s : signals) {
-            m_detectionInfoWindow->push_back(s->GetDetectionStats());
-        }
-        //m_detectionInfoWindow->SetAll(Signal::GetDetectionStatsAll());
-    }
-    if (!m_frameInfoWindow->IsOpen()) {
-        m_frameInfoWindow = std::make_shared<InfoWindow>("Frame Info", "win.py");
-        m_frameInfoWindow->SetPosition(GetPosition() + sf::Vector2i(1850 - 1000, 40));
-        for (auto& s : signals) {
-            m_frameInfoWindow->push_back(s->GetTriggerWindowStats());
-        }
-        //m_frameInfoWindow->SetAll(Signal::GetTriggerWindowStatsAll());
-    }
+    m_detectionInfoWindow->SetVisible(true);
+    m_frameInfoWindow->SetVisible(true);
 }
 
 void MainWindow::button_clear_all_Click()

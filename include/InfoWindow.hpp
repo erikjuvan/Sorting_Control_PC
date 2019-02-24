@@ -15,6 +15,8 @@ private:
     std::shared_ptr<Statistics<int64_t>>              m_all;
     std::string                                       m_save_filename;
 
+    virtual void Events() override final;
+
 public:
     InfoWindow(std::string const& title, std::string const& save_filename);
 

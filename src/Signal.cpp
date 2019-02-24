@@ -20,6 +20,9 @@ Signal::Signal(int n, sf::Color col, const sf::FloatRect& region, std::shared_pt
     // Trigger Frame
     for (int i = 0; i < N_TRIGGER_FRAME_POINTS; ++i)
         m_trigger_frame[i].color = col;
+
+    m_ejection_window_stats = std::make_shared<Statistics<int64_t>>();
+    m_detection_time_stats  = std::make_shared<Statistics<int64_t>>();
 }
 
 void Signal::draw(sf::RenderTarget& target, sf::RenderStates states) const

@@ -59,6 +59,19 @@ InfoWindow::InfoWindow(std::string const& title, std::string const& save_filenam
     Add(infolabel_all.label_cnt);
 }
 
+void InfoWindow::Events()
+{
+    while (m_window->pollEvent(*m_event)) {
+        if (m_event->type == sf::Event::Closed) {
+            m_window->setVisible(false); // don't close, only hide window
+        }
+
+        for (auto& w : m_widgets) {
+            w->Handle(*m_event);
+        }
+    }
+}
+
 void InfoWindow::RefreshTable()
 {
     int64_t min = 100000, max = 0, avg = 0, stdev = 0, last = 0, cnt = 0;
@@ -78,7 +91,8 @@ void InfoWindow::RefreshTable()
         avg += m_channel[i]->avg * m_channel[i]->cnt;
         cnt += m_channel[i]->cnt;
     }
-    avg /= cnt;
+    if (cnt > 0) // avoid division by zero
+        avg /= cnt;
 
     // Total
     infolabel_all.label_min->SetText(std::to_string(min));
@@ -95,7 +109,7 @@ void InfoWindow::Clear()
     for (auto& c : m_channel) {
         c->Clear();
     }
-    m_all->Clear();
+    //m_all->Clear(); not currently supported
     RefreshTable();
 }
 

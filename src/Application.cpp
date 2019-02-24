@@ -153,7 +153,6 @@ Application::Application()
 
     m_communication = std::make_shared<Communication>();
     m_mainWindow    = std::make_unique<MainWindow>(1850, 900, "Sorting Control", m_config_com_port, m_config_number_of_samples, sf::Style::None | sf::Style::Close);
-    m_mainWindow->ConnectCrossData(m_communication, m_detectionInfoWindow, m_frameInfoWindow, m_running, m_record);
 
     m_detectionInfoWindow = std::make_shared<InfoWindow>("Detection Info", "det.py");
     m_detectionInfoWindow->SetPosition(m_mainWindow->GetPosition() + sf::Vector2i(1850 - 480, 40));
@@ -168,6 +167,9 @@ Application::Application()
         m_frameInfoWindow->push_back(s->GetTriggerWindowStats());
     }
     //m_frameInfoWindow->SetAll(Signal::GetTriggerWindowStatsAll());
+
+    // Pass all neccessary data to mainwindow
+    m_mainWindow->ConnectCrossData(m_communication, m_detectionInfoWindow, m_frameInfoWindow, m_running, m_record);
 
     m_thread_info       = std::thread(std::bind(&Application::Information, this));
     m_thread_get_data   = std::thread(std::bind(&Application::GetData, this));
