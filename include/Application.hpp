@@ -3,7 +3,6 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
-#include <mygui/ResourceManager.hpp>
 #include <optional>
 #include <string>
 #include <thread>
@@ -49,8 +48,6 @@ private:
     std::shared_ptr<Communication> m_communication;
     std::shared_ptr<InfoWindow>    m_detectionInfoWindow;
     std::shared_ptr<InfoWindow>    m_frameInfoWindow;
-
-    std::shared_ptr<mygui::ResourceManager> m_rm;
 
     std::shared_ptr<bool>   m_running;
     std::shared_ptr<Record> m_record;

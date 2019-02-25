@@ -5,6 +5,7 @@
 #include <fstream>
 #include <future>
 #include <iomanip>
+#include <mygui/ResourceManager.hpp>
 #include <sstream>
 
 using namespace std::chrono_literals;
@@ -158,9 +159,8 @@ Application::Application()
     // Initial parameters from file init
     InitFromFile("config.txt");
 
-    // Make a resource manager
-    m_rm = std::make_shared<mygui::ResourceManager>();
-    m_rm->Font("fonts/arial.ttf");
+    // Set font in a resource manager
+    mygui::ResourceManager::getInstance().Font("fonts/arial.ttf");
 
     // Set state variables
     m_running = std::make_shared<bool>(false);
@@ -170,10 +170,10 @@ Application::Application()
     m_communication = std::make_shared<Communication>();
 
     // Create main window
-    m_mainWindow = std::make_unique<MainWindow>(m_rm, 1850, 900, "Sorting Control", m_config_com_port, m_config_number_of_samples, sf::Style::None | sf::Style::Close);
+    m_mainWindow = std::make_unique<MainWindow>(1850, 900, "Sorting Control", m_config_com_port, m_config_number_of_samples, sf::Style::None | sf::Style::Close);
 
     // Create detection info window
-    m_detectionInfoWindow = std::make_shared<InfoWindow>(m_rm, "Detection Info", "det.py");
+    m_detectionInfoWindow = std::make_shared<InfoWindow>("Detection Info", "det.py");
     m_detectionInfoWindow->SetPosition(m_mainWindow->GetPosition() + sf::Vector2i(1850 - 480, 40));
     for (auto& s : m_mainWindow->signals) {
         m_detectionInfoWindow->push_back(s->GetDetectionStats());
@@ -181,7 +181,7 @@ Application::Application()
     //m_detectionInfoWindow->SetAll(Signal::GetDetectionStatsAll());
 
     // Create frame info window
-    m_frameInfoWindow = std::make_shared<InfoWindow>(m_rm, "Frame Info", "win.py");
+    m_frameInfoWindow = std::make_shared<InfoWindow>("Frame Info", "win.py");
     m_frameInfoWindow->SetPosition(m_mainWindow->GetPosition() + sf::Vector2i(1850 - 1000, 40));
     for (auto& s : m_mainWindow->signals) {
         m_frameInfoWindow->push_back(s->GetTriggerWindowStats());

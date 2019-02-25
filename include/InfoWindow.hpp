@@ -18,7 +18,7 @@ private:
     virtual void Events() override final;
 
 public:
-    InfoWindow(std::shared_ptr<mygui::ResourceManager> const& rm, std::string const& title, std::string const& save_filename);
+    InfoWindow(std::string const& title, std::string const& save_filename);
 
     void Clear();
     void SaveRecord();

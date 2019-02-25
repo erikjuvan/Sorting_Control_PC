@@ -1,63 +1,63 @@
 #include "InfoWindow.hpp"
 #include <fstream>
 
-InfoWindow::InfoWindow(std::shared_ptr<mygui::ResourceManager> const& rm, std::string const& title, std::string const& save_filename) :
+InfoWindow::InfoWindow(std::string const& title, std::string const& save_filename) :
     Window(450, 360, title, sf::Style::None | sf::Style::Close), m_save_filename(save_filename)
 {
     AlwaysOnTop(true);
     MakeTransparent();
     SetTransparency(150);
 
-    button_clear = std::make_shared<mygui::Button>(rm, 60, 10, "Clear", 80, 25);
+    button_clear = std::make_shared<mygui::Button>(60, 10, "Clear", 80, 25);
     button_clear->OnClick(std::bind(&InfoWindow::Clear, this));
     Add(button_clear);
-    button_save = std::make_shared<mygui::Button>(rm, 300, 10, "Save", 80, 25);
+    button_save = std::make_shared<mygui::Button>(300, 10, "Save", 80, 25);
     button_save->OnClick(std::bind(&InfoWindow::SaveRecord, this));
     Add(button_save);
 
-    label_info_win_to_det_min = std::make_shared<mygui::Label>(rm, 80, 50, "Min");
+    label_info_win_to_det_min = std::make_shared<mygui::Label>(80, 50, "Min");
     Add(label_info_win_to_det_min);
-    label_info_win_to_det_max = std::make_shared<mygui::Label>(rm, 140, 50, "Max:");
+    label_info_win_to_det_max = std::make_shared<mygui::Label>(140, 50, "Max:");
     Add(label_info_win_to_det_max);
-    label_info_win_to_det_avg = std::make_shared<mygui::Label>(rm, 200, 50, "Avg:");
+    label_info_win_to_det_avg = std::make_shared<mygui::Label>(200, 50, "Avg:");
     Add(label_info_win_to_det_avg);
-    label_info_win_to_det_std_dev = std::make_shared<mygui::Label>(rm, 260, 50, "Stdev:");
+    label_info_win_to_det_std_dev = std::make_shared<mygui::Label>(260, 50, "Stdev:");
     Add(label_info_win_to_det_std_dev);
-    label_info_win_to_det_last = std::make_shared<mygui::Label>(rm, 320, 50, "Last:");
+    label_info_win_to_det_last = std::make_shared<mygui::Label>(320, 50, "Last:");
     Add(label_info_win_to_det_last);
-    label_info_win_to_det_cnt = std::make_shared<mygui::Label>(rm, 380, 50, "N: ");
+    label_info_win_to_det_cnt = std::make_shared<mygui::Label>(380, 50, "N: ");
     Add(label_info_win_to_det_cnt);
 
     for (int i = 0; i < N_CHANNELS; ++i) {
-        infolabels_chs[i].channel_number = std::make_shared<mygui::Label>(rm, 20, 80 + i * 30, ("Ch " + std::to_string(i + 1)).c_str());
+        infolabels_chs[i].channel_number = std::make_shared<mygui::Label>(20, 80 + i * 30, ("Ch " + std::to_string(i + 1)).c_str());
         Add(infolabels_chs[i].channel_number);
-        infolabels_chs[i].label_min = std::make_shared<mygui::Label>(rm, 80, 80 + i * 30, ("N/A"));
+        infolabels_chs[i].label_min = std::make_shared<mygui::Label>(80, 80 + i * 30, ("N/A"));
         Add(infolabels_chs[i].label_min);
-        infolabels_chs[i].label_max = std::make_shared<mygui::Label>(rm, 140, 80 + i * 30, ("N/A"));
+        infolabels_chs[i].label_max = std::make_shared<mygui::Label>(140, 80 + i * 30, ("N/A"));
         Add(infolabels_chs[i].label_max);
-        infolabels_chs[i].label_avg = std::make_shared<mygui::Label>(rm, 200, 80 + i * 30, ("N/A"));
+        infolabels_chs[i].label_avg = std::make_shared<mygui::Label>(200, 80 + i * 30, ("N/A"));
         Add(infolabels_chs[i].label_avg);
-        infolabels_chs[i].label_std_dev = std::make_shared<mygui::Label>(rm, 260, 80 + i * 30, ("N/A"));
+        infolabels_chs[i].label_std_dev = std::make_shared<mygui::Label>(260, 80 + i * 30, ("N/A"));
         Add(infolabels_chs[i].label_std_dev);
-        infolabels_chs[i].label_last = std::make_shared<mygui::Label>(rm, 320, 80 + i * 30, ("N/A"));
+        infolabels_chs[i].label_last = std::make_shared<mygui::Label>(320, 80 + i * 30, ("N/A"));
         Add(infolabels_chs[i].label_last);
-        infolabels_chs[i].label_cnt = std::make_shared<mygui::Label>(rm, 380, 80 + i * 30, ("N/A"));
+        infolabels_chs[i].label_cnt = std::make_shared<mygui::Label>(380, 80 + i * 30, ("N/A"));
         Add(infolabels_chs[i].label_cnt);
     }
 
-    infolabel_all.channel_number = std::make_shared<mygui::Label>(rm, 20, 80 + 8 * 30, "All");
+    infolabel_all.channel_number = std::make_shared<mygui::Label>(20, 80 + 8 * 30, "All");
     Add(infolabel_all.channel_number);
-    infolabel_all.label_min = std::make_shared<mygui::Label>(rm, 80, 80 + 8 * 30, ("N/A"));
+    infolabel_all.label_min = std::make_shared<mygui::Label>(80, 80 + 8 * 30, ("N/A"));
     Add(infolabel_all.label_min);
-    infolabel_all.label_max = std::make_shared<mygui::Label>(rm, 140, 80 + 8 * 30, ("N/A"));
+    infolabel_all.label_max = std::make_shared<mygui::Label>(140, 80 + 8 * 30, ("N/A"));
     Add(infolabel_all.label_max);
-    infolabel_all.label_avg = std::make_shared<mygui::Label>(rm, 200, 80 + 8 * 30, ("N/A"));
+    infolabel_all.label_avg = std::make_shared<mygui::Label>(200, 80 + 8 * 30, ("N/A"));
     Add(infolabel_all.label_avg);
-    infolabel_all.label_std_dev = std::make_shared<mygui::Label>(rm, 260, 80 + 8 * 30, ("N/A"));
+    infolabel_all.label_std_dev = std::make_shared<mygui::Label>(260, 80 + 8 * 30, ("N/A"));
     Add(infolabel_all.label_std_dev);
-    infolabel_all.label_last = std::make_shared<mygui::Label>(rm, 320, 80 + 8 * 30, ("N/A"));
+    infolabel_all.label_last = std::make_shared<mygui::Label>(320, 80 + 8 * 30, ("N/A"));
     Add(infolabel_all.label_last);
-    infolabel_all.label_cnt = std::make_shared<mygui::Label>(rm, 380, 80 + 8 * 30, ("N/A"));
+    infolabel_all.label_cnt = std::make_shared<mygui::Label>(380, 80 + 8 * 30, ("N/A"));
     Add(infolabel_all.label_cnt);
 }
 

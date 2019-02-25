@@ -516,9 +516,9 @@ void MainWindow::chart_OnKeyPress(const sf::Event& event)
     }
 }
 
-void MainWindow::CreateChart(std::shared_ptr<mygui::ResourceManager> const& rm)
+void MainWindow::CreateChart()
 {
-    chart = std::make_shared<Chart>(rm, 240, 10, 1600, 880, m_config_number_of_samples, 100.f);
+    chart = std::make_shared<Chart>(240, 10, 1600, 880, m_config_number_of_samples, 100.f);
     chart->CreateGrid(9);
     chart->OnKeyPress(std::bind(&MainWindow::chart_OnKeyPress, this, std::placeholders::_1));
     signals.clear();
@@ -539,7 +539,7 @@ void MainWindow::RunClick()
     button_run_Click();
 }
 
-MainWindow::MainWindow(std::shared_ptr<mygui::ResourceManager> const& rm, int w, int h, std::string const& title, std::string const& com_port, uint32_t num_of_samples, sf::Uint32 style) :
+MainWindow::MainWindow(int w, int h, std::string const& title, std::string const& com_port, uint32_t num_of_samples, sf::Uint32 style) :
     Window(w, h, title, style), m_config_number_of_samples(num_of_samples)
 {
     ///////////
@@ -550,112 +550,112 @@ MainWindow::MainWindow(std::shared_ptr<mygui::ResourceManager> const& rm, int w,
     m_detection_time_max = std::make_shared<uint32_t>(0);
     m_window_time_min    = std::make_shared<uint32_t>(1000000);
     m_window_time_max    = std::make_shared<uint32_t>(0);
-    CreateChart(rm);
+    CreateChart();
 
     /////////////
     // Buttons //
     /////////////
-    button_connect = std::make_shared<mygui::Button>(rm, 10, 50, "Connect", 100);
+    button_connect = std::make_shared<mygui::Button>(10, 50, "Connect", 100);
     button_connect->OnClick(std::bind(&MainWindow::button_connect_Click, this));
 
-    button_run = std::make_shared<mygui::Button>(rm, 10, 90, "Stopped", 100);
+    button_run = std::make_shared<mygui::Button>(10, 90, "Stopped", 100);
     button_run->OnClick(std::bind(&MainWindow::button_run_Click, this));
 
-    button_save = std::make_shared<mygui::Button>(rm, 10, 130, "Save", 100);
+    button_save = std::make_shared<mygui::Button>(10, 130, "Save", 100);
     button_save->OnClick(std::bind(&MainWindow::button_save_Click, this));
 
-    button_trigger_frame = std::make_shared<mygui::Button>(rm, 125, 50, "Frame OFF", 100, 30, 18);
+    button_trigger_frame = std::make_shared<mygui::Button>(125, 50, "Frame OFF", 100, 30, 18);
     button_trigger_frame->OnClick(std::bind(&MainWindow::button_trigger_frame_Click, this));
 
-    button_view_mode = std::make_shared<mygui::Button>(rm, 125, 90, "Raw", 100, 30, 18);
+    button_view_mode = std::make_shared<mygui::Button>(125, 90, "Raw", 100, 30, 18);
     button_view_mode->OnClick(std::bind(&MainWindow::button_view_mode_Click, this));
 
-    button_info_windows = std::make_shared<mygui::Button>(rm, 125, 130, "Info", 100, 30, 18);
+    button_info_windows = std::make_shared<mygui::Button>(125, 130, "Info", 100, 30, 18);
     button_info_windows->OnClick(std::bind(&MainWindow::button_info_Click, this));
 
-    button_set_frequency = std::make_shared<mygui::Button>(rm, 10, 240, "Send");
+    button_set_frequency = std::make_shared<mygui::Button>(10, 240, "Send");
     button_set_frequency->OnClick(std::bind(&MainWindow::button_set_frequency_Click, this));
 
-    button_set_filter_params = std::make_shared<mygui::Button>(rm, 10, 350, "Send");
+    button_set_filter_params = std::make_shared<mygui::Button>(10, 350, "Send");
     button_set_filter_params->OnClick(std::bind(&MainWindow::button_set_filter_params_Click, this));
 
-    button_set_times = std::make_shared<mygui::Button>(rm, 10, 460, "Send");
+    button_set_times = std::make_shared<mygui::Button>(10, 460, "Send");
     button_set_times->OnClick(std::bind(&MainWindow::button_set_times_Click, this));
 
-    button_record = std::make_shared<mygui::Button>(rm, 10, 650, "Record");
+    button_record = std::make_shared<mygui::Button>(10, 650, "Record");
     button_record->OnClick(std::bind(&MainWindow::button_record_Click, this));
 
-    button_clear_all = std::make_shared<mygui::Button>(rm, 10, 855, "Clear ALL");
+    button_clear_all = std::make_shared<mygui::Button>(10, 855, "Clear ALL");
     button_clear_all->OnClick(std::bind(&MainWindow::button_clear_all_Click, this));
 
     //////////////
     // Texboxes //
     //////////////
-    textbox_comport = std::make_shared<mygui::Textbox>(rm, 10, 10, "COM", 80);
+    textbox_comport = std::make_shared<mygui::Textbox>(10, 10, "COM", 80);
     textbox_comport->SetText(com_port);
-    textbox_frequency          = std::make_shared<mygui::Textbox>(rm, 10, 200, "", 80);
-    textbox_filter_params      = std::make_shared<mygui::Textbox>(rm, 10, 310, "", 210);
-    textbox_times              = std::make_shared<mygui::Textbox>(rm, 10, 420, "", 140);
-    textbox_detection_time_min = std::make_shared<mygui::Textbox>(rm, 35, 787, "", 40, 25);
+    textbox_frequency          = std::make_shared<mygui::Textbox>(10, 200, "", 80);
+    textbox_filter_params      = std::make_shared<mygui::Textbox>(10, 310, "", 210);
+    textbox_times              = std::make_shared<mygui::Textbox>(10, 420, "", 140);
+    textbox_detection_time_min = std::make_shared<mygui::Textbox>(35, 787, "", 40, 25);
     textbox_detection_time_min->onKeyPress(std::bind(&MainWindow::textbox_detection_time_min_KeyPress, this));
-    textbox_detection_time_max = std::make_shared<mygui::Textbox>(rm, 185, 787, "", 40, 25);
+    textbox_detection_time_max = std::make_shared<mygui::Textbox>(185, 787, "", 40, 25);
     textbox_detection_time_max->onKeyPress(std::bind(&MainWindow::textbox_detection_time_max_KeyPress, this));
-    textbox_window_time_min = std::make_shared<mygui::Textbox>(rm, 35, 817, "", 40, 25);
+    textbox_window_time_min = std::make_shared<mygui::Textbox>(35, 817, "", 40, 25);
     textbox_window_time_min->onKeyPress(std::bind(&MainWindow::textbox_window_time_min_KeyPress, this));
-    textbox_window_time_max = std::make_shared<mygui::Textbox>(rm, 185, 817, "", 40, 25);
+    textbox_window_time_max = std::make_shared<mygui::Textbox>(185, 817, "", 40, 25);
     textbox_window_time_max->onKeyPress(std::bind(&MainWindow::textbox_window_time_max_KeyPress, this));
 
     ////////////
     // Labels //
     ////////////
-    label_frequency                = std::make_shared<mygui::Label>(rm, 10, 170, "Sample frequency:");
-    label_filter_params            = std::make_shared<mygui::Label>(rm, 10, 280, "Filter params(a1,a2,a3,thr):");
-    label_times                    = std::make_shared<mygui::Label>(rm, 10, 390, "Times (dly, dur, blind):");
-    label_recorded_signals_counter = std::make_shared<mygui::Label>(rm, 120, 654, "0");
-    label_info_rx_id_avail         = std::make_shared<mygui::Label>(rm, 10, 530, "Rx cnt: 0 available: 0 bytes", 14);
-    label_info_rx_time_took_speed  = std::make_shared<mygui::Label>(rm, 10, 550, "Rx took: 0 ms at: 0 kB/s", 14);
-    label_info_parse_data_time     = std::make_shared<mygui::Label>(rm, 10, 570, "Parsing data took: 0 ms", 14);
-    label_info_detected_in_window  = std::make_shared<mygui::Label>(rm, 120, 698, "0");
+    label_frequency                = std::make_shared<mygui::Label>(10, 170, "Sample frequency:");
+    label_filter_params            = std::make_shared<mygui::Label>(10, 280, "Filter params(a1,a2,a3,thr):");
+    label_times                    = std::make_shared<mygui::Label>(10, 390, "Times (dly, dur, blind):");
+    label_recorded_signals_counter = std::make_shared<mygui::Label>(120, 654, "0");
+    label_info_rx_id_avail         = std::make_shared<mygui::Label>(10, 530, "Rx cnt: 0 available: 0 bytes", 14);
+    label_info_rx_time_took_speed  = std::make_shared<mygui::Label>(10, 550, "Rx took: 0 ms at: 0 kB/s", 14);
+    label_info_parse_data_time     = std::make_shared<mygui::Label>(10, 570, "Parsing data took: 0 ms", 14);
+    label_info_detected_in_window  = std::make_shared<mygui::Label>(120, 698, "0");
     label_info_detected_in_window->OnClick(std::bind(&MainWindow::label_info_detected_in_window_Clicked, this));
-    label_info_detected_out_window = std::make_shared<mygui::Label>(rm, 120, 729, "0");
+    label_info_detected_out_window = std::make_shared<mygui::Label>(120, 729, "0");
     label_info_detected_out_window->OnClick(std::bind(&MainWindow::label_info_detected_out_window_Clicked, this));
-    label_info_signal_missed = std::make_shared<mygui::Label>(rm, 120, 760, "0");
+    label_info_signal_missed = std::make_shared<mygui::Label>(120, 760, "0");
     label_info_signal_missed->OnClick(std::bind(&MainWindow::label_info_signal_missed_Clicked, this));
-    label_detection_time = std::make_shared<mygui::Label>(rm, 80, 787, "> det time >");
+    label_detection_time = std::make_shared<mygui::Label>(80, 787, "> det time >");
     label_detection_time->OnClick(std::bind(&MainWindow::label_detection_time_Clicked, this));
-    label_window_time = std::make_shared<mygui::Label>(rm, 80, 817, "> win time >");
+    label_window_time = std::make_shared<mygui::Label>(80, 817, "> win time >");
     label_window_time->OnClick(std::bind(&MainWindow::label_window_time_Clicked, this));
 
     ////////////////
     // Checkboxes //
     ////////////////
-    checkbox_transparent = std::make_shared<mygui::Checkbox>(rm, 125, 16, "Transparent", 15, 15, 15);
+    checkbox_transparent = std::make_shared<mygui::Checkbox>(125, 16, "Transparent", 15, 15, 15);
     checkbox_transparent->OnClick(std::bind(&MainWindow::checkbox_transparent_Clicked, this));
 
-    checkbox_only_show_framed = std::make_shared<mygui::Checkbox>(rm, 10, 500, "Only show framed");
+    checkbox_only_show_framed = std::make_shared<mygui::Checkbox>(10, 500, "Only show framed");
     checkbox_only_show_framed->OnClick(std::bind(&MainWindow::checkbox_only_show_framed_Clicked, this));
 
-    checkbox_show_event_indicator = std::make_shared<mygui::Checkbox>(rm, 10, 620, "Show event lines");
+    checkbox_show_event_indicator = std::make_shared<mygui::Checkbox>(10, 620, "Show event lines");
     checkbox_show_event_indicator->OnClick(std::bind(&MainWindow::checkbox_show_event_indicator_Clicked, this));
     checkbox_show_event_indicator->Checked(true);
 
-    checkbox_detected_in = std::make_shared<mygui::Checkbox>(rm, 10, 700, "Det IN: ");
+    checkbox_detected_in = std::make_shared<mygui::Checkbox>(10, 700, "Det IN: ");
     checkbox_detected_in->OnClick(std::bind(&MainWindow::checkbox_detected_in_Clicked, this));
     checkbox_detected_in->Checked(false);
 
-    checkbox_detected_out = std::make_shared<mygui::Checkbox>(rm, 10, 730, "Det OUT: ");
+    checkbox_detected_out = std::make_shared<mygui::Checkbox>(10, 730, "Det OUT: ");
     checkbox_detected_out->OnClick(std::bind(&MainWindow::checkbox_detected_out_Clicked, this));
     checkbox_detected_out->Checked(true);
 
-    checkbox_missed = std::make_shared<mygui::Checkbox>(rm, 10, 760, "Missed: ");
+    checkbox_missed = std::make_shared<mygui::Checkbox>(10, 760, "Missed: ");
     checkbox_missed->OnClick(std::bind(&MainWindow::checkbox_missed_Clicked, this));
     checkbox_missed->Checked(true);
 
-    checkbox_detection_time = std::make_shared<mygui::Checkbox>(rm, 10, 790, "");
+    checkbox_detection_time = std::make_shared<mygui::Checkbox>(10, 790, "");
     checkbox_detection_time->OnClick(std::bind(&MainWindow::checkbox_detection_time_Clicked, this));
     checkbox_detection_time->Checked(false);
 
-    checkbox_window_time = std::make_shared<mygui::Checkbox>(rm, 10, 820, "");
+    checkbox_window_time = std::make_shared<mygui::Checkbox>(10, 820, "");
     checkbox_window_time->OnClick(std::bind(&MainWindow::checkbox_window_time_Clicked, this));
     checkbox_window_time->Checked(false);
 

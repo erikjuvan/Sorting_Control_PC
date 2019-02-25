@@ -37,7 +37,7 @@ private:
     chart_callback_type m_onKeyPress{nullptr};
 
 public:
-    Chart(ResManager& rm, int x, int y, int w, int h, int num_of_points, float max_val);
+    Chart(int x, int y, int w, int h, int num_of_points, float max_val);
 
     virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
     virtual void Handle(const sf::Event& event) override;
