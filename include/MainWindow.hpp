@@ -25,15 +25,15 @@ private:
     int m_config_number_of_samples = 0;
     int m_signal_update_cntr       = 0;
 
-    TriggerFrame m_triggerframe = TriggerFrame::ON;
-    View         m_view         = View::FILTERED;
+    bool m_triggerframe = true;
+    View m_view         = View::FILTERED;
 
     std::shared_ptr<Communication> m_communication;
     std::shared_ptr<InfoWindow>    m_detectionInfoWindow;
     std::shared_ptr<InfoWindow>    m_frameInfoWindow;
 
-    std::shared_ptr<Running> m_running;
-    std::shared_ptr<Record>  m_record;
+    std::shared_ptr<bool>   m_running;
+    std::shared_ptr<Record> m_record;
 
     std::shared_ptr<Signal::Event> m_events_to_record;
     std::shared_ptr<uint32_t>      m_detection_time_min;
@@ -43,7 +43,7 @@ private:
 
     // Methods
     void RunClick();
-    void CreateChart(int n_sample);
+    void CreateChart(std::shared_ptr<mygui::ResourceManager> const& rm);
 
     void SetSampleFreq();
     void RecordEvent(Signal::Event e, bool on);
@@ -84,14 +84,14 @@ private:
 
 public:
     // Methods
-    MainWindow(int w, int h, std::string const& title, std::string const& com_port, uint32_t num_of_samples, sf::Uint32 style = sf::Style::Default);
+    MainWindow(std::shared_ptr<mygui::ResourceManager> const& rm, int w, int h, std::string const& title, std::string const& com_port, uint32_t num_of_samples, sf::Uint32 style = sf::Style::Default);
     ~MainWindow();
 
     auto const& GetRunStartTime() { return m_run_start_time; }
     void        ConnectCrossData(std::shared_ptr<Communication> m_communication,
                                  std::shared_ptr<InfoWindow>    m_detectionInfoWindow,
                                  std::shared_ptr<InfoWindow>    m_frameInfoWindow,
-                                 std::shared_ptr<Running>       m_running,
+                                 std::shared_ptr<bool>          m_running,
                                  std::shared_ptr<Record>        m_record);
     void        UpdateSignals(ProtocolDataType* data);
 

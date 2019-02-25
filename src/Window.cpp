@@ -26,6 +26,11 @@ void Window::Create(int w, int h, const std::string& title, sf::Uint32 style)
     m_window->create(sf::VideoMode(w, h), title, style);
 }
 
+void Window::Close()
+{
+    m_window->close();
+}
+
 void Window::Add(std::shared_ptr<Widget> const& widget)
 {
     m_widgets.push_back(widget);

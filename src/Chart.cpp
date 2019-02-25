@@ -2,13 +2,11 @@
 #include <iomanip>
 #include <sstream>
 
-Chart::Chart(int x, int y, int w, int h, int num_of_points, float max_val, const std::string& font_name) :
+Chart::Chart(ResManager& rm, int x, int y, int w, int h, int num_of_points, float max_val) :
+    Object(rm),
     m_num_of_points(num_of_points), m_max_val(std::make_shared<float>(max_val)), m_background(sf::Vector2f(w, h)),
     m_chart_region(sf::Vector2f(w - 6 * m_margin, h - 5 * m_margin))
 {
-
-    m_font.loadFromFile(font_name);
-
     m_background.setPosition(x, y);
     m_background.setOutlineColor(sf::Color::Black);
     m_background.setOutlineThickness(1.f);
@@ -18,19 +16,19 @@ Chart::Chart(int x, int y, int w, int h, int num_of_points, float max_val, const
     m_chart_region.setOutlineThickness(1.f);
     m_chart_rect = m_chart_region.getGlobalBounds();
 
-    m_title.setFont(m_font);
+    m_title.setFont(*m_resource_manager->Font());
 
     m_title.setFillColor(sf::Color::Black);
     m_title.setString("Sorting control");
     m_title.setPosition(sf::Vector2f(x + w / 2.f - m_title.getLocalBounds().width / 2.f, y));
 
-    m_x_axis.setFont(m_font);
+    m_x_axis.setFont(*m_resource_manager->Font());
     m_x_axis.setFillColor(sf::Color::Black);
     m_x_axis.setCharacterSize(24);
     m_x_axis.setString("Sample");
     m_x_axis.setPosition(sf::Vector2f(x + w / 2.f - m_x_axis.getLocalBounds().width / 2.f, h - 1.25f * m_margin));
 
-    m_y_axis.setFont(m_font);
+    m_y_axis.setFont(*m_resource_manager->Font());
     m_y_axis.setFillColor(sf::Color::Black);
     m_y_axis.setCharacterSize(24);
     m_y_axis.setRotation(-90.f);
@@ -151,7 +149,7 @@ void Chart::CreateAxisMarkers()
     for (int i = 0; i < n; ++i) {
         m_x_axis_markers.push_back(sf::Text());
         auto& marker = m_x_axis_markers[m_x_axis_markers.size() - 1];
-        marker.setFont(m_font);
+        marker.setFont(*m_resource_manager->Font());
         marker.setFillColor(sf::Color::Black);
         marker.setCharacterSize(18);
         int tmp = i * m_num_of_points / (n - 1);
@@ -166,7 +164,7 @@ void Chart::CreateAxisMarkers()
     for (int i = 0; i < n; ++i) {
         m_y_axis_markers.push_back(sf::Text());
         auto& marker = m_y_axis_markers[m_y_axis_markers.size() - 1];
-        marker.setFont(m_font);
+        marker.setFont(*m_resource_manager->Font());
         marker.setFillColor(sf::Color::Black);
         marker.setCharacterSize(18);
         float             tmp = i * *m_max_val / (n - 1);

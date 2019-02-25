@@ -3,8 +3,11 @@
 #include "InfoWindow.hpp"
 #include "MainWindow.hpp"
 #include <fstream>
+#include <future>
 #include <iomanip>
 #include <sstream>
+
+using namespace std::chrono_literals;
 
 void Application::Information()
 {
@@ -33,7 +36,7 @@ void Application::Information()
         auto alive_sec = std::chrono::duration_cast<std::chrono::seconds>(time_now - time_at_start).count();
 
         int64_t run_sec = 0;
-        if (*m_running == Running::RUNNING)
+        if (*m_running)
             run_sec = std::chrono::duration_cast<std::chrono::seconds>(time_now - m_mainWindow->GetRunStartTime()).count();
 
         int size     = m_mainWindow->signals.size() * m_mainWindow->signals[0]->GetRXData().size() * sizeof(m_mainWindow->signals[0]->GetRXData()[0]) / 1000000;
@@ -45,24 +48,24 @@ void Application::Information()
             << " / " << capacity << " MB";
         m_mainWindow->SetTitle(str.str());
 
-        using namespace std::chrono_literals;
         std::this_thread::sleep_for(200ms);
     }
 }
 
 void Application::GetData()
 {
-    Header header          = {0, 0};
-    auto   prev_packet_id  = header.packet_id;
-    bool   packet_received = false;
+    Header            header         = {0, 0};
+    auto              prev_packet_id = header.packet_id;
+    ProtocolDataType  data_tmp_buf[sizeof(m_data)];
+    std::future<void> future = std::async(std::launch::async, [] { return; }); // create a valid future
 
     while (m_mainWindow->IsOpen()) {
 
-        m_available_bytes = m_communication->GetRxBufferLen();
-
-        if (m_communication->IsConnected() && *m_running == Running::RUNNING) {
+        if (*m_running) {
 
             header.delim = 0; // reset value
+
+            m_available_bytes = m_communication->GetRxBufferLen();
 
             m_communication->Read(&header, sizeof(header.delim));
             // If start of new packet
@@ -79,22 +82,23 @@ void Application::GetData()
 
                 auto start = std::chrono::high_resolution_clock::now();
 
-                size_t read = 0;
+                size_t read = m_communication->Read(m_data, sizeof(m_data));
 
-                {
-                    std::scoped_lock<std::mutex> lk(m_mtx);
-
-                    if (m_data_in_buffer) {
-                        std::cerr << "Data parsing too slow: overwritting unparsed packet.\n";
-                    }
-
-                    read = m_communication->Read(m_data, sizeof(m_data));
-                    if (read == sizeof(m_data)) {
-                        m_data_in_buffer = true;
-                        m_cv.notify_one();
+                if (read == sizeof(m_data)) {
+                    if (future.wait_for(0ms) == std::future_status::ready) {
+                        future = std::async(std::launch::async, [this, &data_tmp_buf] {
+                            auto start = std::chrono::steady_clock::now();
+                            std::memcpy(data_tmp_buf, m_data, sizeof(m_data));
+                            m_mainWindow->UpdateSignals(data_tmp_buf);
+                            m_time_took_to_parse_data_us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count();
+                            return;
+                        });
                     } else {
-                        std::cerr << "Read insufficent bytes. Read " << read << " bytes insted " << sizeof(m_data) << "\n";
+                        std::cerr << "Data parsing too slow: overwritten previous packet.\n";
                     }
+
+                } else {
+                    std::cerr << "Read insufficent bytes. Read " << read << " bytes insted " << sizeof(m_data) << "\n";
                 }
 
                 auto finished               = std::chrono::high_resolution_clock::now();
@@ -103,37 +107,8 @@ void Application::GetData()
             }
         }
 
-        if (*m_running == Running::STOPPED)
+        if (!*m_running)
             prev_packet_id = 0;
-    }
-}
-
-void Application::ParseData()
-{
-    ProtocolDataType data_buf[sizeof(m_data)];
-    int              cntr = 0;
-
-    while (m_mainWindow->IsOpen()) {
-
-        if (*m_running == Running::RUNNING) {
-            // Wait until GetData() receives data
-            {
-                std::unique_lock<std::mutex> lk(m_mtx);
-                m_cv.wait(lk);
-            }
-
-            if (m_data_in_buffer) {
-                auto start = std::chrono::high_resolution_clock::now();
-
-                std::memcpy(data_buf, m_data, sizeof(m_data));
-                m_data_in_buffer = false;
-
-                m_mainWindow->UpdateSignals(data_buf);
-
-                auto finished                = std::chrono::high_resolution_clock::now();
-                m_time_took_to_parse_data_us = std::chrono::duration_cast<std::chrono::microseconds>(finished - start).count();
-            }
-        }
     }
 }
 
@@ -163,11 +138,19 @@ void Application::InitFromFile(const std::string& file_name)
 
 void Application::Run()
 {
+    // Create threads that are the brains of the program
+    m_thread_info     = std::thread(std::bind(&Application::Information, this));
+    m_thread_get_data = std::thread(std::bind(&Application::GetData, this));
+
     while (m_mainWindow->IsOpen()) {
         m_mainWindow->Update();
         m_detectionInfoWindow->Update();
         m_frameInfoWindow->Update();
+        // 60 FPS is enough
+        std::this_thread::sleep_for(15ms);
     }
+    m_detectionInfoWindow->Close();
+    m_frameInfoWindow->Close();
 }
 
 Application::Application()
@@ -175,37 +158,42 @@ Application::Application()
     // Initial parameters from file init
     InitFromFile("config.txt");
 
-    m_running = std::make_shared<Running>(Running::STOPPED);
+    // Make a resource manager
+    m_rm = std::make_shared<mygui::ResourceManager>();
+    m_rm->Font("fonts/arial.ttf");
+
+    // Set state variables
+    m_running = std::make_shared<bool>(false);
     m_record  = std::make_shared<Record>(Record::NO);
 
+    // Create communication
     m_communication = std::make_shared<Communication>();
-    m_mainWindow    = std::make_unique<MainWindow>(1850, 900, "Sorting Control", m_config_com_port, m_config_number_of_samples, sf::Style::None | sf::Style::Close);
 
-    m_detectionInfoWindow = std::make_shared<InfoWindow>("Detection Info", "det.py");
+    // Create main window
+    m_mainWindow = std::make_unique<MainWindow>(m_rm, 1850, 900, "Sorting Control", m_config_com_port, m_config_number_of_samples, sf::Style::None | sf::Style::Close);
+
+    // Create detection info window
+    m_detectionInfoWindow = std::make_shared<InfoWindow>(m_rm, "Detection Info", "det.py");
     m_detectionInfoWindow->SetPosition(m_mainWindow->GetPosition() + sf::Vector2i(1850 - 480, 40));
     for (auto& s : m_mainWindow->signals) {
         m_detectionInfoWindow->push_back(s->GetDetectionStats());
     }
     //m_detectionInfoWindow->SetAll(Signal::GetDetectionStatsAll());
 
-    m_frameInfoWindow = std::make_shared<InfoWindow>("Frame Info", "win.py");
+    // Create frame info window
+    m_frameInfoWindow = std::make_shared<InfoWindow>(m_rm, "Frame Info", "win.py");
     m_frameInfoWindow->SetPosition(m_mainWindow->GetPosition() + sf::Vector2i(1850 - 1000, 40));
     for (auto& s : m_mainWindow->signals) {
         m_frameInfoWindow->push_back(s->GetTriggerWindowStats());
     }
     //m_frameInfoWindow->SetAll(Signal::GetTriggerWindowStatsAll());
 
-    // Pass all neccessary data to mainwindow
+    // Now that all objects are created pass all neccessary data to mainwindow
     m_mainWindow->ConnectCrossData(m_communication, m_detectionInfoWindow, m_frameInfoWindow, m_running, m_record);
-
-    m_thread_info       = std::thread(std::bind(&Application::Information, this));
-    m_thread_get_data   = std::thread(std::bind(&Application::GetData, this));
-    m_thread_parse_data = std::thread(std::bind(&Application::ParseData, this));
 }
 
 Application::~Application()
 {
     m_thread_info.join();
     m_thread_get_data.join();
-    m_thread_parse_data.join();
 }

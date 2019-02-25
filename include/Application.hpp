@@ -3,19 +3,16 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <mygui/ResourceManager.hpp>
 #include <optional>
 #include <string>
 #include <thread>
 
-enum class Running { STOPPED,
-                     RUNNING };
 enum class Record { NO,
                     ALL,
                     EVENTS };
 enum class View { RAW,
                   FILTERED };
-enum class TriggerFrame { OFF,
-                          ON };
 
 constexpr int DATA_PER_CHANNEL{100};
 constexpr int N_CHANNELS{8};
@@ -53,15 +50,16 @@ private:
     std::shared_ptr<InfoWindow>    m_detectionInfoWindow;
     std::shared_ptr<InfoWindow>    m_frameInfoWindow;
 
-    std::shared_ptr<Running> m_running;
-    std::shared_ptr<Record>  m_record;
+    std::shared_ptr<mygui::ResourceManager> m_rm;
+
+    std::shared_ptr<bool>   m_running;
+    std::shared_ptr<Record> m_record;
 
     std::string m_config_com_port;
     int         m_config_number_of_samples{10000}; // 10k
 
     std::thread m_thread_info;
     std::thread m_thread_get_data;
-    std::thread m_thread_parse_data;
 
     int m_rcv_packet_id              = 0; // it should be atomic but it is not neccessary since it's just informative counter
     int m_time_took_to_read_data_us  = 0;
@@ -69,16 +67,12 @@ private:
     int m_comm_speed_kb_s            = 0;
     int m_available_bytes            = 0;
 
-    std::mutex              m_mtx;
-    std::condition_variable m_cv;
-    ProtocolDataType        m_data[N_CHANNELS * DATA_PER_CHANNEL];
-    std::atomic_bool        m_data_in_buffer = false;
+    ProtocolDataType m_data[N_CHANNELS * DATA_PER_CHANNEL];
 
     // Methods
     void InitFromFile(const std::string& file_name);
     void Information();
     void GetData();
-    void ParseData();
 
 public:
     Application();

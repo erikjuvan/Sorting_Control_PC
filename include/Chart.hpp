@@ -24,8 +24,6 @@ private:
     std::vector<sf::Text> m_x_axis_markers;
     std::vector<sf::Text> m_y_axis_markers;
 
-    sf::Font m_font;
-
     std::vector<std::shared_ptr<Signal>> m_signals;
     std::vector<bool>                    m_draw_signal;
     bool                                 m_draw_all_signals = true;
@@ -39,7 +37,7 @@ private:
     chart_callback_type m_onKeyPress{nullptr};
 
 public:
-    Chart(int x, int y, int w, int h, int num_of_points, float max_val, const std::string& font_name = "arial.ttf");
+    Chart(ResManager& rm, int x, int y, int w, int h, int num_of_points, float max_val);
 
     virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
     virtual void Handle(const sf::Event& event) override;
