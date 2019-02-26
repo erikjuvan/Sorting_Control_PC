@@ -36,7 +36,7 @@ void MainWindow::button_connect_Click()
             auto const& read_and_parse = [this, &buf, &strings](std::string const& str) {
                 m_communication->Write(str);
                 buf     = m_communication->Readline();
-                strings = Help::TokenizeString(buf);
+                strings = Help::TokenizeString(buf, ",");
                 if (buf[buf.size() - 1] == '\n')
                     buf.pop_back();
             };
@@ -113,20 +113,20 @@ void MainWindow::button_run_Click()
 void MainWindow::button_save_Click()
 {
     if (signals.size() <= 0) {
-        std::cerr << "Error saving to file: signals.size() is 0 !\n";
+        std::cerr << "Error saving to file: signals.size() is 0\n";
         return;
     }
     if (signals[0]->GetRXData().size() <= 0) {
-        std::cerr << "Error saving to file: there is no data to save!\n";
+        std::cerr << "Error saving to file: there is no data to save\n";
         return;
     }
 
     struct Header {
-        uint32_t start_id = 0x43535453; // "STSC" - STream Sorting Control
-        uint32_t time_since_epoch_s;
-        uint32_t num_of_channels;
-        uint32_t sizeof_sample;
-        uint32_t num_of_samples_per_ch;
+        uint32_t file_id = 0x43535453;  // "STSC" - STream Sorting Control
+        uint32_t time_since_epoch_s;    // time since epoch in seconds when file was saved
+        uint32_t num_of_channels;       // number of channels
+        uint32_t sizeof_sample;         // size of sample in bytes
+        uint32_t num_of_samples_per_ch; // number of samples per channel
 
         struct {
             uint32_t sample_frequency_hz;
@@ -137,7 +137,7 @@ void MainWindow::button_save_Click()
             float    hpf_K;
             float    lpf2_K;
             float    threshold;
-        } sorting_parameters;
+        } sort_params;
     };
 
     auto get_available_filename = [](std::string base_name) -> auto
@@ -154,30 +154,50 @@ void MainWindow::button_save_Click()
         }
     };
 
-    Header        head;
+    Header        header;
     auto          fname = get_available_filename("sc_data");
     std::ofstream write_file(fname, std::ofstream::binary);
 
     if (write_file.is_open()) {
         using namespace std::chrono;
-        head.time_since_epoch_s    = static_cast<uint32_t>(duration_cast<seconds>(system_clock::now().time_since_epoch()).count());
-        head.num_of_channels       = N_CHANNELS;
-        head.sizeof_sample         = sizeof(signals[0]->GetRXData()[0]);
-        head.num_of_samples_per_ch = signals[0]->GetRXData().size();
+        header.time_since_epoch_s    = static_cast<uint32_t>(duration_cast<seconds>(system_clock::now().time_since_epoch()).count());
+        header.num_of_channels       = N_CHANNELS;
+        header.sizeof_sample         = sizeof(signals[0]->GetRXData()[0]);
+        header.num_of_samples_per_ch = signals[0]->GetRXData().size();
+
+        // Get all sorting control parameters
+        m_communication->Write("GETSETTINGS");
+
+        auto buf                               = m_communication->Readline();
+        auto params                            = Help::TokenizeString(buf, " ,\n:");
+        header.sort_params.sample_frequency_hz = std::stoi(params[1]);
+
+        buf                            = m_communication->Readline();
+        params                         = Help::TokenizeString(buf, " ,\n:");
+        header.sort_params.delay_ms    = std::stoi(params[1]);
+        header.sort_params.duration_ms = std::stoi(params[2]);
+        header.sort_params.blind_ms    = std::stoi(params[3]);
+
+        buf                          = m_communication->Readline();
+        params                       = Help::TokenizeString(buf, " ,\n:");
+        header.sort_params.lpf1_K    = std::stof(params[1]);
+        header.sort_params.hpf_K     = std::stof(params[2]);
+        header.sort_params.lpf2_K    = std::stof(params[3]);
+        header.sort_params.threshold = std::stof(params[4]);
 
         std::cout << "Saving data to " << fname << " ... ";
 
-        write_file.write((const char*)&head, sizeof(Header));
+        write_file.write((const char*)&header, sizeof(Header));
 
         for (auto const& signal : signals) {
             auto const& vec = signal->GetRXData();
-            if (vec.size() != head.num_of_samples_per_ch) {
+            if (vec.size() != header.num_of_samples_per_ch) {
                 std::cerr << "Error saving to file: channel size mismatch!\n";
                 write_file.close();
                 return;
             }
 
-            write_file.write((const char*)&vec[0], head.num_of_samples_per_ch * head.sizeof_sample);
+            write_file.write((const char*)&vec[0], header.num_of_samples_per_ch * header.sizeof_sample);
         }
 
         write_file.close();
@@ -192,7 +212,7 @@ void MainWindow::button_save_Click()
     if (read_file.is_open()) {
         Header tmp;
         read_file.read((char*)&tmp, sizeof(Header));
-        if (std::memcmp(&tmp, &head, sizeof(Header))) {
+        if (std::memcmp(&tmp, &header, sizeof(Header))) {
             std::cerr << "Error write failed: Incorrect header when reading back file!\n";
             read_file.close();
             return;
@@ -208,7 +228,7 @@ void MainWindow::button_save_Click()
     std::ifstream::pos_type fsize = 0;
     if (in.is_open()) {
         fsize                                = in.tellg();
-        std::ifstream::pos_type correct_size = sizeof(Header) + head.num_of_channels * head.num_of_samples_per_ch * head.sizeof_sample;
+        std::ifstream::pos_type correct_size = sizeof(Header) + header.num_of_channels * header.num_of_samples_per_ch * header.sizeof_sample;
         in.close();
         if (fsize != correct_size) {
             std::cerr << "Error write failed: Written " << fsize << " bytes to file. Should have written " << correct_size << " bytes.\n";
@@ -258,7 +278,7 @@ void MainWindow::button_set_filter_params_Click()
     m_communication->Write("SETPARAMS," + textbox_filter_params->GetText() + "\n");
 
     // Set threashold for all signals
-    std::vector<std::string> strings = Help::TokenizeString(textbox_filter_params->GetText());
+    std::vector<std::string> strings = Help::TokenizeString(textbox_filter_params->GetText(), ",");
     for (auto& s : signals) {
         s->SetThreashold(std::stof(strings[3]));
     }
@@ -269,7 +289,7 @@ void MainWindow::button_set_times_Click()
     m_communication->Write("SETTIMES," + textbox_times->GetText() + "\n");
 
     // Set blind time for all signals
-    std::vector<std::string> strings = Help::TokenizeString(textbox_times->GetText());
+    std::vector<std::string> strings = Help::TokenizeString(textbox_times->GetText(), ",");
     for (auto& s : signals) {
         s->SetBlindTime(std::stoi(strings[2]));
     }

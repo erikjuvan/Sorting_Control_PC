@@ -57,8 +57,7 @@ void Application::GetData()
 {
     Header            header         = {0, 0};
     auto              prev_packet_id = header.packet_id;
-    ProtocolDataType  data_tmp_buf[sizeof(m_data)];
-    std::future<void> future = std::async(std::launch::async, [] { return; }); // create a valid future
+    std::future<void> future         = std::async(std::launch::async, [] { return; }); // create a valid future
 
     while (m_mainWindow->IsOpen()) {
 
@@ -87,10 +86,16 @@ void Application::GetData()
 
                 if (read == sizeof(m_data)) {
                     if (future.wait_for(0ms) == std::future_status::ready) {
-                        future = std::async(std::launch::async, [this, &data_tmp_buf] {
+                        future = std::async(std::launch::async, [this] {
+                            // Time it
                             auto start = std::chrono::steady_clock::now();
+                            // Internal tmp data buffer
+                            ProtocolDataType data_tmp_buf[sizeof(m_data)];
+                            // Copy to tmp buffer
                             std::memcpy(data_tmp_buf, m_data, sizeof(m_data));
+                            // Update signals
                             m_mainWindow->UpdateSignals(data_tmp_buf);
+                            // How long did it all take
                             m_time_took_to_parse_data_us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count();
                             return;
                         });

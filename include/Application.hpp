@@ -36,6 +36,8 @@ struct Header {
     uint32_t packet_id = 0;
 };
 
+// Forward decleration since including headers with said classes causes Application.hpp to be included last and we get bunch of "variable undefined" errors
+// TODO: check into it
 class MainWindow;
 class Communication;
 class InfoWindow;

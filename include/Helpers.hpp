@@ -93,6 +93,6 @@ namespace Help
     }
 
 inline uint64_t          rdtsc();
-std::vector<std::string> TokenizeString(std::string str);
+std::vector<std::string> TokenizeString(std::string const& str, std::string const& delims);
 
 } // namespace Help
