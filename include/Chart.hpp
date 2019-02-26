@@ -2,8 +2,9 @@
 
 #include "Signal.hpp"
 #include <mygui/Object.hpp>
+#include <mygui/ResourceManager.hpp>
 
-class Chart : public mygui::Object
+class Chart : public mygui::Object, public mygui::ResourceManager
 {
 private:
     using chart_callback_type = std::function<void(const sf::Event&)>;
@@ -21,6 +22,8 @@ private:
     sf::Text           m_y_axis;
     sf::Text           m_title;
 
+    sf::Font m_font;
+
     std::vector<sf::Text> m_x_axis_markers;
     std::vector<sf::Text> m_y_axis_markers;
 
@@ -37,7 +40,7 @@ private:
     chart_callback_type m_onKeyPress{nullptr};
 
 public:
-    Chart(ResManager& rm, int x, int y, int w, int h, int num_of_points, float max_val);
+    Chart(int x, int y, int w, int h, int num_of_points, float max_val);
 
     virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
     virtual void Handle(const sf::Event& event) override;

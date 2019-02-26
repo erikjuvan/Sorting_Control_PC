@@ -43,7 +43,7 @@ private:
 
     // Methods
     void RunClick();
-    void CreateChart(std::shared_ptr<mygui::ResourceManager> const& rm);
+    void CreateChart();
 
     void SetSampleFreq();
     void RecordEvent(Signal::Event e, bool on);
@@ -84,7 +84,7 @@ private:
 
 public:
     // Methods
-    MainWindow(std::shared_ptr<mygui::ResourceManager> const& rm, int w, int h, std::string const& title, std::string const& com_port, uint32_t num_of_samples, sf::Uint32 style = sf::Style::Default);
+    MainWindow(int w, int h, std::string const& title, std::string const& com_port, uint32_t num_of_samples, sf::Uint32 style = sf::Style::Default);
     ~MainWindow();
 
     auto const& GetRunStartTime() { return m_run_start_time; }
