@@ -587,7 +587,7 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
     button_trigger_frame = std::make_shared<mygui::Button>(125, 50, "Frame OFF", 100, 30, 18);
     button_trigger_frame->OnClick(std::bind(&MainWindow::button_trigger_frame_Click, this));
 
-    button_view_mode = std::make_shared<mygui::Button>(125, 90, "Raw", 100, 30, 18);
+    button_view_mode = std::make_shared<mygui::Button>(125, 90, "Filtered", 100, 30, 18);
     button_view_mode->OnClick(std::bind(&MainWindow::button_view_mode_Click, this));
 
     button_info_windows = std::make_shared<mygui::Button>(125, 130, "Info", 100, 30, 18);

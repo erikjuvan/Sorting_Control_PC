@@ -12,8 +12,9 @@ using namespace std::chrono_literals;
 
 void Application::Information()
 {
-    int  detected_in_window_cnt = 0, detected_out_window_cnt = 0, signal_missed_cnt = 0;
-    auto time_at_start = std::chrono::steady_clock::now();
+    int     detected_in_window_cnt = 0, detected_out_window_cnt = 0, signal_missed_cnt = 0;
+    auto    time_at_start = std::chrono::steady_clock::now();
+    int64_t run_sec       = 0;
 
     while (m_mainWindow->IsOpen()) {
         // Output number of received packets
@@ -36,7 +37,6 @@ void Application::Information()
         auto time_now  = std::chrono::steady_clock::now();
         auto alive_sec = std::chrono::duration_cast<std::chrono::seconds>(time_now - time_at_start).count();
 
-        int64_t run_sec = 0;
         if (*m_running)
             run_sec = std::chrono::duration_cast<std::chrono::seconds>(time_now - m_mainWindow->GetRunStartTime()).count();
 
