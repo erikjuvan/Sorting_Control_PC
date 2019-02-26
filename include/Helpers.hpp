@@ -33,7 +33,7 @@ struct Statistics {
     T min;
     T max;
     T avg, prev_avg;
-    T std_dev, S;
+    T stdev, S;
     T last;
     T cnt;
     T sum;
@@ -48,7 +48,7 @@ struct Statistics {
     {
         buffer.clear();
         min = static_cast<T>(10000);
-        max = avg = prev_avg = std_dev = S = last = cnt = sum = static_cast<T>(0);
+        max = avg = prev_avg = stdev = S = last = cnt = sum = static_cast<T>(0);
     }
 
     void Update(T val)
@@ -65,11 +65,8 @@ struct Statistics {
         prev_avg = avg;
         avg      = sum / cnt;
         S        = S + (val - avg) * (val - prev_avg);
-        std_dev  = static_cast<T>(std::sqrt(S / cnt));
-    }
+        stdev    = static_cast<T>(std::sqrt(S / cnt));
 
-    void push_back(T val)
-    {
         buffer.push_back(val);
     }
 };
@@ -96,6 +93,6 @@ namespace Help
     }
 
 inline uint64_t          rdtsc();
-std::vector<std::string> TokenizeString(std::string str);
+std::vector<std::string> TokenizeString(std::string const& str, std::string const& delims);
 
 } // namespace Help

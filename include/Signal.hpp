@@ -1,48 +1,11 @@
 #pragma once
 
+#include "Application.hpp"
 #include "Helpers.hpp"
 #include <SFML/Graphics.hpp>
 
 class Signal : public sf::Drawable
 {
-private:
-    enum class Threashold { IDLE,
-                            REACHED,
-                            MISSED,
-                            SEARCHING };
-
-    class SignalStats
-    {
-    private:
-        Statistics<int64_t> m_stats;
-        int                 m_val     = 0;
-        bool                m_updated = false;
-
-    public:
-        inline void Increment() { m_val++; }
-
-        void Reset()
-        {
-            m_val     = 0;
-            m_updated = false;
-        }
-
-        void Update(Statistics<int64_t>* ext_stat)
-        {
-            if (!m_updated) {
-                m_stats.Update(m_val);
-                m_stats.push_back(m_val);
-                if (ext_stat) {
-                    ext_stat->Update(m_val);
-                    ext_stat->push_back(m_val);
-                }
-                m_updated = true;
-            }
-        }
-
-        auto& Get() { return m_stats; }
-    };
-
 public:
     enum Event { NONE           = 0x0,
                  DETECTED_IN    = 0x1,
@@ -51,23 +14,17 @@ public:
                  WINDOW_TIME    = 0x8,
                  DETECTION_TIME = 0x10 };
 
-    static void    EventsToRecord(Event const events);
-    static Event   EventsToRecord();
-    static auto*   GetTriggerWindowStatsAll() { return &trigger_window_stats_all; }
-    static auto*   GetDetecionStatsAll() { return &detection_stats_all; }
-    static void    DetectionTimeMin(int64_t time) { detection_time_min = time; }
-    static void    DetectionTimeMax(int64_t time) { detection_time_max = time; }
-    static int64_t DetectionTimeMin() { return detection_time_min; }
-    static int64_t DetectionTimeMax() { return detection_time_max; }
-    static void    WindowTimeMin(int64_t time) { window_time_min = time; }
-    static void    WindowTimeMax(int64_t time) { window_time_max = time; }
-    static int64_t WindowTimeMin() { return window_time_min; }
-    static int64_t WindowTimeMax() { return window_time_max; }
-
     Signal();
-    Signal(int n, sf::Color col, const sf::FloatRect& region, float* max_val);
+    Signal(int n, sf::Color col, const sf::FloatRect& region, std::shared_ptr<float const> const& max_val);
 
     virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
+
+    void EventsToRecord(std::shared_ptr<Event const> events_to_record);
+    void WindowAndDetectionTimeLimits(
+        std::shared_ptr<uint32_t const> detection_time_min,
+        std::shared_ptr<uint32_t const> detection_time_max,
+        std::shared_ptr<uint32_t const> window_time_min,
+        std::shared_ptr<uint32_t const> window_time_max);
 
     void        SetThreashold(float threashold);
     void        SetBlindTime(int blind_time_value);
@@ -86,51 +43,60 @@ public:
     void        SetColor(sf::Color const& col);
     bool        AnyEvents() const;
     void        ClearEvents();
-    void        Edit(float const* buf, int start, int size); // Return false if a signal never reached the threashold value when the window was on
-    const auto& GetRawData() const { return m_raw_data; }
-    void        ClearRawData() { m_raw_data.clear(); }
-    auto&       GetTriggerWindowStats() { return m_trigger_window_stats.Get(); }
-    auto&       GetDetecionStats() { return m_detection_stats.Get(); }
+    void        SetSampleFreq(int sample_freq_hz) { m_sample_freq_hz = sample_freq_hz; }
+    void        Edit(ProtocolDataType const* m_data, int start, int size, View view); // Return false if a signal never reached the threashold value when the window was on
+    const auto& GetRXData() const { return m_rx_data; }
+    void        ClearRXData() { m_rx_data.clear(); }
+    auto&       GetTriggerWindowStats() { return m_ejection_window_stats; }
+    auto&       GetDetectionStats() { return m_detection_time_stats; }
 
 private:
+    enum class Threshold {
+        IDLE,
+        REACHED,
+        MISSED,
+        SEARCHING
+    };
+
     void SetIndicator(float const x, Signal::Event const ev);
 
-    static constexpr int N_TRIGGER_FRAME_POINTS = 60; // should be enough for ~ 60 / 3 = 20 windows
-    static constexpr int N_INDICATOR_POINTS     = 40; // should be enough for ~ 40 / 2 = 20 indicators
+    const int N_TRIGGER_FRAME_POINTS = 60; // should be enough for ~ 60 / 3 = 20 windows
+    const int N_INDICATOR_POINTS     = 40; // should be enough for ~ 40 / 2 = 20 indicators
 
-    // Visual C++ compiler has a bug ATM. Initialized inline static variables must be at the top otherwise they get initialized to 0.
-    inline static int64_t             detection_time_min{0};
-    inline static int64_t             detection_time_max{1000000 * 10};
-    inline static int64_t             window_time_min{0};
-    inline static int64_t             window_time_max{1000000 * 10};
-    inline static Event               events_to_record;
-    inline static Statistics<int64_t> trigger_window_stats_all;
-    inline static Statistics<int64_t> detection_stats_all;
+    std::shared_ptr<uint32_t const> m_detection_time_min;
+    std::shared_ptr<uint32_t const> m_detection_time_max;
+    std::shared_ptr<uint32_t const> m_window_time_min;
+    std::shared_ptr<uint32_t const> m_window_time_max;
+    std::shared_ptr<Event const>    m_events_to_record;
 
-    Threashold m_threashold;
-    Event      m_events;
+    std::shared_ptr<Statistics<int64_t>> m_ejection_window_stats;
+    std::shared_ptr<Statistics<int64_t>> m_detection_time_stats;
+    uint32_t                             m_ejection_window_width_cntr = 0;
+    uint32_t                             m_detection_time_cntr        = 0;
 
-    SignalStats m_trigger_window_stats;
-    SignalStats m_detection_stats;
+    Threshold m_threshold;
+    Event     m_events;
 
-    std::vector<float> m_raw_data;
-    sf::VertexArray    m_curve;
-    sf::VertexArray    m_trigger_frame;
-    int                m_trigger_frame_idx{0};
-    sf::VertexArray    m_event_indicator;
-    int                m_event_indicator_idx{0};
-    sf::FloatRect      m_graph_region;
+    int m_sample_freq_hz = 0;
+
+    std::vector<uint64_t> m_rx_data;
+    sf::VertexArray       m_curve;
+    sf::VertexArray       m_trigger_frame;
+    int                   m_trigger_frame_idx{0};
+    sf::VertexArray       m_event_indicator;
+    int                   m_event_indicator_idx{0};
+    sf::FloatRect         m_graph_region;
 
     bool m_draw{true};
     bool m_only_draw_on_trigger{false};
 
-    float* m_max_val;
-    float  m_threashold_value;
-    bool   m_draw_trigger_frame{false};
-    bool   m_draw_event_indicator{true};
+    std::shared_ptr<float const> m_max_val;
+    float                        m_threashold_value;
+    bool                         m_draw_trigger_frame{false};
+    bool                         m_draw_event_indicator{true};
 
     int  m_diff{0};
-    bool m_trigger_active_prev{false};
+    bool m_ejection_win_prev{false};
 
     int m_detected_in_window_cnt{0};
     int m_detected_out_window_cnt{0};

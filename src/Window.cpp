@@ -2,16 +2,10 @@
 
 Window::Window(int w, int h, const std::string& title, sf::Uint32 style)
 {
-    m_window = new sf::RenderWindow(sf::VideoMode(w, h), title, style);
-    m_event  = new sf::Event();
+    m_window = std::make_unique<sf::RenderWindow>(sf::VideoMode(w, h), title, style);
+    m_event  = std::make_unique<sf::Event>();
 
-    //m_window->setFramerateLimit(60); // currently already running at 60 fps even without limit
-}
-
-Window::~Window()
-{
-    delete m_window;
-    delete m_event;
+    //m_window->setFramerateLimit(60); // currently already m_running at 60 fps even without limit
 }
 
 void Window::Events()
@@ -21,7 +15,7 @@ void Window::Events()
             m_window->close();
         }
 
-        for (const auto& w : m_widgets) {
+        for (auto& w : m_widgets) {
             w->Handle(*m_event);
         }
     }
@@ -32,9 +26,14 @@ void Window::Create(int w, int h, const std::string& title, sf::Uint32 style)
     m_window->create(sf::VideoMode(w, h), title, style);
 }
 
-void Window::Add(widget* w)
+void Window::Close()
 {
-    m_widgets.push_back(w);
+    m_window->close();
+}
+
+void Window::Add(std::shared_ptr<Widget> const& widget)
+{
+    m_widgets.push_back(widget);
 }
 
 void Window::Draw()
@@ -54,17 +53,12 @@ void Window::Update()
     Draw();
 }
 
-void Window::Show()
+void Window::SetVisible(bool visible)
 {
-    m_window->setVisible(true);
+    m_window->setVisible(visible);
 }
 
-void Window::Hide()
-{
-    m_window->setVisible(false);
-}
-
-bool Window::IsOpen()
+bool Window::IsOpen() const
 {
     return m_window->isOpen();
 }
