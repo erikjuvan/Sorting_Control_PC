@@ -10,7 +10,7 @@
 void MainWindow::SetSampleFreq()
 {
     try {
-        int m_sample_freq = std::stoi(textbox_frequency->GetText());
+        m_sample_freq = std::stoi(textbox_frequency->GetText());
         for (auto& s : signals)
             s->SetSampleFreq(m_sample_freq);
     } catch (std::invalid_argument& ia) {
@@ -56,7 +56,7 @@ void MainWindow::button_connect_Click()
             std::string txtbx_times_ms;
             for (auto s : strings)
                 if (m_sample_freq > 0) // preven division by zero
-                    txtbx_times_ms += std::stoi(s) * 1000 / m_sample_freq + ",";
+                    txtbx_times_ms += std::to_string(std::stoi(s) * 1000 / m_sample_freq) + ",";
                 else
                     txtbx_times_ms += "0,";
             txtbx_times_ms.pop_back();
