@@ -10,9 +10,9 @@
 void MainWindow::SetSampleFreq()
 {
     try {
-        int freq_hz = std::stoi(textbox_frequency->GetText());
+        int m_sample_freq = std::stoi(textbox_frequency->GetText());
         for (auto& s : signals)
-            s->SetSampleFreq(freq_hz);
+            s->SetSampleFreq(m_sample_freq);
     } catch (std::invalid_argument& ia) {
         std::cerr << ia.what() << std::endl;
     } catch (std::out_of_range& oor) {
@@ -36,7 +36,7 @@ void MainWindow::button_connect_Click()
             auto const& read_and_parse = [this, &buf, &strings](std::string const& str) {
                 m_communication->Write(str);
                 buf     = m_communication->Readline();
-                strings = Help::TokenizeString(buf, ",");
+                strings = Help::TokenizeString(buf, ",\n");
                 if (buf[buf.size() - 1] == '\n')
                     buf.pop_back();
             };
@@ -45,29 +45,35 @@ void MainWindow::button_connect_Click()
             textbox_frequency->SetText(buf);
             SetSampleFreq();
 
-            read_and_parse("GETPARAMS\n");
-            if (strings.size() < 4)
-                std::cerr << "Received invalid params\n";
-            else
-                for (auto& s : signals)
-                    s->SetThreashold(std::stof(strings[3]));
-            textbox_filter_params->SetText(buf);
-
-            read_and_parse("GETTIMES\n");
+            read_and_parse("GETSORTTICKS\n");
             if (strings.size() < 3)
-                std::cerr << "Received invalid times\n";
+                std::cerr << "Received invalid ticks\n";
             else
                 for (auto& s : signals)
-                    s->SetBlindTime(std::stoi(strings[2]));
-            textbox_times->SetText(buf);
+                    s->SetBlindTicks(std::stoi(strings[2]));
 
-            if (m_triggerframe) {
-                chart->EnableTriggerFrame();
-                button_trigger_frame->SetText("Frame ON");
-            } else {
-                chart->DisableTriggerFrame();
-                button_trigger_frame->SetText("Frame OFF");
-            }
+            // Convert ticks to times_ms
+            std::string txtbx_times_ms;
+            for (auto s : strings)
+                if (m_sample_freq > 0) // preven division by zero
+                    txtbx_times_ms += std::stoi(s) * 1000 / m_sample_freq + ",";
+                else
+                    txtbx_times_ms += "0,";
+            txtbx_times_ms.pop_back();
+            textbox_times->SetText(txtbx_times_ms);
+
+            read_and_parse("GETFILTERCOEFF\n");
+            if (strings.size() < 3)
+                std::cerr << "Received invalid filter coefficients\n";
+            textbox_filter_coeffs->SetText(buf);
+
+            read_and_parse("GETTHRESHOLD\n");
+            if (strings.size() < 1)
+                std::cerr << "Received invalid threshold\n";
+            else
+                for (auto& s : signals)
+                    s->SetThreashold(std::stof(strings[0]));
+            textbox_threshold->SetText(buf);
 
             textbox_comport->Enabled(false);
         } else {
@@ -130,9 +136,9 @@ void MainWindow::button_save_Click()
 
         struct {
             uint32_t sample_frequency_hz;
-            uint32_t delay_ms;
-            uint32_t duration_ms;
-            uint32_t blind_ms;
+            uint32_t delay_ticks;
+            uint32_t duration_ticks;
+            uint32_t blind_ticks;
             float    lpf1_K;
             float    hpf_K;
             float    lpf2_K;
@@ -172,18 +178,21 @@ void MainWindow::button_save_Click()
         auto params                            = Help::TokenizeString(buf, " ,\n:");
         header.sort_params.sample_frequency_hz = std::stoi(params[1]);
 
-        buf                            = m_communication->Readline();
-        params                         = Help::TokenizeString(buf, " ,\n:");
-        header.sort_params.delay_ms    = std::stoi(params[1]);
-        header.sort_params.duration_ms = std::stoi(params[2]);
-        header.sort_params.blind_ms    = std::stoi(params[3]);
+        buf                               = m_communication->Readline();
+        params                            = Help::TokenizeString(buf, " ,\n:");
+        header.sort_params.delay_ticks    = std::stoi(params[1]);
+        header.sort_params.duration_ticks = std::stoi(params[2]);
+        header.sort_params.blind_ticks    = std::stoi(params[3]);
+
+        buf                       = m_communication->Readline();
+        params                    = Help::TokenizeString(buf, " ,\n:");
+        header.sort_params.lpf1_K = std::stof(params[1]);
+        header.sort_params.hpf_K  = std::stof(params[2]);
+        header.sort_params.lpf2_K = std::stof(params[3]);
 
         buf                          = m_communication->Readline();
         params                       = Help::TokenizeString(buf, " ,\n:");
-        header.sort_params.lpf1_K    = std::stof(params[1]);
-        header.sort_params.hpf_K     = std::stof(params[2]);
-        header.sort_params.lpf2_K    = std::stof(params[3]);
-        header.sort_params.threshold = std::stof(params[4]);
+        header.sort_params.threshold = std::stof(params[1]);
 
         std::cout << "Saving data to " << fname << " ... ";
 
@@ -273,25 +282,50 @@ void MainWindow::button_set_frequency_Click()
     SetSampleFreq();
 }
 
-void MainWindow::button_set_filter_params_Click()
-{
-    m_communication->Write("SETPARAMS," + textbox_filter_params->GetText() + "\n");
-
-    // Set threashold for all signals
-    std::vector<std::string> strings = Help::TokenizeString(textbox_filter_params->GetText(), ",");
-    for (auto& s : signals) {
-        s->SetThreashold(std::stof(strings[3]));
-    }
-}
-
 void MainWindow::button_set_times_Click()
 {
-    m_communication->Write("SETTIMES," + textbox_times->GetText() + "\n");
+    auto             tok = Help::TokenizeString(textbox_times->GetText(), ", \n");
+    std::vector<int> times_ms, ticks;
+    for (auto t : tok) {
+        try {
+            times_ms.push_back(std::stoi(t));
+        } catch (...) {
+            std::cerr << "Error setting sorting times\n";
+            return;
+        }
+    }
+
+    for (auto t_ms : times_ms) {
+        ticks.push_back((m_sample_freq * t_ms) / 1000); // ticks = desired_period_s / sample_period_s = desired_period_s / (1 / sample_freq_hz)
+    }
+
+    std::string command = "SETSORTTICKS," + std::to_string(ticks.at(0)) + "," + std::to_string(ticks.at(1)) + "," + std::to_string(ticks.at(2)) + "\n";
+
+    m_communication->Write(command);
 
     // Set blind time for all signals
     std::vector<std::string> strings = Help::TokenizeString(textbox_times->GetText(), ",");
     for (auto& s : signals) {
-        s->SetBlindTime(std::stoi(strings[2]));
+        s->SetBlindTicks(ticks.at(2));
+    }
+}
+
+void MainWindow::button_set_filter_coeffs_Click()
+{
+    m_communication->Write("SETFILTERCOEFF," + textbox_filter_coeffs->GetText() + "\n");
+
+    // Set threashold for all signals
+    std::vector<std::string> strings = Help::TokenizeString(textbox_filter_coeffs->GetText(), ",");
+}
+
+void MainWindow::button_set_threshold_Click()
+{
+    m_communication->Write("SETTHRESHOLD," + textbox_threshold->GetText() + "\n");
+
+    // Set threashold for all signals
+    std::vector<std::string> strings = Help::TokenizeString(textbox_threshold->GetText(), ",\n");
+    for (auto& s : signals) {
+        s->SetThreashold(std::stof(strings[0]));
     }
 }
 
@@ -414,12 +448,12 @@ void MainWindow::label_info_signal_missed_Clicked()
 
 void MainWindow::label_detection_time_Clicked()
 {
-    // not yet implemented
+    // TODO: yet to implement
 }
 
 void MainWindow::label_window_time_Clicked()
 {
-    // not yet implemented
+    // TODO: yet to implement
 }
 
 void MainWindow::checkbox_transparent_Clicked()
@@ -540,6 +574,7 @@ void MainWindow::CreateChart()
 {
     chart = std::make_shared<Chart>(240, 10, 1600, 880, m_config_number_of_samples, 100.f);
     chart->CreateGrid(9);
+    chart->EnableTriggerFrame();
     chart->OnKeyPress(std::bind(&MainWindow::chart_OnKeyPress, this, std::placeholders::_1));
     signals.clear();
     signals.reserve(N_CHANNELS);
@@ -575,107 +610,113 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
     /////////////
     // Buttons //
     /////////////
-    button_connect = std::make_shared<mygui::Button>(10, 50, "Connect", 100);
+    button_connect = std::make_shared<mygui::Button>(10, 50, "Connect");
     button_connect->OnClick(std::bind(&MainWindow::button_connect_Click, this));
 
-    button_run = std::make_shared<mygui::Button>(10, 90, "Stopped", 100);
+    button_run = std::make_shared<mygui::Button>(10, 90, "Stopped");
     button_run->OnClick(std::bind(&MainWindow::button_run_Click, this));
 
-    button_save = std::make_shared<mygui::Button>(10, 130, "Save", 100);
+    button_save = std::make_shared<mygui::Button>(10, 130, "Save");
     button_save->OnClick(std::bind(&MainWindow::button_save_Click, this));
 
-    button_trigger_frame = std::make_shared<mygui::Button>(125, 50, "Frame OFF", 100, 30, 18);
+    button_trigger_frame = std::make_shared<mygui::Button>(120, 50, "Frame ON");
     button_trigger_frame->OnClick(std::bind(&MainWindow::button_trigger_frame_Click, this));
 
-    button_view_mode = std::make_shared<mygui::Button>(125, 90, "Filtered", 100, 30, 18);
+    button_view_mode = std::make_shared<mygui::Button>(120, 90, "Filtered");
     button_view_mode->OnClick(std::bind(&MainWindow::button_view_mode_Click, this));
 
-    button_info_windows = std::make_shared<mygui::Button>(125, 130, "Info", 100, 30, 18);
+    button_info_windows = std::make_shared<mygui::Button>(120, 130, "Info");
     button_info_windows->OnClick(std::bind(&MainWindow::button_info_Click, this));
 
-    button_set_frequency = std::make_shared<mygui::Button>(10, 240, "Send");
+    button_set_frequency = std::make_shared<mygui::Button>(150, 190, "Send", 50);
     button_set_frequency->OnClick(std::bind(&MainWindow::button_set_frequency_Click, this));
 
-    button_set_filter_params = std::make_shared<mygui::Button>(10, 350, "Send");
-    button_set_filter_params->OnClick(std::bind(&MainWindow::button_set_filter_params_Click, this));
-
-    button_set_times = std::make_shared<mygui::Button>(10, 460, "Send");
+    // Set times is correct since we will be inputing time in ms and then converting it to ticks to send to MCU
+    button_set_times = std::make_shared<mygui::Button>(150, 250, "Send", 50);
     button_set_times->OnClick(std::bind(&MainWindow::button_set_times_Click, this));
 
-    button_record = std::make_shared<mygui::Button>(10, 650, "Record");
+    button_set_filter_coeffs = std::make_shared<mygui::Button>(150, 310, "Send", 50);
+    button_set_filter_coeffs->OnClick(std::bind(&MainWindow::button_set_filter_coeffs_Click, this));
+
+    button_set_threshold = std::make_shared<mygui::Button>(150, 370, "Send", 50);
+    button_set_threshold->OnClick(std::bind(&MainWindow::button_set_threshold_Click, this));
+
+    button_record = std::make_shared<mygui::Button>(10, 480, "Record");
     button_record->OnClick(std::bind(&MainWindow::button_record_Click, this));
 
-    button_clear_all = std::make_shared<mygui::Button>(10, 855, "Clear ALL");
+    button_clear_all = std::make_shared<mygui::Button>(10, 680, "Clear ALL");
     button_clear_all->OnClick(std::bind(&MainWindow::button_clear_all_Click, this));
 
     //////////////
     // Texboxes //
     //////////////
-    textbox_comport = std::make_shared<mygui::Textbox>(10, 10, "COM", 80);
+    textbox_comport = std::make_shared<mygui::Textbox>(10, 10, "COM");
     textbox_comport->SetText(com_port);
-    textbox_frequency          = std::make_shared<mygui::Textbox>(10, 200, "", 80);
-    textbox_filter_params      = std::make_shared<mygui::Textbox>(10, 310, "", 210);
-    textbox_times              = std::make_shared<mygui::Textbox>(10, 420, "", 140);
-    textbox_detection_time_min = std::make_shared<mygui::Textbox>(35, 787, "", 40, 25);
+    textbox_frequency          = std::make_shared<mygui::Textbox>(10, 190, "", 120);
+    textbox_times              = std::make_shared<mygui::Textbox>(10, 250, "", 120);
+    textbox_filter_coeffs      = std::make_shared<mygui::Textbox>(10, 310, "", 120);
+    textbox_threshold          = std::make_shared<mygui::Textbox>(10, 370, "", 120);
+    textbox_detection_time_min = std::make_shared<mygui::Textbox>(35, 605, "", 40, 25);
     textbox_detection_time_min->onKeyPress(std::bind(&MainWindow::textbox_detection_time_min_KeyPress, this));
-    textbox_detection_time_max = std::make_shared<mygui::Textbox>(185, 787, "", 40, 25);
+    textbox_detection_time_max = std::make_shared<mygui::Textbox>(165, 605, "", 40, 25);
     textbox_detection_time_max->onKeyPress(std::bind(&MainWindow::textbox_detection_time_max_KeyPress, this));
-    textbox_window_time_min = std::make_shared<mygui::Textbox>(35, 817, "", 40, 25);
+    textbox_window_time_min = std::make_shared<mygui::Textbox>(35, 635, "", 40, 25);
     textbox_window_time_min->onKeyPress(std::bind(&MainWindow::textbox_window_time_min_KeyPress, this));
-    textbox_window_time_max = std::make_shared<mygui::Textbox>(185, 817, "", 40, 25);
+    textbox_window_time_max = std::make_shared<mygui::Textbox>(165, 635, "", 40, 25);
     textbox_window_time_max->onKeyPress(std::bind(&MainWindow::textbox_window_time_max_KeyPress, this));
 
     ////////////
     // Labels //
     ////////////
-    label_frequency                = std::make_shared<mygui::Label>(10, 170, "Sample frequency:");
-    label_filter_params            = std::make_shared<mygui::Label>(10, 280, "Filter params(a1,a2,a3,thr):");
-    label_times                    = std::make_shared<mygui::Label>(10, 390, "Times (dly, dur, blind):");
-    label_recorded_signals_counter = std::make_shared<mygui::Label>(120, 654, "0");
-    label_info_rx_id_avail         = std::make_shared<mygui::Label>(10, 530, "Rx cnt: 0 available: 0 bytes", 14);
-    label_info_rx_time_took_speed  = std::make_shared<mygui::Label>(10, 550, "Rx took: 0 ms at: 0 kB/s", 14);
-    label_info_parse_data_time     = std::make_shared<mygui::Label>(10, 570, "Parsing data took: 0 ms", 14);
-    label_info_detected_in_window  = std::make_shared<mygui::Label>(120, 698, "0");
+    label_frequency                = std::make_shared<mygui::Label>(10, 178, "Sample frequency [Hz]:");
+    label_times                    = std::make_shared<mygui::Label>(10, 238, "Times [ms] (dly, dur, blind):");
+    label_filter_coeffs            = std::make_shared<mygui::Label>(10, 298, "Filter coeffs (lpf1, hpf, lpf2):");
+    label_threshold                = std::make_shared<mygui::Label>(10, 358, "Threshold:");
+    label_recorded_signals_counter = std::make_shared<mygui::Label>(120, 495, "Rec cnt: 0");
+    label_info_rx_id_avail         = std::make_shared<mygui::Label>(10, 840, "Rx cnt: 0 available: 0 bytes");
+    label_info_rx_time_took_speed  = std::make_shared<mygui::Label>(10, 860, "Rx took: 0 ms at: 0 kB/s");
+    label_info_parse_data_time     = std::make_shared<mygui::Label>(10, 880, "Parsing data took: 0 ms");
+    label_info_detected_in_window  = std::make_shared<mygui::Label>(120, 527, "0");
     label_info_detected_in_window->OnClick(std::bind(&MainWindow::label_info_detected_in_window_Clicked, this));
-    label_info_detected_out_window = std::make_shared<mygui::Label>(120, 729, "0");
+    label_info_detected_out_window = std::make_shared<mygui::Label>(120, 557, "0");
     label_info_detected_out_window->OnClick(std::bind(&MainWindow::label_info_detected_out_window_Clicked, this));
-    label_info_signal_missed = std::make_shared<mygui::Label>(120, 760, "0");
+    label_info_signal_missed = std::make_shared<mygui::Label>(120, 587, "0");
     label_info_signal_missed->OnClick(std::bind(&MainWindow::label_info_signal_missed_Clicked, this));
-    label_detection_time = std::make_shared<mygui::Label>(80, 787, "> det time >");
+    label_detection_time = std::make_shared<mygui::Label>(82, 617, "> det time >");
     label_detection_time->OnClick(std::bind(&MainWindow::label_detection_time_Clicked, this));
-    label_window_time = std::make_shared<mygui::Label>(80, 817, "> win time >");
+    label_window_time = std::make_shared<mygui::Label>(82, 647, "> win time >");
     label_window_time->OnClick(std::bind(&MainWindow::label_window_time_Clicked, this));
 
     ////////////////
     // Checkboxes //
     ////////////////
-    checkbox_transparent = std::make_shared<mygui::Checkbox>(125, 16, "Transparent", 15, 15, 15);
+    checkbox_transparent = std::make_shared<mygui::Checkbox>(120, 17, "Transparent");
     checkbox_transparent->OnClick(std::bind(&MainWindow::checkbox_transparent_Clicked, this));
 
-    checkbox_only_show_framed = std::make_shared<mygui::Checkbox>(10, 500, "Only show framed");
+    checkbox_only_show_framed = std::make_shared<mygui::Checkbox>(10, 420, "Only show framed");
     checkbox_only_show_framed->OnClick(std::bind(&MainWindow::checkbox_only_show_framed_Clicked, this));
 
-    checkbox_show_event_indicator = std::make_shared<mygui::Checkbox>(10, 620, "Show event lines");
+    checkbox_show_event_indicator = std::make_shared<mygui::Checkbox>(10, 450, "Show event lines");
     checkbox_show_event_indicator->OnClick(std::bind(&MainWindow::checkbox_show_event_indicator_Clicked, this));
     checkbox_show_event_indicator->Checked(true);
 
-    checkbox_detected_in = std::make_shared<mygui::Checkbox>(10, 700, "Det IN: ");
+    checkbox_detected_in = std::make_shared<mygui::Checkbox>(10, 520, "Det IN: ");
     checkbox_detected_in->OnClick(std::bind(&MainWindow::checkbox_detected_in_Clicked, this));
     checkbox_detected_in->Checked(false);
 
-    checkbox_detected_out = std::make_shared<mygui::Checkbox>(10, 730, "Det OUT: ");
+    checkbox_detected_out = std::make_shared<mygui::Checkbox>(10, 550, "Det OUT: ");
     checkbox_detected_out->OnClick(std::bind(&MainWindow::checkbox_detected_out_Clicked, this));
     checkbox_detected_out->Checked(true);
 
-    checkbox_missed = std::make_shared<mygui::Checkbox>(10, 760, "Missed: ");
+    checkbox_missed = std::make_shared<mygui::Checkbox>(10, 580, "Missed: ");
     checkbox_missed->OnClick(std::bind(&MainWindow::checkbox_missed_Clicked, this));
     checkbox_missed->Checked(true);
 
-    checkbox_detection_time = std::make_shared<mygui::Checkbox>(10, 790, "");
+    checkbox_detection_time = std::make_shared<mygui::Checkbox>(10, 610, "");
     checkbox_detection_time->OnClick(std::bind(&MainWindow::checkbox_detection_time_Clicked, this));
     checkbox_detection_time->Checked(false);
 
-    checkbox_window_time = std::make_shared<mygui::Checkbox>(10, 820, "");
+    checkbox_window_time = std::make_shared<mygui::Checkbox>(10, 640, "");
     checkbox_window_time->OnClick(std::bind(&MainWindow::checkbox_window_time_Clicked, this));
     checkbox_window_time->Checked(false);
 
@@ -690,8 +731,9 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
     Add(button_save);
     Add(button_trigger_frame);
     Add(button_set_frequency);
-    Add(button_set_filter_params);
     Add(button_set_times);
+    Add(button_set_filter_coeffs);
+    Add(button_set_threshold);
     Add(button_view_mode);
     Add(button_record);
     Add(button_info_windows);
@@ -700,8 +742,9 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
     // Texboxes
     Add(textbox_comport);
     Add(textbox_frequency);
-    Add(textbox_filter_params);
     Add(textbox_times);
+    Add(textbox_filter_coeffs);
+    Add(textbox_threshold);
     Add(textbox_detection_time_min);
     Add(textbox_detection_time_max);
     Add(textbox_window_time_min);
@@ -709,8 +752,9 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
 
     // Labels
     Add(label_frequency);
-    Add(label_filter_params);
     Add(label_times);
+    Add(label_filter_coeffs);
+    Add(label_threshold);
     Add(label_recorded_signals_counter);
     Add(label_info_rx_id_avail);
     Add(label_info_rx_time_took_speed);

@@ -25,6 +25,8 @@ private:
     int m_config_number_of_samples = 0;
     int m_signal_update_cntr       = 0;
 
+    int m_sample_freq = 0;
+
     bool m_triggerframe = true;
     View m_view         = View::FILTERED;
 
@@ -53,8 +55,9 @@ private:
     void button_save_Click();
     void button_trigger_frame_Click();
     void button_set_frequency_Click();
-    void button_set_filter_params_Click();
     void button_set_times_Click();
+    void button_set_filter_coeffs_Click();
+    void button_set_threshold_Click();
     void button_view_mode_Click();
     void button_record_Click();
     void button_info_Click();
@@ -106,8 +109,9 @@ public:
     std::shared_ptr<mygui::Button> button_save;
     std::shared_ptr<mygui::Button> button_trigger_frame;
     std::shared_ptr<mygui::Button> button_set_frequency;
-    std::shared_ptr<mygui::Button> button_set_filter_params;
     std::shared_ptr<mygui::Button> button_set_times;
+    std::shared_ptr<mygui::Button> button_set_filter_coeffs;
+    std::shared_ptr<mygui::Button> button_set_threshold;
     std::shared_ptr<mygui::Button> button_view_mode;
     std::shared_ptr<mygui::Button> button_record;
     std::shared_ptr<mygui::Button> button_info_windows;
@@ -116,8 +120,9 @@ public:
     // Texbox
     std::shared_ptr<mygui::Textbox> textbox_comport;
     std::shared_ptr<mygui::Textbox> textbox_frequency;
-    std::shared_ptr<mygui::Textbox> textbox_filter_params;
     std::shared_ptr<mygui::Textbox> textbox_times;
+    std::shared_ptr<mygui::Textbox> textbox_filter_coeffs;
+    std::shared_ptr<mygui::Textbox> textbox_threshold;
     std::shared_ptr<mygui::Textbox> textbox_detection_time_min;
     std::shared_ptr<mygui::Textbox> textbox_detection_time_max;
     std::shared_ptr<mygui::Textbox> textbox_window_time_min;
@@ -125,8 +130,9 @@ public:
 
     // Labels
     std::shared_ptr<mygui::Label> label_frequency;
-    std::shared_ptr<mygui::Label> label_filter_params;
     std::shared_ptr<mygui::Label> label_times;
+    std::shared_ptr<mygui::Label> label_filter_coeffs;
+    std::shared_ptr<mygui::Label> label_threshold;
     std::shared_ptr<mygui::Label> label_recorded_signals_counter;
     std::shared_ptr<mygui::Label> label_info_rx_id_avail;
     std::shared_ptr<mygui::Label> label_info_rx_time_took_speed;
