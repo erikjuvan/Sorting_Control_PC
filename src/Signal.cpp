@@ -143,9 +143,11 @@ void Signal::ClearEvents()
 
 void Signal::SetIndicator(float const x, Event const ev)
 {
-    // Check if we are trying to draw too many indicators and reset
-    if (m_event_indicator_idx + 1 >= m_event_indicator.getVertexCount())
-        m_event_indicator_idx = 0;
+    // Check if we are trying to draw too many indicators
+    if (m_event_indicator_idx + 1 >= m_event_indicator.getVertexCount()) {
+        std::cerr << "Trying to draw to many indicators > " << m_event_indicator.getVertexCount() << std::endl;
+        return;
+    }
 
     const float y_zero = m_graph_region.top + m_graph_region.height;
     const float y_high = y_zero - (m_threashold_value / *m_max_val) * m_graph_region.height + 1;
@@ -225,6 +227,12 @@ void Signal::Edit(ProtocolDataType const* m_data, int start, int size, View view
                     EnableDraw();
 
                 ClearEvents();
+            }
+
+            // Check if we are trying to draw too many ejection windows
+            if (m_trigger_frame_idx + 5 >= m_event_indicator.getVertexCount()) { // 5 is a "big enough" number to make sure we don't overflow
+                std::cerr << "Trying to draw to many indicators > " << m_event_indicator.getVertexCount() << std::endl;
+                return;
             }
 
             // Edge detection
