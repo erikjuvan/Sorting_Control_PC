@@ -165,7 +165,7 @@ Application::Application()
     InitFromFile("config.txt");
 
     // Set resource manager font name
-    mygui::ResourceManager::FontName("segoeui.ttf");
+    mygui::ResourceManager::SetSystemFontName("segoeui.ttf");
 
     // Set state variables
     m_running = std::make_shared<bool>(false);

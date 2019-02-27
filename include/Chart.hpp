@@ -2,9 +2,8 @@
 
 #include "Signal.hpp"
 #include <mygui/Object.hpp>
-#include <mygui/ResourceManager.hpp>
 
-class Chart : public mygui::Object, public mygui::ResourceManager
+class Chart : public mygui::Object
 {
 private:
     using chart_callback_type = std::function<void(const sf::Event&)>;
