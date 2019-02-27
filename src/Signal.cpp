@@ -62,7 +62,6 @@ void Signal::SetThreashold(float threashold)
 void Signal::SetBlindTicks(int blind_ticks)
 {
     m_blind_ticks_param = blind_ticks;
-    std::cout << m_blind_ticks_param << std::endl;
 }
 
 void Signal::EnableDraw()
