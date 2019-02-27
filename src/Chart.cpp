@@ -1,5 +1,6 @@
 #include "Chart.hpp"
 #include <iomanip>
+#include <mygui/ResourceManager.hpp>
 #include <sstream>
 
 Chart::Chart(int x, int y, int w, int h, int num_of_points, float max_val) :
@@ -15,7 +16,7 @@ Chart::Chart(int x, int y, int w, int h, int num_of_points, float max_val) :
     m_chart_region.setOutlineThickness(1.f);
     m_chart_rect = m_chart_region.getGlobalBounds();
 
-    m_font.loadFromFile(m_system_font_name);
+    m_font.loadFromFile(mygui::ResourceManager::GetSystemFontName());
     m_title.setFont(m_font);
 
     m_title.setFillColor(sf::Color::Black);

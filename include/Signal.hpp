@@ -27,7 +27,7 @@ public:
         std::shared_ptr<uint32_t const> window_time_max);
 
     void        SetThreashold(float threashold);
-    void        SetBlindTime(int blind_time_value);
+    void        SetBlindTicks(int blind_ticks);
     void        EnableDraw();
     void        DisableDraw();
     void        EnableTriggerFrame();
@@ -48,7 +48,7 @@ public:
     const auto& GetRXData() const { return m_rx_data; }
     void        ClearRXData() { m_rx_data.clear(); }
     auto&       GetTriggerWindowStats() { return m_ejection_window_stats; }
-    auto&       GetDetectionStats() { return m_detection_time_stats; }
+    auto&       GetDetectionStats() { return m_detection_stats; }
 
 private:
     enum class Threshold {
@@ -70,7 +70,7 @@ private:
     std::shared_ptr<Event const>    m_events_to_record;
 
     std::shared_ptr<Statistics<int64_t>> m_ejection_window_stats;
-    std::shared_ptr<Statistics<int64_t>> m_detection_time_stats;
+    std::shared_ptr<Statistics<int64_t>> m_detection_stats;
     uint32_t                             m_ejection_window_width_cntr = 0;
     uint32_t                             m_detection_time_cntr        = 0;
 
@@ -102,5 +102,5 @@ private:
     int m_detected_out_window_cnt{0};
     int m_detection_missed{0};
     int m_blind_time{0};
-    int m_blind_time_value;
+    int m_blind_ticks;
 };

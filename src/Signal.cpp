@@ -22,7 +22,7 @@ Signal::Signal(int n, sf::Color col, const sf::FloatRect& region, std::shared_pt
         m_trigger_frame[i].color = col;
 
     m_ejection_window_stats = std::make_shared<Statistics<int64_t>>();
-    m_detection_time_stats  = std::make_shared<Statistics<int64_t>>();
+    m_detection_stats       = std::make_shared<Statistics<int64_t>>();
 }
 
 void Signal::draw(sf::RenderTarget& target, sf::RenderStates states) const
@@ -59,9 +59,9 @@ void Signal::SetThreashold(float threashold)
     m_threashold_value = threashold;
 }
 
-void Signal::SetBlindTime(int blind_time_value)
+void Signal::SetBlindTicks(int blind_ticks)
 {
-    m_blind_time_value = blind_time_value;
+    m_blind_ticks = blind_ticks;
 }
 
 void Signal::EnableDraw()
@@ -238,7 +238,7 @@ void Signal::Edit(ProtocolDataType const* m_data, int start, int size, View view
             m_blind_time -= (m_blind_time > 0);
             if (filt_data >= m_threashold_value && m_blind_time <= 0) {
                 m_threshold  = Threshold::REACHED;
-                m_blind_time = m_blind_time_value;
+                m_blind_time = m_blind_ticks;
             }
             ///////////////////////
 
@@ -294,9 +294,9 @@ void Signal::Edit(ProtocolDataType const* m_data, int start, int size, View view
                     m_detected_in_window_cnt++;
                     m_threshold = Threshold::IDLE;
                     m_events    = static_cast<Event>(m_events | Event::DETECTED_IN);
-                    m_detection_time_stats->Update(m_detection_time_cntr / (m_sample_freq_hz / 1000.f)); // convert to milliseconds
+                    m_detection_stats->Update(m_detection_time_cntr / (m_sample_freq_hz / 1000.f)); // convert to milliseconds
                     SetIndicator(x_position, Event::DETECTED_IN);
-                    if (m_detection_time_stats->last < *m_detection_time_min || m_detection_time_stats->last > *m_detection_time_max) {
+                    if (m_detection_stats->last < *m_detection_time_min || m_detection_stats->last > *m_detection_time_max) {
                         m_events = static_cast<Event>(m_events | Event::DETECTION_TIME);
                         SetIndicator(x_position, Event::DETECTION_TIME);
                     }
