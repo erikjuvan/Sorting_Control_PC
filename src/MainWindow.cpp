@@ -574,7 +574,6 @@ void MainWindow::CreateChart()
 {
     chart = std::make_shared<Chart>(240, 10, 1600, 880, m_config_number_of_samples, 100.f);
     chart->CreateGrid(9);
-    chart->EnableTriggerFrame();
     chart->OnKeyPress(std::bind(&MainWindow::chart_OnKeyPress, this, std::placeholders::_1));
     signals.clear();
     signals.reserve(N_CHANNELS);

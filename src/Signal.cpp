@@ -7,7 +7,7 @@ Signal::Signal(int n, sf::Color col, const sf::FloatRect& region, std::shared_pt
     m_curve(sf::PrimitiveType::LineStrip, n),
     m_trigger_frame(sf::PrimitiveType::Lines, N_TRIGGER_FRAME_POINTS),
     m_event_indicator(sf::PrimitiveType::Lines, N_INDICATOR_POINTS),
-    m_draw_trigger_frame(false), m_graph_region(region), m_max_val(max_val),
+    m_graph_region(region), m_max_val(max_val),
     m_events(Event::NONE)
 {
     m_rx_data.reserve(10000 * 10 * 60); // reserve larger chunk of memory to avoid too many malloc/realloc's
@@ -61,7 +61,8 @@ void Signal::SetThreashold(float threashold)
 
 void Signal::SetBlindTicks(int blind_ticks)
 {
-    m_blind_ticks = blind_ticks;
+    m_blind_ticks_param = blind_ticks;
+    std::cout << m_blind_ticks_param << std::endl;
 }
 
 void Signal::EnableDraw()
@@ -235,10 +236,10 @@ void Signal::Edit(ProtocolDataType const* m_data, int start, int size, View view
 
             // Threshold detection
             ///////////////////////
-            m_blind_time -= (m_blind_time > 0);
-            if (filt_data >= m_threashold_value && m_blind_time <= 0) {
-                m_threshold  = Threshold::REACHED;
-                m_blind_time = m_blind_ticks;
+            m_blind_ticks -= (m_blind_ticks > 0);
+            if (filt_data >= m_threashold_value && m_blind_ticks <= 0) {
+                m_threshold   = Threshold::REACHED;
+                m_blind_ticks = m_blind_ticks_param;
             }
             ///////////////////////
 

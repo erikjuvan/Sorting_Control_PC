@@ -92,7 +92,7 @@ private:
 
     std::shared_ptr<float const> m_max_val;
     float                        m_threashold_value;
-    bool                         m_draw_trigger_frame{false};
+    bool                         m_draw_trigger_frame{true};
     bool                         m_draw_event_indicator{true};
 
     int  m_diff{0};
@@ -101,6 +101,6 @@ private:
     int m_detected_in_window_cnt{0};
     int m_detected_out_window_cnt{0};
     int m_detection_missed{0};
-    int m_blind_time{0};
-    int m_blind_ticks;
+    int m_blind_ticks{0};
+    int m_blind_ticks_param;
 };
