@@ -6,7 +6,7 @@ namespace Help
 
 #if defined(_WIN32)
 #include <intrin.h>
-#elif defined()
+#elif defined(__linux__)
 #include <x86intrin.h>
 #endif
 inline uint64_t rdtsc()
