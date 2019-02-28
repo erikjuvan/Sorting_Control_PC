@@ -59,6 +59,8 @@ struct Statistics {
         last = val;
         sum += val;
         cnt++;
+        if (!min)
+            min = val;
         if (val < min)
             min = val;
         if (val > max)
