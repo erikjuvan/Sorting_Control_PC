@@ -856,7 +856,7 @@ void MainWindow::UpdateSignals(ProtocolDataType* data)
         m_signal_update_cntr = 0;
         if (*m_record == Record::ALL) {
             for (auto const& s : signals)
-                recorded_signals.push_back(s);
+                recorded_signals.emplace_back(std::make_shared<Signal>(*s));
             label_recorded_signals_counter->SetText(std::to_string(recorded_signals.size() / N_CHANNELS));
         } else if (*m_record == Record::EVENTS) {
             bool event_happened = false;
