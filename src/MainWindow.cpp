@@ -647,10 +647,10 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
     // Chart //
     ///////////
     m_events_to_record   = std::make_shared<Signal::Event>();
-    m_detection_time_min = std::make_shared<uint32_t>(1000000);
-    m_detection_time_max = std::make_shared<uint32_t>(0);
-    m_window_time_min    = std::make_shared<uint32_t>(1000000);
-    m_window_time_max    = std::make_shared<uint32_t>(0);
+    m_detection_time_min = std::make_shared<uint32_t>(0);
+    m_detection_time_max = std::make_shared<uint32_t>(1000000);
+    m_window_time_min    = std::make_shared<uint32_t>(0);
+    m_window_time_max    = std::make_shared<uint32_t>(1000000);
     CreateChart();
 
     /////////////
