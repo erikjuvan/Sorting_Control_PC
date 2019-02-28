@@ -123,13 +123,15 @@ void MainWindow::button_run_Click()
         button_set_times->Enabled(false);
         button_set_filter_coeffs->Enabled(false);
         button_set_threshold->Enabled(false);
+        button_save->Enabled(false);
 
-        button_run->SetText("Running");
         *m_running       = true;
         m_run_start_time = std::chrono::steady_clock::now();
 
         for (int i = 0; i < N_CHANNELS; ++i)
             chart->ChangeSignal(i, signals[i]);
+
+        button_run->SetText("Running");
 
     } else {
         // Order of statements here matters, to insure PC app doesn't get stuck on serial->read function
@@ -140,6 +142,9 @@ void MainWindow::button_run_Click()
             m_communication->Purge();
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
+
+        button_save->Enabled(true);
+
         button_run->SetText("Stopped");
     }
 }
@@ -413,14 +418,16 @@ void MainWindow::button_clear_all_Click()
     label_recorded_signals_counter->SetText("0");
 
     // Enable all textboxes and send buttons to again be able to set parameters
-    textbox_frequency->Enabled(true);
-    textbox_times->Enabled(true);
-    textbox_filter_coeffs->Enabled(true);
-    textbox_threshold->Enabled(true);
-    button_set_frequency->Enabled(true);
-    button_set_times->Enabled(true);
-    button_set_filter_coeffs->Enabled(true);
-    button_set_threshold->Enabled(true);
+    if (!*m_running) {
+        textbox_frequency->Enabled(true);
+        textbox_times->Enabled(true);
+        textbox_filter_coeffs->Enabled(true);
+        textbox_threshold->Enabled(true);
+        button_set_frequency->Enabled(true);
+        button_set_times->Enabled(true);
+        button_set_filter_coeffs->Enabled(true);
+        button_set_threshold->Enabled(true);
+    }
 }
 
 void MainWindow::textbox_detection_time_min_KeyPress()
