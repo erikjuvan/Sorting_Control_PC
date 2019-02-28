@@ -51,7 +51,7 @@ void MainWindow::UploadSCParameters()
     // Convert ticks to times_ms
     std::string txtbx_times_ms;
     for (auto t : tokens)
-        if (m_sample_freq_hz > 0) // preven division by zero
+        if (*m_sample_freq_hz > 0) // preven division by zero
             txtbx_times_ms += std::to_string(std::stoi(t) * 1000 / *m_sample_freq_hz) + ",";
         else
             txtbx_times_ms += "0,";
