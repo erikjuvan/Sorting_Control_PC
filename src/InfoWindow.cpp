@@ -88,7 +88,7 @@ void InfoWindow::RefreshTable()
         if (m_channel[i]->min) {
             infolabels_chs[i].label_min->SetText(std::to_string(m_channel[i]->min.value() * 1000 / *m_sample_freq_hz));
 
-            if (m_channel[i]->min.value() < min.value())
+            if (!min || m_channel[i]->min.value() < min.value())
                 min = m_channel[i]->min;
         } else
             infolabels_chs[i].label_min->SetText("N/A");
