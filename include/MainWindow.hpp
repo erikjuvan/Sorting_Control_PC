@@ -25,7 +25,7 @@ private:
     int m_config_number_of_samples = 0;
     int m_signal_update_cntr       = 0;
 
-    int m_sample_freq = 0;
+    std::shared_ptr<int> m_sample_freq_hz;
 
     bool m_triggerframe = true;
     View m_view         = View::FILTERED;
@@ -97,6 +97,8 @@ public:
                                  std::shared_ptr<bool>          m_running,
                                  std::shared_ptr<Record>        m_record);
     void        UpdateSignals(ProtocolDataType* data);
+
+    std::shared_ptr<int> GetSampleFreq() const { return m_sample_freq_hz; }
 
     // Members
     //////////

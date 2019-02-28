@@ -10,9 +10,9 @@
 void MainWindow::SetSampleFreq()
 {
     try {
-        m_sample_freq = std::stoi(textbox_frequency->GetText());
+        *m_sample_freq_hz = std::stoi(textbox_frequency->GetText());
         for (auto& s : signals)
-            s->SetSampleFreq(m_sample_freq);
+            s->SetSampleFreq(*m_sample_freq_hz);
     } catch (std::invalid_argument& ia) {
         std::cerr << ia.what() << std::endl;
     } catch (std::out_of_range& oor) {
@@ -55,8 +55,8 @@ void MainWindow::button_connect_Click()
             // Convert ticks to times_ms
             std::string txtbx_times_ms;
             for (auto s : strings)
-                if (m_sample_freq > 0) // preven division by zero
-                    txtbx_times_ms += std::to_string(std::stoi(s) * 1000 / m_sample_freq) + ",";
+                if (m_sample_freq_hz > 0) // preven division by zero
+                    txtbx_times_ms += std::to_string(std::stoi(s) * 1000 / *m_sample_freq_hz) + ",";
                 else
                     txtbx_times_ms += "0,";
             txtbx_times_ms.pop_back();
@@ -296,7 +296,7 @@ void MainWindow::button_set_times_Click()
     }
 
     for (auto t_ms : times_ms) {
-        ticks.push_back((m_sample_freq * t_ms) / 1000); // ticks = desired_period_s / sample_period_s = desired_period_s / (1 / sample_freq_hz)
+        ticks.push_back((*m_sample_freq_hz * t_ms) / 1000); // ticks = desired_period_s / sample_period_s = desired_period_s / (1 / sample_freq_hz)
     }
 
     std::string command = "SETSORTTICKS," + std::to_string(ticks.at(0)) + "," + std::to_string(ticks.at(1)) + "," + std::to_string(ticks.at(2)) + "\n";
@@ -596,6 +596,8 @@ void MainWindow::RunClick()
 MainWindow::MainWindow(int w, int h, std::string const& title, std::string const& com_port, uint32_t num_of_samples, sf::Uint32 style) :
     Window(w, h, title, style), m_config_number_of_samples(num_of_samples)
 {
+    m_sample_freq_hz = std::make_shared<int>(0);
+
     ///////////
     // Chart //
     ///////////

@@ -283,7 +283,7 @@ void Signal::Edit(ProtocolDataType const* m_data, int start, int size, View view
                     SetIndicator(x_position, Event::DETECTED_OUT);
                 }
 
-                m_ejection_window_stats->Update(m_ejection_window_width_cntr / (m_sample_freq_hz / 1000.f)); // convert to milliseconds
+                m_ejection_window_stats->Update(m_ejection_window_width_cntr);
                 if (m_ejection_window_stats->last < *m_window_time_min || m_ejection_window_stats->last > *m_window_time_max) {
                     m_events = static_cast<Event>(m_events | Event::WINDOW_TIME);
                     SetIndicator(x_position, Event::WINDOW_TIME);
@@ -302,7 +302,7 @@ void Signal::Edit(ProtocolDataType const* m_data, int start, int size, View view
                     m_detected_in_window_cnt++;
                     m_threshold = Threshold::IDLE;
                     m_events    = static_cast<Event>(m_events | Event::DETECTED_IN);
-                    m_detection_stats->Update(m_detection_time_cntr / (m_sample_freq_hz / 1000.f)); // convert to milliseconds
+                    m_detection_stats->Update(m_detection_time_cntr);
                     SetIndicator(x_position, Event::DETECTED_IN);
                     if (m_detection_stats->last < *m_detection_time_min || m_detection_stats->last > *m_detection_time_max) {
                         m_events = static_cast<Event>(m_events | Event::DETECTION_TIME);

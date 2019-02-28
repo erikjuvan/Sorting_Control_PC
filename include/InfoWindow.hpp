@@ -15,6 +15,8 @@ private:
     std::shared_ptr<Statistics<int64_t>>              m_all;
     std::string                                       m_save_filename;
 
+    std::shared_ptr<int> m_sample_freq_hz;
+
     virtual void Events() override final;
 
 public:
@@ -26,6 +28,8 @@ public:
     void push_back(std::shared_ptr<Statistics<int64_t>> s) { m_channel.push_back(s); }
     void SetAll(std::shared_ptr<Statistics<int64_t>> all) { m_all = all; }
     void RefreshTable();
+
+    void SetSampleFrequency(std::shared_ptr<int> sample_freq) { m_sample_freq_hz = sample_freq; }
 
     // Members
     //////////
