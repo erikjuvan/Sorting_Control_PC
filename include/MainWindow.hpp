@@ -100,6 +100,9 @@ public:
 
     std::shared_ptr<int> GetSampleFreq() const { return m_sample_freq_hz; }
 
+    // Reads SC parameters from SC and fills in the gui textboxes
+    void UploadSCParameters();
+
     // Members
     //////////
 
