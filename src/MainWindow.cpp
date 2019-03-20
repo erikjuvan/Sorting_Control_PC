@@ -33,6 +33,10 @@ void MainWindow::UploadSCParameters()
 
     std::string buf;
 
+    // Clear existing data in buffer
+    m_communication->Flush();
+    m_communication->Purge();
+
     // Sample frequency
     ////////////////////////////////
     auto tokens = read_and_parse("GETFREQ\n", buf);
@@ -89,6 +93,16 @@ void MainWindow::button_connect_Click()
             UploadSCParameters();
 
             textbox_comport->Enabled(false);
+
+            // Enable all textboxes and send buttons
+            textbox_frequency->Enabled(true);
+            textbox_times->Enabled(true);
+            textbox_filter_coeffs->Enabled(true);
+            textbox_threshold->Enabled(true);
+            button_set_frequency->Enabled(true);
+            button_set_times->Enabled(true);
+            button_set_filter_coeffs->Enabled(true);
+            button_set_threshold->Enabled(true);
         } else {
             std::cout << "Can't connect to port " << textbox_comport->GetText() << std::endl;
         }
@@ -97,7 +111,22 @@ void MainWindow::button_connect_Click()
             button_run_Click();
         m_communication->Disconnect();
         button_connect->SetText("Connect");
+
         textbox_comport->Enabled(true);
+        // Disable all textboxes and send buttons
+        textbox_frequency->SetText("");
+        textbox_frequency->Enabled(false);
+        textbox_times->SetText("");
+        textbox_times->Enabled(false);
+        textbox_filter_coeffs->SetText("");
+        textbox_filter_coeffs->Enabled(false);
+        textbox_threshold->SetText("");
+        textbox_threshold->Enabled(false);
+        button_set_frequency->Enabled(false);
+        button_set_times->Enabled(false);
+        button_set_filter_coeffs->Enabled(false);
+        button_set_threshold->Enabled(false);
+        button_save->Enabled(false);
     }
 }
 
@@ -107,12 +136,11 @@ void MainWindow::button_run_Click()
         return;
 
     if (!*m_running) {
-        // Send m_data first before setting m_running = Running::RUNNING;
-        m_communication->Write("UART_SORT\n");
-        m_communication->Write("VRBS,1\n");
-
         // Get the latest parameters that are actually on SC
         UploadSCParameters();
+
+        m_communication->Write("SORT\n");
+        m_communication->Write("VRBS,1\n");
 
         // Disable all textboxes and send buttons so as to not be able to overwrite any parameters (so savefile parameters are 100% sure to be correct)
         textbox_frequency->Enabled(false);
@@ -676,16 +704,20 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
 
     button_set_frequency = std::make_shared<mygui::Button>(150, 190, "Send", 50);
     button_set_frequency->OnClick(std::bind(&MainWindow::button_set_frequency_Click, this));
+    button_set_frequency->Enabled(false);
 
     // Set times is correct since we will be inputing time in ms and then converting it to ticks to send to MCU
     button_set_times = std::make_shared<mygui::Button>(150, 250, "Send", 50);
     button_set_times->OnClick(std::bind(&MainWindow::button_set_times_Click, this));
+    button_set_times->Enabled(false);
 
     button_set_filter_coeffs = std::make_shared<mygui::Button>(150, 310, "Send", 50);
     button_set_filter_coeffs->OnClick(std::bind(&MainWindow::button_set_filter_coeffs_Click, this));
+    button_set_filter_coeffs->Enabled(false);
 
     button_set_threshold = std::make_shared<mygui::Button>(150, 370, "Send", 50);
     button_set_threshold->OnClick(std::bind(&MainWindow::button_set_threshold_Click, this));
+    button_set_threshold->Enabled(false);
 
     button_record = std::make_shared<mygui::Button>(10, 480, "Record");
     button_record->OnClick(std::bind(&MainWindow::button_record_Click, this));
@@ -698,10 +730,14 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
     //////////////
     textbox_comport = std::make_shared<mygui::Textbox>(10, 10, "COM");
     textbox_comport->SetText(com_port);
-    textbox_frequency          = std::make_shared<mygui::Textbox>(10, 190, "", 120);
-    textbox_times              = std::make_shared<mygui::Textbox>(10, 250, "", 120);
-    textbox_filter_coeffs      = std::make_shared<mygui::Textbox>(10, 310, "", 120);
-    textbox_threshold          = std::make_shared<mygui::Textbox>(10, 370, "", 120);
+    textbox_frequency = std::make_shared<mygui::Textbox>(10, 190, "", 120);
+    textbox_frequency->Enabled(false);
+    textbox_times = std::make_shared<mygui::Textbox>(10, 250, "", 120);
+    textbox_times->Enabled(false);
+    textbox_filter_coeffs = std::make_shared<mygui::Textbox>(10, 310, "", 120);
+    textbox_filter_coeffs->Enabled(false);
+    textbox_threshold = std::make_shared<mygui::Textbox>(10, 370, "", 120);
+    textbox_threshold->Enabled(false);
     textbox_detection_time_min = std::make_shared<mygui::Textbox>(35, 605, "", 40, 25);
     textbox_detection_time_min->onKeyPress(std::bind(&MainWindow::textbox_detection_time_min_KeyPress, this));
     textbox_detection_time_max = std::make_shared<mygui::Textbox>(165, 605, "", 40, 25);
