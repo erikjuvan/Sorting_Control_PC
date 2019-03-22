@@ -139,7 +139,21 @@ void MainWindow::button_run_Click()
         // Get the latest parameters that are actually on SC
         UploadSCParameters();
 
+        // Make sure we enter sort mode
         m_communication->Write("SORT\n");
+
+        // Wait a while to make sure we receive echo from SORT command
+        using namespace std::chrono_literals;
+        std::this_thread::sleep_for(100ms);
+
+        // Clear existing data in buffer
+        m_communication->Flush();
+        m_communication->Purge();
+
+        // Wait a while to make sure communication is purged
+        std::this_thread::sleep_for(100ms);
+
+        // Set verbose mode, so we start receving data
         m_communication->Write("VRBS,1\n");
 
         // Disable all textboxes and send buttons so as to not be able to overwrite any parameters (so savefile parameters are 100% sure to be correct)
