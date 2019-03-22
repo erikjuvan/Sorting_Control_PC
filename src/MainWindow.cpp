@@ -920,7 +920,7 @@ void MainWindow::UpdateSignals(ProtocolDataType* data)
             if (event_happened) {
                 for (auto& s : signals) {
                     if (s->AnyEvents()) {
-                        recorded_signals.push_back(s);
+                        recorded_signals.push_back(std::make_shared<Signal>(*s));
                         s->ClearEvents();
                     } else {
                         recorded_signals.push_back(std::make_shared<Signal>()); // push empty signal
