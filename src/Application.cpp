@@ -189,6 +189,7 @@ Application::Application()
     m_detectionInfoWindow = std::make_shared<InfoWindow>("Detection Info", "det.py");
     m_detectionInfoWindow->SetPosition(m_mainWindow->GetPosition() + sf::Vector2i(1850 - 480, 40));
     m_detectionInfoWindow->SetSampleFrequency(m_mainWindow->GetSampleFreq());
+    m_detectionInfoWindow->SetVisible(false);
     for (auto& s : m_mainWindow->signals) {
         m_detectionInfoWindow->push_back(s->GetDetectionStats());
     }
@@ -198,6 +199,7 @@ Application::Application()
     m_frameInfoWindow = std::make_shared<InfoWindow>("Frame Info", "win.py");
     m_frameInfoWindow->SetPosition(m_mainWindow->GetPosition() + sf::Vector2i(1850 - 1000, 40));
     m_frameInfoWindow->SetSampleFrequency(m_mainWindow->GetSampleFreq());
+    m_frameInfoWindow->SetVisible(false);
     for (auto& s : m_mainWindow->signals) {
         m_frameInfoWindow->push_back(s->GetTriggerWindowStats());
     }

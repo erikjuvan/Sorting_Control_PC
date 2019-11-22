@@ -19,7 +19,9 @@ public:
     std::string Readline();
     void        Flush();
     void        Purge();
+    void        StopTransmissionAndSuperPurge();
     void        SetTimeout(int ms);
+    void        ConfirmTransmission(std::string const& str); // throws on error
 
 private:
     std::mutex     m_mtx;
