@@ -195,13 +195,34 @@ void Signal::Edit(ProtocolDataType const* m_data, int start, int size, View view
     const float y_zero = m_graph_region.top + m_graph_region.height;
     const float y_high = y_zero - (m_threashold_value / *m_max_val) * m_graph_region.height + 1;
 
+    if (m_draw_trigger_frame) {
+        if (start == 0) {
+            // Clear all frames
+            for (int i = 0; i <= m_trigger_frame_idx; ++i) // NOTE! must be less or equal!
+                m_trigger_frame[i].position = sf::Vector2f(0.f, 0.f);
+            m_trigger_frame_idx = 0;
+
+            // Clear all indicators
+            for (int i = 0; i < m_event_indicator_idx; ++i)
+                m_event_indicator[i].position = sf::Vector2f(0.f, 0.f);
+            m_event_indicator_idx = 0;
+
+            if (m_only_draw_on_trigger)
+                DisableDraw();
+            else
+                EnableDraw();
+
+            ClearEvents();
+        }
+    }
+
     for (int i = 0, s = start; i < size; ++i, ++s) {
         m_rx_data.push_back(m_data[i].u64);
 
-        uint32_t raw_data     = m_data[i].u32.raw_data;
-        bool     ejection_win = m_data[i].u32.ejection_window;
-        float    filt_data    = std::abs(m_data[i].f32.filtered_data_w_obj_det); // we have to take the absolute value (obj_det is on MSB)
-        bool     obj_det      = m_data[i].u32.object_detected;
+        const uint32_t raw_data     = m_data[i].u32.raw_data;
+        const bool     ejection_win = m_data[i].u32.ejection_window;
+        const float    filt_data    = std::abs(m_data[i].f32.filtered_data_w_obj_det); // we have to take the absolute value (obj_det is on MSB)
+        const bool     obj_det      = m_data[i].u32.object_detected;
 
         if (view == View::RAW)
             m_curve[s].position.y = y_zero - (raw_data / *m_max_val) * m_graph_region.height + 1;
@@ -210,28 +231,9 @@ void Signal::Edit(ProtocolDataType const* m_data, int start, int size, View view
 
         if (m_draw_trigger_frame) {
 
-            if (start == 0) {
-                // Clear all frames
-                for (int i = 0; i < m_trigger_frame_idx; ++i)
-                    m_trigger_frame[i].position = sf::Vector2f(0.f, 0.f);
-                m_trigger_frame_idx = 0;
-
-                // Clear all indicators
-                for (int i = 0; i < m_event_indicator_idx; ++i)
-                    m_event_indicator[i].position = sf::Vector2f(0.f, 0.f);
-                m_event_indicator_idx = 0;
-
-                if (m_only_draw_on_trigger)
-                    DisableDraw();
-                else
-                    EnableDraw();
-
-                ClearEvents();
-            }
-
             // Check if we are trying to draw too many ejection windows
-            if (m_trigger_frame_idx + 5 >= m_event_indicator.getVertexCount()) { // 5 is a "big enough" number to make sure we don't overflow
-                std::cerr << "Trying to draw to many indicators > " << m_event_indicator.getVertexCount() << std::endl;
+            if ((m_trigger_frame_idx + 5) >= m_trigger_frame.getVertexCount()) { // 5 is a "big enough" number to make sure we don't overflow
+                std::cerr << "Trying to draw to many indicators > " << m_trigger_frame.getVertexCount() << std::endl;
                 return;
             }
 
@@ -283,7 +285,7 @@ void Signal::Edit(ProtocolDataType const* m_data, int start, int size, View view
                     SetIndicator(x_position, Event::DETECTED_OUT);
                 }
 
-                m_ejection_window_stats->Update(m_ejection_window_width_cntr / (m_sample_freq_hz / 1000.f)); // convert to milliseconds
+                m_ejection_window_stats->Update(m_ejection_window_width_cntr);
                 if (m_ejection_window_stats->last < *m_window_time_min || m_ejection_window_stats->last > *m_window_time_max) {
                     m_events = static_cast<Event>(m_events | Event::WINDOW_TIME);
                     SetIndicator(x_position, Event::WINDOW_TIME);
@@ -302,7 +304,7 @@ void Signal::Edit(ProtocolDataType const* m_data, int start, int size, View view
                     m_detected_in_window_cnt++;
                     m_threshold = Threshold::IDLE;
                     m_events    = static_cast<Event>(m_events | Event::DETECTED_IN);
-                    m_detection_stats->Update(m_detection_time_cntr / (m_sample_freq_hz / 1000.f)); // convert to milliseconds
+                    m_detection_stats->Update(m_detection_time_cntr);
                     SetIndicator(x_position, Event::DETECTED_IN);
                     if (m_detection_stats->last < *m_detection_time_min || m_detection_stats->last > *m_detection_time_max) {
                         m_events = static_cast<Event>(m_events | Event::DETECTION_TIME);

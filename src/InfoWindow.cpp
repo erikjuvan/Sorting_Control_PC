@@ -76,18 +76,29 @@ void InfoWindow::Events()
 
 void InfoWindow::RefreshTable()
 {
-    int64_t min = 100000, max = 0, avg = 0, stdev = 0, last = 0, cnt = 0;
+    std::optional<int64_t> min;
+    int64_t                max = 0, avg = 0, stdev = 0, last = 0, cnt = 0;
+
+    // Safety check
+    if (!m_sample_freq_hz || *m_sample_freq_hz <= 0)
+        return;
 
     for (int i = 0; i < N_CHANNELS; ++i) {
-        infolabels_chs[i].label_min->SetText(std::to_string(m_channel[i]->min));
-        infolabels_chs[i].label_max->SetText(std::to_string(m_channel[i]->max));
-        infolabels_chs[i].label_avg->SetText(std::to_string(m_channel[i]->avg));
-        infolabels_chs[i].label_std_dev->SetText(std::to_string(m_channel[i]->stdev));
-        infolabels_chs[i].label_last->SetText(std::to_string(m_channel[i]->last));
+        // Min is special since at init it can't hold a sensible min value
+        if (m_channel[i]->min) {
+            infolabels_chs[i].label_min->SetText(std::to_string(m_channel[i]->min.value() * 1000 / *m_sample_freq_hz));
+
+            if (!min || m_channel[i]->min.value() < min.value())
+                min = m_channel[i]->min;
+        } else
+            infolabels_chs[i].label_min->SetText("N/A");
+
+        infolabels_chs[i].label_max->SetText(std::to_string(m_channel[i]->max * 1000 / *m_sample_freq_hz));
+        infolabels_chs[i].label_avg->SetText(std::to_string(m_channel[i]->avg * 1000 / *m_sample_freq_hz));
+        infolabels_chs[i].label_std_dev->SetText(std::to_string(m_channel[i]->stdev * 1000 / *m_sample_freq_hz));
+        infolabels_chs[i].label_last->SetText(std::to_string(m_channel[i]->last * 1000 / *m_sample_freq_hz));
         infolabels_chs[i].label_cnt->SetText(std::to_string(m_channel[i]->cnt));
 
-        if (m_channel[i]->min < min)
-            min = m_channel[i]->min;
         if (m_channel[i]->max > max)
             max = m_channel[i]->max;
         avg += m_channel[i]->avg * m_channel[i]->cnt;
@@ -97,9 +108,13 @@ void InfoWindow::RefreshTable()
         avg /= cnt;
 
     // Total
-    infolabel_all.label_min->SetText(std::to_string(min));
-    infolabel_all.label_max->SetText(std::to_string(max));
-    infolabel_all.label_avg->SetText(std::to_string(avg));
+    if (min)
+        infolabel_all.label_min->SetText(std::to_string(min.value() * 1000 / *m_sample_freq_hz));
+    else
+        infolabel_all.label_min->SetText("N/A");
+
+    infolabel_all.label_max->SetText(std::to_string(max * 1000 / *m_sample_freq_hz));
+    infolabel_all.label_avg->SetText(std::to_string(avg * 1000 / *m_sample_freq_hz));
     infolabel_all.label_cnt->SetText(std::to_string(cnt));
     // Not supported currently
     //infolabel_all.label_std_dev->SetText(std::to_string(stdev));

@@ -10,14 +10,79 @@
 void MainWindow::SetSampleFreq()
 {
     try {
-        m_sample_freq = std::stoi(textbox_frequency->GetText());
+        *m_sample_freq_hz = std::stoi(textbox_frequency->GetText());
         for (auto& s : signals)
-            s->SetSampleFreq(m_sample_freq);
+            s->SetSampleFreq(*m_sample_freq_hz);
     } catch (std::invalid_argument& ia) {
         std::cerr << ia.what() << std::endl;
     } catch (std::out_of_range& oor) {
         std::cerr << oor.what() << std::endl;
     }
+}
+
+void MainWindow::ImportSCParameters()
+{
+    auto const& read_and_parse = [this](std::string const& command, std::string& ret_data) {
+        m_communication->Write(command);
+        ret_data = m_communication->Readline();
+        if (ret_data[ret_data.size() - 1] == '\n')
+            ret_data.pop_back();
+
+        auto str_vec = Help::TokenizeString(ret_data, ",\n");
+
+        // Remove first string (command name) and only keep results
+        str_vec.erase(str_vec.begin());
+
+        return str_vec;
+    };
+
+    std::string buf;
+
+    // Sample frequency
+    ////////////////////////////////
+    auto tokens = read_and_parse("FRQG\n", buf);
+    textbox_frequency->SetText(tokens[0]);
+    SetSampleFreq();
+
+    // Sorting ticks
+    ////////////////////////////////
+    tokens = read_and_parse("SRTG\n", buf);
+    if (tokens.size() < 3)
+        std::cerr << "Received invalid ticks\n";
+    else
+        for (auto& s : signals)
+            s->SetBlindTicks(std::stoi(tokens[2]));
+
+    // Convert ticks to times_ms
+    std::string txtbx_times_ms;
+    for (auto t : tokens)
+        if (*m_sample_freq_hz > 0) // prevent division by zero
+            txtbx_times_ms += std::to_string(std::stoi(t) * 1000 / *m_sample_freq_hz) + ",";
+        else
+            txtbx_times_ms += "0,";
+    txtbx_times_ms.pop_back();
+    textbox_times->SetText(txtbx_times_ms);
+
+    // Filter coefficients
+    ////////////////////////////////
+    tokens = read_and_parse("FILG\n", buf);
+    if (tokens.size() < 3)
+        std::cerr << "Received invalid filter coefficients\n";
+    std::string txtbx_filter_coeffs;
+    for (const auto& t : tokens)
+        txtbx_filter_coeffs += t + ",";
+    txtbx_filter_coeffs.pop_back();
+    textbox_filter_coeffs->SetText(txtbx_filter_coeffs);
+
+    // Threshold
+    ////////////////////////////////
+    tokens = read_and_parse("THRG\n", buf);
+    if (tokens.size() < 1)
+        std::cerr << "Received invalid threshold\n";
+    else
+        for (auto& s : signals)
+            s->SetThreashold(std::stof(tokens[0]));
+    textbox_threshold->SetText(tokens[0]);
 }
 
 void MainWindow::button_connect_Click()
@@ -28,54 +93,21 @@ void MainWindow::button_connect_Click()
             button_connect->SetText("Disconnect");
 
             // If we previously crashed we could still be receving m_data, so make sure we stop before configuring
-            m_communication->Write("VRBS,0\n");
+            m_communication->StopTransmissionAndSuperPurge();
 
-            std::string              buf;
-            std::vector<std::string> strings;
-
-            auto const& read_and_parse = [this, &buf, &strings](std::string const& str) {
-                m_communication->Write(str);
-                buf     = m_communication->Readline();
-                strings = Help::TokenizeString(buf, ",\n");
-                if (buf[buf.size() - 1] == '\n')
-                    buf.pop_back();
-            };
-
-            read_and_parse("GETFREQ\n");
-            textbox_frequency->SetText(buf);
-            SetSampleFreq();
-
-            read_and_parse("GETSORTTICKS\n");
-            if (strings.size() < 3)
-                std::cerr << "Received invalid ticks\n";
-            else
-                for (auto& s : signals)
-                    s->SetBlindTicks(std::stoi(strings[2]));
-
-            // Convert ticks to times_ms
-            std::string txtbx_times_ms;
-            for (auto s : strings)
-                if (m_sample_freq > 0) // preven division by zero
-                    txtbx_times_ms += std::to_string(std::stoi(s) * 1000 / m_sample_freq) + ",";
-                else
-                    txtbx_times_ms += "0,";
-            txtbx_times_ms.pop_back();
-            textbox_times->SetText(txtbx_times_ms);
-
-            read_and_parse("GETFILTERCOEFF\n");
-            if (strings.size() < 3)
-                std::cerr << "Received invalid filter coefficients\n";
-            textbox_filter_coeffs->SetText(buf);
-
-            read_and_parse("GETTHRESHOLD\n");
-            if (strings.size() < 1)
-                std::cerr << "Received invalid threshold\n";
-            else
-                for (auto& s : signals)
-                    s->SetThreashold(std::stof(strings[0]));
-            textbox_threshold->SetText(buf);
+            ImportSCParameters();
 
             textbox_comport->Enabled(false);
+
+            // Enable all textboxes and send buttons
+            textbox_frequency->Enabled(true);
+            textbox_times->Enabled(true);
+            textbox_filter_coeffs->Enabled(true);
+            textbox_threshold->Enabled(true);
+            button_set_frequency->Enabled(true);
+            button_set_times->Enabled(true);
+            button_set_filter_coeffs->Enabled(true);
+            button_set_threshold->Enabled(true);
         } else {
             std::cout << "Can't connect to port " << textbox_comport->GetText() << std::endl;
         }
@@ -84,7 +116,22 @@ void MainWindow::button_connect_Click()
             button_run_Click();
         m_communication->Disconnect();
         button_connect->SetText("Connect");
+
         textbox_comport->Enabled(true);
+        // Disable all textboxes and send buttons
+        textbox_frequency->SetText("");
+        textbox_frequency->Enabled(false);
+        textbox_times->SetText("");
+        textbox_times->Enabled(false);
+        textbox_filter_coeffs->SetText("");
+        textbox_filter_coeffs->Enabled(false);
+        textbox_threshold->SetText("");
+        textbox_threshold->Enabled(false);
+        button_set_frequency->Enabled(false);
+        button_set_times->Enabled(false);
+        button_set_filter_coeffs->Enabled(false);
+        button_set_threshold->Enabled(false);
+        button_save->Enabled(false);
     }
 }
 
@@ -94,24 +141,46 @@ void MainWindow::button_run_Click()
         return;
 
     if (!*m_running) {
-        // Send m_data first before setting m_running = Running::RUNNING;
-        m_communication->Write("UART_SORT\n");
+
+        // Just to make sure serial buffers are clear before importing parameters
+        m_communication->StopTransmissionAndSuperPurge();
+
+        // Get the latest parameters that are actually on SC
+        ImportSCParameters();
+
+        // Make sure we enter sort mode
+        m_communication->Write("SORT\n");
+        m_communication->ConfirmTransmission("SORT\n"); // currently all ConfirmTransmissions are neccessary since they also clear the serial rx buffer
+
+        // Set verbose mode, so we start receving data
         m_communication->Write("VRBS,1\n");
-        *m_running = true;
-        button_run->SetText("Running");
+        m_communication->ConfirmTransmission("VRBS,1\n");
+
+        // Disable all textboxes and send buttons so as to not be able to overwrite any parameters (so savefile parameters are 100% sure to be correct)
+        textbox_frequency->Enabled(false);
+        textbox_times->Enabled(false);
+        textbox_filter_coeffs->Enabled(false);
+        textbox_threshold->Enabled(false);
+        button_set_frequency->Enabled(false);
+        button_set_times->Enabled(false);
+        button_set_filter_coeffs->Enabled(false);
+        button_set_threshold->Enabled(false);
+        button_save->Enabled(false);
+
+        *m_running       = true;
         m_run_start_time = std::chrono::steady_clock::now();
 
         for (int i = 0; i < N_CHANNELS; ++i)
             chart->ChangeSignal(i, signals[i]);
+
+        button_run->SetText("Running");
+
     } else {
-        // Order of statements here matters, to insure PC app doesn't get stuck on serial->read function
         *m_running = false;
-        m_communication->Write("VRBS,0\n");
-        size_t len = 0;
-        while ((len = m_communication->GetRxBufferLen()) > 0) {
-            m_communication->Purge();
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        }
+        m_communication->StopTransmissionAndSuperPurge();
+
+        button_save->Enabled(true);
+
         button_run->SetText("Stopped");
     }
 }
@@ -171,8 +240,11 @@ void MainWindow::button_save_Click()
         header.sizeof_sample         = sizeof(signals[0]->GetRXData()[0]);
         header.num_of_samples_per_ch = signals[0]->GetRXData().size();
 
+        // First... super purge
+        m_communication->StopTransmissionAndSuperPurge();
+
         // Get all sorting control parameters
-        m_communication->Write("GETSETTINGS");
+        m_communication->Write("STTG");
 
         auto buf                               = m_communication->Readline();
         auto params                            = Help::TokenizeString(buf, " ,\n:");
@@ -278,7 +350,8 @@ void MainWindow::button_view_mode_Click()
 
 void MainWindow::button_set_frequency_Click()
 {
-    m_communication->Write("SETFREQ," + textbox_frequency->GetText() + "\n");
+    m_communication->Write("FRQS," + textbox_frequency->GetText() + "\n");
+    m_communication->ConfirmTransmission("FRQS," + textbox_frequency->GetText() + "\n");
     SetSampleFreq();
 }
 
@@ -296,12 +369,12 @@ void MainWindow::button_set_times_Click()
     }
 
     for (auto t_ms : times_ms) {
-        ticks.push_back((m_sample_freq * t_ms) / 1000); // ticks = desired_period_s / sample_period_s = desired_period_s / (1 / sample_freq_hz)
+        ticks.push_back((*m_sample_freq_hz * t_ms) / 1000); // ticks = desired_period_s / sample_period_s = desired_period_s / (1 / sample_freq_hz)
     }
 
-    std::string command = "SETSORTTICKS," + std::to_string(ticks.at(0)) + "," + std::to_string(ticks.at(1)) + "," + std::to_string(ticks.at(2)) + "\n";
-
+    std::string command = "SRTS," + std::to_string(ticks.at(0)) + "," + std::to_string(ticks.at(1)) + "," + std::to_string(ticks.at(2)) + "\n";
     m_communication->Write(command);
+    m_communication->ConfirmTransmission(command);
 
     // Set blind time for all signals
     std::vector<std::string> strings = Help::TokenizeString(textbox_times->GetText(), ",");
@@ -312,7 +385,8 @@ void MainWindow::button_set_times_Click()
 
 void MainWindow::button_set_filter_coeffs_Click()
 {
-    m_communication->Write("SETFILTERCOEFF," + textbox_filter_coeffs->GetText() + "\n");
+    m_communication->Write("FILS," + textbox_filter_coeffs->GetText() + "\n");
+    m_communication->ConfirmTransmission("FILS," + textbox_filter_coeffs->GetText() + "\n");
 
     // Set threashold for all signals
     std::vector<std::string> strings = Help::TokenizeString(textbox_filter_coeffs->GetText(), ",");
@@ -320,7 +394,8 @@ void MainWindow::button_set_filter_coeffs_Click()
 
 void MainWindow::button_set_threshold_Click()
 {
-    m_communication->Write("SETTHRESHOLD," + textbox_threshold->GetText() + "\n");
+    m_communication->Write("THRS," + textbox_threshold->GetText() + "\n");
+    m_communication->ConfirmTransmission("THRS," + textbox_threshold->GetText() + "\n");
 
     // Set threashold for all signals
     std::vector<std::string> strings = Help::TokenizeString(textbox_threshold->GetText(), ",\n");
@@ -383,6 +458,18 @@ void MainWindow::button_clear_all_Click()
         s->ClearRXData();
     ResetSignals();
     label_recorded_signals_counter->SetText("0");
+
+    // Enable all textboxes and send buttons to again be able to set parameters
+    if (!*m_running) {
+        textbox_frequency->Enabled(true);
+        textbox_times->Enabled(true);
+        textbox_filter_coeffs->Enabled(true);
+        textbox_threshold->Enabled(true);
+        button_set_frequency->Enabled(true);
+        button_set_times->Enabled(true);
+        button_set_filter_coeffs->Enabled(true);
+        button_set_threshold->Enabled(true);
+    }
 }
 
 void MainWindow::textbox_detection_time_min_KeyPress()
@@ -596,14 +683,16 @@ void MainWindow::RunClick()
 MainWindow::MainWindow(int w, int h, std::string const& title, std::string const& com_port, uint32_t num_of_samples, sf::Uint32 style) :
     Window(w, h, title, style), m_config_number_of_samples(num_of_samples)
 {
+    m_sample_freq_hz = std::make_shared<int>(0);
+
     ///////////
     // Chart //
     ///////////
     m_events_to_record   = std::make_shared<Signal::Event>();
-    m_detection_time_min = std::make_shared<uint32_t>(1000000);
-    m_detection_time_max = std::make_shared<uint32_t>(0);
-    m_window_time_min    = std::make_shared<uint32_t>(1000000);
-    m_window_time_max    = std::make_shared<uint32_t>(0);
+    m_detection_time_min = std::make_shared<uint32_t>(0);
+    m_detection_time_max = std::make_shared<uint32_t>(1000000);
+    m_window_time_min    = std::make_shared<uint32_t>(0);
+    m_window_time_max    = std::make_shared<uint32_t>(1000000);
     CreateChart();
 
     /////////////
@@ -629,16 +718,20 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
 
     button_set_frequency = std::make_shared<mygui::Button>(150, 190, "Send", 50);
     button_set_frequency->OnClick(std::bind(&MainWindow::button_set_frequency_Click, this));
+    button_set_frequency->Enabled(false);
 
     // Set times is correct since we will be inputing time in ms and then converting it to ticks to send to MCU
     button_set_times = std::make_shared<mygui::Button>(150, 250, "Send", 50);
     button_set_times->OnClick(std::bind(&MainWindow::button_set_times_Click, this));
+    button_set_times->Enabled(false);
 
     button_set_filter_coeffs = std::make_shared<mygui::Button>(150, 310, "Send", 50);
     button_set_filter_coeffs->OnClick(std::bind(&MainWindow::button_set_filter_coeffs_Click, this));
+    button_set_filter_coeffs->Enabled(false);
 
     button_set_threshold = std::make_shared<mygui::Button>(150, 370, "Send", 50);
     button_set_threshold->OnClick(std::bind(&MainWindow::button_set_threshold_Click, this));
+    button_set_threshold->Enabled(false);
 
     button_record = std::make_shared<mygui::Button>(10, 480, "Record");
     button_record->OnClick(std::bind(&MainWindow::button_record_Click, this));
@@ -651,10 +744,14 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
     //////////////
     textbox_comport = std::make_shared<mygui::Textbox>(10, 10, "COM");
     textbox_comport->SetText(com_port);
-    textbox_frequency          = std::make_shared<mygui::Textbox>(10, 190, "", 120);
-    textbox_times              = std::make_shared<mygui::Textbox>(10, 250, "", 120);
-    textbox_filter_coeffs      = std::make_shared<mygui::Textbox>(10, 310, "", 120);
-    textbox_threshold          = std::make_shared<mygui::Textbox>(10, 370, "", 120);
+    textbox_frequency = std::make_shared<mygui::Textbox>(10, 190, "", 120);
+    textbox_frequency->Enabled(false);
+    textbox_times = std::make_shared<mygui::Textbox>(10, 250, "", 120);
+    textbox_times->Enabled(false);
+    textbox_filter_coeffs = std::make_shared<mygui::Textbox>(10, 310, "", 120);
+    textbox_filter_coeffs->Enabled(false);
+    textbox_threshold = std::make_shared<mygui::Textbox>(10, 370, "", 120);
+    textbox_threshold->Enabled(false);
     textbox_detection_time_min = std::make_shared<mygui::Textbox>(35, 605, "", 40, 25);
     textbox_detection_time_min->onKeyPress(std::bind(&MainWindow::textbox_detection_time_min_KeyPress, this));
     textbox_detection_time_max = std::make_shared<mygui::Textbox>(165, 605, "", 40, 25);
@@ -809,7 +906,7 @@ void MainWindow::UpdateSignals(ProtocolDataType* data)
         m_signal_update_cntr = 0;
         if (*m_record == Record::ALL) {
             for (auto const& s : signals)
-                recorded_signals.push_back(s);
+                recorded_signals.emplace_back(std::make_shared<Signal>(*s));
             label_recorded_signals_counter->SetText(std::to_string(recorded_signals.size() / N_CHANNELS));
         } else if (*m_record == Record::EVENTS) {
             bool event_happened = false;
@@ -823,7 +920,7 @@ void MainWindow::UpdateSignals(ProtocolDataType* data)
             if (event_happened) {
                 for (auto& s : signals) {
                     if (s->AnyEvents()) {
-                        recorded_signals.push_back(s);
+                        recorded_signals.push_back(std::make_shared<Signal>(*s));
                         s->ClearEvents();
                     } else {
                         recorded_signals.push_back(std::make_shared<Signal>()); // push empty signal

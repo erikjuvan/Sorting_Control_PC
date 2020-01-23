@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <iostream>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -30,7 +31,9 @@ template <typename T>
 struct Statistics {
     std::vector<T> buffer;
 
-    T min;
+    // min is special since when uninitialized no value makes real sense
+    std::optional<T> min;
+
     T max;
     T avg, prev_avg;
     T stdev, S;
@@ -47,7 +50,7 @@ struct Statistics {
     void Clear()
     {
         buffer.clear();
-        min = static_cast<T>(10000);
+        min = std::nullopt;
         max = avg = prev_avg = stdev = S = last = cnt = sum = static_cast<T>(0);
     }
 
@@ -56,6 +59,8 @@ struct Statistics {
         last = val;
         sum += val;
         cnt++;
+        if (!min)
+            min = val;
         if (val < min)
             min = val;
         if (val > max)

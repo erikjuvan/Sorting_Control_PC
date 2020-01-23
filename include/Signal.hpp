@@ -74,8 +74,8 @@ private:
     uint32_t                             m_ejection_window_width_cntr = 0;
     uint32_t                             m_detection_time_cntr        = 0;
 
-    Threshold m_threshold;
-    Event     m_events;
+    Threshold m_threshold = Threshold::IDLE;
+    Event     m_events    = Event::NONE;
 
     int m_sample_freq_hz = 0;
 

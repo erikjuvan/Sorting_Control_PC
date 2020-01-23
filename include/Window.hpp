@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <mygui/Object.hpp>
 
 class Window

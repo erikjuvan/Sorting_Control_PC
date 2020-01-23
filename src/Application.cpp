@@ -59,7 +59,7 @@ void Application::GetData()
     auto   prev_packet_id = header.packet_id;
 
     std::future<void> future           = std::async(std::launch::async, [] { return; }); // create a valid future
-    bool              parsing_too_slow = false;
+    std::atomic_bool  parsing_too_slow = false;
 
     while (m_mainWindow->IsOpen()) {
 
@@ -88,8 +88,7 @@ void Application::GetData()
 
                 if (read == sizeof(m_data)) {
                     if (future.wait_for(0ms) == std::future_status::ready) {
-
-                        future = std::async(std::launch::async, [this, parsing_too_slow] {
+                        future = std::async(std::launch::async, [this, &parsing_too_slow] {
                             // Time it
                             auto start = std::chrono::steady_clock::now();
                             // Internal tmp data buffer
@@ -100,16 +99,16 @@ void Application::GetData()
                             m_mainWindow->UpdateSignals(data_tmp_buf);
                             // How long did it all take
                             m_time_took_to_parse_data_us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count();
-                            if (parsing_too_slow)
+                            // If parsing was too slow output how long it took
+                            if (parsing_too_slow) {
+                                parsing_too_slow = false;
                                 std::cerr << "Parsing took: " << m_time_took_to_parse_data_us << " us\n";
-
+                            }
                             return;
                         });
-
-                        parsing_too_slow = false;
                     } else {
-                        std::cerr << "Data parsing too slow: overwritten previous packet.\n";
                         parsing_too_slow = true;
+                        std::cerr << "Data parsing too slow: overwritten previous packet.\n";
                     }
 
                 } else {
@@ -189,6 +188,8 @@ Application::Application()
     // Create detection info window
     m_detectionInfoWindow = std::make_shared<InfoWindow>("Detection Info", "det.py");
     m_detectionInfoWindow->SetPosition(m_mainWindow->GetPosition() + sf::Vector2i(1850 - 480, 40));
+    m_detectionInfoWindow->SetSampleFrequency(m_mainWindow->GetSampleFreq());
+    m_detectionInfoWindow->SetVisible(false);
     for (auto& s : m_mainWindow->signals) {
         m_detectionInfoWindow->push_back(s->GetDetectionStats());
     }
@@ -197,6 +198,8 @@ Application::Application()
     // Create frame info window
     m_frameInfoWindow = std::make_shared<InfoWindow>("Frame Info", "win.py");
     m_frameInfoWindow->SetPosition(m_mainWindow->GetPosition() + sf::Vector2i(1850 - 1000, 40));
+    m_frameInfoWindow->SetSampleFrequency(m_mainWindow->GetSampleFreq());
+    m_frameInfoWindow->SetVisible(false);
     for (auto& s : m_mainWindow->signals) {
         m_frameInfoWindow->push_back(s->GetTriggerWindowStats());
     }
