@@ -186,6 +186,8 @@ void MainWindow::button_run_Click()
         m_communication->StopTransmissionAndSuperPurge();
 
         button_save->Enabled(true);
+        button_send_raw->Enabled(true);
+        textbox_send_raw->Enabled(true);
 
         button_run->SetText("Stopped");
     }
