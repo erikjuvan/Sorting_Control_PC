@@ -22,31 +22,15 @@ void MainWindow::SetSampleFreq()
 
 void MainWindow::ImportSCParameters()
 {
-    auto const& read_and_parse = [this](std::string const& command, std::string& ret_data) {
-        m_communication->Write(command);
-        ret_data = m_communication->Readline();
-        if (ret_data[ret_data.size() - 1] == '\n')
-            ret_data.pop_back();
-
-        auto str_vec = Help::TokenizeString(ret_data, ",\n");
-
-        // Remove first string (command name) and only keep results
-        str_vec.erase(str_vec.begin());
-
-        return str_vec;
-    };
-
-    std::string buf;
-
     // Sample frequency
     ////////////////////////////////
-    auto tokens = read_and_parse("FRQG\n", buf);
+    auto tokens = m_communication->WriteAndTokenizeiResult("FRQG\n");
     textbox_frequency->SetText(tokens[0]);
     SetSampleFreq();
 
     // Sorting ticks
     ////////////////////////////////
-    tokens = read_and_parse("SRTG\n", buf);
+    tokens = m_communication->WriteAndTokenizeiResult("SRTG\n");
     if (tokens.size() < 3)
         std::cerr << "Received invalid ticks\n";
     else
@@ -65,7 +49,7 @@ void MainWindow::ImportSCParameters()
 
     // Filter coefficients
     ////////////////////////////////
-    tokens = read_and_parse("FILG\n", buf);
+    tokens = m_communication->WriteAndTokenizeiResult("FILG\n");
     if (tokens.size() < 3)
         std::cerr << "Received invalid filter coefficients\n";
     std::string txtbx_filter_coeffs;
@@ -76,7 +60,7 @@ void MainWindow::ImportSCParameters()
 
     // Threshold
     ////////////////////////////////
-    tokens = read_and_parse("THRG\n", buf);
+    tokens = m_communication->WriteAndTokenizeiResult("THRG\n");
     if (tokens.size() < 1)
         std::cerr << "Received invalid threshold\n";
     else
@@ -358,8 +342,15 @@ void MainWindow::button_view_mode_Click()
 
 void MainWindow::button_set_frequency_Click()
 {
-    m_communication->Write("FRQS," + textbox_frequency->GetText() + "\n");
-    m_communication->ConfirmTransmission("FRQS," + textbox_frequency->GetText() + "\n");
+    std::string cmd = "FRQS," + textbox_frequency->GetText() + "\n";
+    m_communication->Write(cmd);
+    try {
+        m_communication->ConfirmTransmission(cmd);
+    } catch (std::runtime_error& er) {
+        std::cout << er.what() << std::endl;
+        auto ret = m_communication->WriteAndTokenizeiResult("FRQG\n");
+        textbox_frequency->SetText(ret[0]);
+    }
     SetSampleFreq();
 }
 
