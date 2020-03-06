@@ -519,6 +519,11 @@ void MainWindow::textbox_window_time_max_KeyPress()
     }
 }
 
+void MainWindow::textbox_send_raw_EnterPress()
+{
+    button_send_raw_Click();
+}
+
 void MainWindow::label_info_detected_in_window_Clicked()
 {
     for (auto& s : signals) {
@@ -770,15 +775,16 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
     textbox_threshold = std::make_shared<mygui::Textbox>(10, 370, "", 120);
     textbox_threshold->Enabled(false);
     textbox_detection_time_min = std::make_shared<mygui::Textbox>(35, 605, "", 40, 25);
-    textbox_detection_time_min->onKeyPress(std::bind(&MainWindow::textbox_detection_time_min_KeyPress, this));
+    textbox_detection_time_min->OnKeyPress(std::bind(&MainWindow::textbox_detection_time_min_KeyPress, this));
     textbox_detection_time_max = std::make_shared<mygui::Textbox>(165, 605, "", 40, 25);
-    textbox_detection_time_max->onKeyPress(std::bind(&MainWindow::textbox_detection_time_max_KeyPress, this));
+    textbox_detection_time_max->OnKeyPress(std::bind(&MainWindow::textbox_detection_time_max_KeyPress, this));
     textbox_window_time_min = std::make_shared<mygui::Textbox>(35, 635, "", 40, 25);
-    textbox_window_time_min->onKeyPress(std::bind(&MainWindow::textbox_window_time_min_KeyPress, this));
+    textbox_window_time_min->OnKeyPress(std::bind(&MainWindow::textbox_window_time_min_KeyPress, this));
     textbox_window_time_max = std::make_shared<mygui::Textbox>(165, 635, "", 40, 25);
-    textbox_window_time_max->onKeyPress(std::bind(&MainWindow::textbox_window_time_max_KeyPress, this));
+    textbox_window_time_max->OnKeyPress(std::bind(&MainWindow::textbox_window_time_max_KeyPress, this));
     textbox_send_raw = std::make_shared<mygui::Textbox>(10, 740, "", 120);
     textbox_send_raw->Enabled(false);
+    textbox_send_raw->OnEnterPress(std::bind(&MainWindow::textbox_send_raw_EnterPress, this));
 
     ////////////
     // Labels //

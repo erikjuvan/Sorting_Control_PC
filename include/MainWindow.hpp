@@ -68,6 +68,7 @@ private:
     void textbox_detection_time_max_KeyPress();
     void textbox_window_time_min_KeyPress();
     void textbox_window_time_max_KeyPress();
+    void textbox_send_raw_EnterPress();
 
     void label_info_detected_in_window_Clicked();
     void label_info_detected_out_window_Clicked();
