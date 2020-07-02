@@ -145,7 +145,7 @@ void Signal::SetIndicator(float const x, Event const ev)
 {
     // Check if we are trying to draw too many indicators
     if (m_event_indicator_idx + 1 >= m_event_indicator.getVertexCount()) {
-        std::cerr << "Trying to draw to many indicators > " << m_event_indicator.getVertexCount() << std::endl;
+        std::cerr << "Trying to draw to many indicators > " << (m_event_indicator.getVertexCount() / 2) << std::endl;
         return;
     }
 
@@ -232,8 +232,8 @@ void Signal::Edit(ProtocolDataType const* m_data, int start, int size, View view
         if (m_draw_trigger_frame) {
 
             // Check if we are trying to draw too many ejection windows
-            if ((m_trigger_frame_idx + 5) >= m_trigger_frame.getVertexCount()) { // 5 is a "big enough" number to make sure we don't overflow
-                std::cerr << "Trying to draw to many indicators > " << m_trigger_frame.getVertexCount() << std::endl;
+            if ((m_trigger_frame_idx + 6) >= m_trigger_frame.getVertexCount()) { // 6 is a "big enough" number to make sure we don't overflow
+                std::cerr << "Trying to draw to many ejection windows > " << (m_trigger_frame.getVertexCount() / 6) << std::endl;
                 return;
             }
 
