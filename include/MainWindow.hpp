@@ -62,17 +62,20 @@ private:
     void button_record_Click();
     void button_info_Click();
     void button_clear_all_Click();
+    void button_send_raw_Click();
 
     void textbox_detection_time_min_KeyPress();
     void textbox_detection_time_max_KeyPress();
     void textbox_window_time_min_KeyPress();
     void textbox_window_time_max_KeyPress();
+    void textbox_send_raw_EnterPress();
 
     void label_info_detected_in_window_Clicked();
     void label_info_detected_out_window_Clicked();
     void label_info_signal_missed_Clicked();
     void label_detection_time_Clicked();
     void label_window_time_Clicked();
+    void label_recv_raw_Clicked();
 
     void checkbox_transparent_Clicked();
     void checkbox_only_show_framed_Clicked();
@@ -121,9 +124,11 @@ public:
     std::shared_ptr<mygui::Button> button_record;
     std::shared_ptr<mygui::Button> button_info_windows;
     std::shared_ptr<mygui::Button> button_clear_all;
+    std::shared_ptr<mygui::Button> button_send_raw;
 
     // Texbox
     std::shared_ptr<mygui::Textbox> textbox_comport;
+    std::shared_ptr<mygui::Textbox> textbox_notes; // small textbox used for notes, mainly to note which sorting control the program is connected to  (e.g. TOP, BOTTOM)
     std::shared_ptr<mygui::Textbox> textbox_frequency;
     std::shared_ptr<mygui::Textbox> textbox_times;
     std::shared_ptr<mygui::Textbox> textbox_filter_coeffs;
@@ -132,6 +137,7 @@ public:
     std::shared_ptr<mygui::Textbox> textbox_detection_time_max;
     std::shared_ptr<mygui::Textbox> textbox_window_time_min;
     std::shared_ptr<mygui::Textbox> textbox_window_time_max;
+    std::shared_ptr<mygui::Textbox> textbox_send_raw;
 
     // Labels
     std::shared_ptr<mygui::Label> label_frequency;
@@ -147,6 +153,8 @@ public:
     std::shared_ptr<mygui::Label> label_info_signal_missed;
     std::shared_ptr<mygui::Label> label_detection_time;
     std::shared_ptr<mygui::Label> label_window_time;
+    std::shared_ptr<mygui::Label> label_send_raw;
+    std::shared_ptr<mygui::Label> label_recv_raw;
 
     // Checkboxes
     std::shared_ptr<mygui::Checkbox> checkbox_transparent;

@@ -139,11 +139,14 @@ void Communication::StopTransmissionAndSuperPurge()
 
 void Communication::ConfirmTransmission(std::string const& str)
 {
-    auto        ret_str    = Readline();
-    auto        tokens     = Help::TokenizeString(str, ", \n");
-    auto        tokens_ret = Help::TokenizeString(ret_str, ", \n");
-    bool        fault      = false;
-    std::string error_msg  = "Transmission failed when sending: \"" + str + "\": ";
+    auto ret_str    = Readline();
+    auto tokens     = Help::TokenizeString(str, ", \n");
+    auto tokens_ret = Help::TokenizeString(ret_str, ", \n");
+    bool fault      = false;
+    auto tmp_str    = str;
+    if (tmp_str.back() == '\n')
+        tmp_str.pop_back();
+    std::string error_msg = "Transmission failed when sending: \"" + tmp_str + "\": ";
 
     // Command name
     if (tokens_ret[0] != tokens[0]) {
@@ -169,4 +172,18 @@ void Communication::ConfirmTransmission(std::string const& str)
             }
         }
     }
+}
+
+std::vector<std::string> Communication::WriteAndTokenizeiResult(std::string const& str)
+{
+    Write(str);
+    auto ret_data = Readline();
+    if (ret_data.back() == '\n')
+        ret_data.pop_back();
+
+    auto str_vec = Help::TokenizeString(ret_data, ",\n");
+
+    // Remove first string (command name) and only keep results
+    str_vec.erase(str_vec.begin());
+    return str_vec;
 }

@@ -22,31 +22,15 @@ void MainWindow::SetSampleFreq()
 
 void MainWindow::ImportSCParameters()
 {
-    auto const& read_and_parse = [this](std::string const& command, std::string& ret_data) {
-        m_communication->Write(command);
-        ret_data = m_communication->Readline();
-        if (ret_data[ret_data.size() - 1] == '\n')
-            ret_data.pop_back();
-
-        auto str_vec = Help::TokenizeString(ret_data, ",\n");
-
-        // Remove first string (command name) and only keep results
-        str_vec.erase(str_vec.begin());
-
-        return str_vec;
-    };
-
-    std::string buf;
-
     // Sample frequency
     ////////////////////////////////
-    auto tokens = read_and_parse("FRQG\n", buf);
+    auto tokens = m_communication->WriteAndTokenizeiResult("FRQG\n");
     textbox_frequency->SetText(tokens[0]);
     SetSampleFreq();
 
     // Sorting ticks
     ////////////////////////////////
-    tokens = read_and_parse("SRTG\n", buf);
+    tokens = m_communication->WriteAndTokenizeiResult("SRTG\n");
     if (tokens.size() < 3)
         std::cerr << "Received invalid ticks\n";
     else
@@ -65,7 +49,7 @@ void MainWindow::ImportSCParameters()
 
     // Filter coefficients
     ////////////////////////////////
-    tokens = read_and_parse("FILG\n", buf);
+    tokens = m_communication->WriteAndTokenizeiResult("FILG\n");
     if (tokens.size() < 3)
         std::cerr << "Received invalid filter coefficients\n";
     std::string txtbx_filter_coeffs;
@@ -76,7 +60,7 @@ void MainWindow::ImportSCParameters()
 
     // Threshold
     ////////////////////////////////
-    tokens = read_and_parse("THRG\n", buf);
+    tokens = m_communication->WriteAndTokenizeiResult("THRG\n");
     if (tokens.size() < 1)
         std::cerr << "Received invalid threshold\n";
     else
@@ -104,10 +88,12 @@ void MainWindow::button_connect_Click()
             textbox_times->Enabled(true);
             textbox_filter_coeffs->Enabled(true);
             textbox_threshold->Enabled(true);
+            textbox_send_raw->Enabled(true);
             button_set_frequency->Enabled(true);
             button_set_times->Enabled(true);
             button_set_filter_coeffs->Enabled(true);
             button_set_threshold->Enabled(true);
+            button_send_raw->Enabled(true);
         } else {
             std::cout << "Can't connect to port " << textbox_comport->GetText() << std::endl;
         }
@@ -127,11 +113,13 @@ void MainWindow::button_connect_Click()
         textbox_filter_coeffs->Enabled(false);
         textbox_threshold->SetText("");
         textbox_threshold->Enabled(false);
+        textbox_send_raw->Enabled(false);
         button_set_frequency->Enabled(false);
         button_set_times->Enabled(false);
         button_set_filter_coeffs->Enabled(false);
         button_set_threshold->Enabled(false);
         button_save->Enabled(false);
+        button_send_raw->Enabled(false);
     }
 }
 
@@ -161,11 +149,13 @@ void MainWindow::button_run_Click()
         textbox_times->Enabled(false);
         textbox_filter_coeffs->Enabled(false);
         textbox_threshold->Enabled(false);
+        textbox_send_raw->Enabled(false);
         button_set_frequency->Enabled(false);
         button_set_times->Enabled(false);
         button_set_filter_coeffs->Enabled(false);
         button_set_threshold->Enabled(false);
         button_save->Enabled(false);
+        button_send_raw->Enabled(false);
 
         *m_running       = true;
         m_run_start_time = std::chrono::steady_clock::now();
@@ -180,6 +170,8 @@ void MainWindow::button_run_Click()
         m_communication->StopTransmissionAndSuperPurge();
 
         button_save->Enabled(true);
+        button_send_raw->Enabled(true);
+        textbox_send_raw->Enabled(true);
 
         button_run->SetText("Stopped");
     }
@@ -350,8 +342,15 @@ void MainWindow::button_view_mode_Click()
 
 void MainWindow::button_set_frequency_Click()
 {
-    m_communication->Write("FRQS," + textbox_frequency->GetText() + "\n");
-    m_communication->ConfirmTransmission("FRQS," + textbox_frequency->GetText() + "\n");
+    std::string cmd = "FRQS," + textbox_frequency->GetText() + "\n";
+    m_communication->Write(cmd);
+    try {
+        m_communication->ConfirmTransmission(cmd);
+    } catch (std::runtime_error& er) {
+        std::cout << er.what() << std::endl;
+        auto ret = m_communication->WriteAndTokenizeiResult("FRQG\n");
+        textbox_frequency->SetText(ret[0]);
+    }
     SetSampleFreq();
 }
 
@@ -465,11 +464,19 @@ void MainWindow::button_clear_all_Click()
         textbox_times->Enabled(true);
         textbox_filter_coeffs->Enabled(true);
         textbox_threshold->Enabled(true);
+        textbox_send_raw->Enabled(true);
         button_set_frequency->Enabled(true);
         button_set_times->Enabled(true);
         button_set_filter_coeffs->Enabled(true);
         button_set_threshold->Enabled(true);
+        button_send_raw->Enabled(true);
     }
+}
+
+void MainWindow::button_send_raw_Click()
+{
+    m_communication->Write(textbox_send_raw->GetText() + "\n");
+    label_recv_raw->SetText(m_communication->Readline());
 }
 
 void MainWindow::textbox_detection_time_min_KeyPress()
@@ -512,6 +519,11 @@ void MainWindow::textbox_window_time_max_KeyPress()
     }
 }
 
+void MainWindow::textbox_send_raw_EnterPress()
+{
+    button_send_raw_Click();
+}
+
 void MainWindow::label_info_detected_in_window_Clicked()
 {
     for (auto& s : signals) {
@@ -541,6 +553,11 @@ void MainWindow::label_detection_time_Clicked()
 void MainWindow::label_window_time_Clicked()
 {
     // TODO: yet to implement
+}
+
+void MainWindow::label_recv_raw_Clicked()
+{
+    label_recv_raw->SetText("");
 }
 
 void MainWindow::checkbox_transparent_Clicked()
@@ -739,11 +756,16 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
     button_clear_all = std::make_shared<mygui::Button>(10, 680, "Clear ALL");
     button_clear_all->OnClick(std::bind(&MainWindow::button_clear_all_Click, this));
 
+    button_send_raw = std::make_shared<mygui::Button>(150, 740, "Send", 50);
+    button_send_raw->OnClick(std::bind(&MainWindow::button_send_raw_Click, this));
+    button_send_raw->Enabled(false);
+
     //////////////
     // Texboxes //
     //////////////
     textbox_comport = std::make_shared<mygui::Textbox>(10, 10, "COM");
     textbox_comport->SetText(com_port);
+    textbox_notes     = std::make_shared<mygui::Textbox>(120, 10, "");
     textbox_frequency = std::make_shared<mygui::Textbox>(10, 190, "", 120);
     textbox_frequency->Enabled(false);
     textbox_times = std::make_shared<mygui::Textbox>(10, 250, "", 120);
@@ -753,13 +775,16 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
     textbox_threshold = std::make_shared<mygui::Textbox>(10, 370, "", 120);
     textbox_threshold->Enabled(false);
     textbox_detection_time_min = std::make_shared<mygui::Textbox>(35, 605, "", 40, 25);
-    textbox_detection_time_min->onKeyPress(std::bind(&MainWindow::textbox_detection_time_min_KeyPress, this));
+    textbox_detection_time_min->OnKeyPress(std::bind(&MainWindow::textbox_detection_time_min_KeyPress, this));
     textbox_detection_time_max = std::make_shared<mygui::Textbox>(165, 605, "", 40, 25);
-    textbox_detection_time_max->onKeyPress(std::bind(&MainWindow::textbox_detection_time_max_KeyPress, this));
+    textbox_detection_time_max->OnKeyPress(std::bind(&MainWindow::textbox_detection_time_max_KeyPress, this));
     textbox_window_time_min = std::make_shared<mygui::Textbox>(35, 635, "", 40, 25);
-    textbox_window_time_min->onKeyPress(std::bind(&MainWindow::textbox_window_time_min_KeyPress, this));
+    textbox_window_time_min->OnKeyPress(std::bind(&MainWindow::textbox_window_time_min_KeyPress, this));
     textbox_window_time_max = std::make_shared<mygui::Textbox>(165, 635, "", 40, 25);
-    textbox_window_time_max->onKeyPress(std::bind(&MainWindow::textbox_window_time_max_KeyPress, this));
+    textbox_window_time_max->OnKeyPress(std::bind(&MainWindow::textbox_window_time_max_KeyPress, this));
+    textbox_send_raw = std::make_shared<mygui::Textbox>(10, 740, "", 120);
+    textbox_send_raw->Enabled(false);
+    textbox_send_raw->OnEnterPress(std::bind(&MainWindow::textbox_send_raw_EnterPress, this));
 
     ////////////
     // Labels //
@@ -769,7 +794,7 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
     label_filter_coeffs            = std::make_shared<mygui::Label>(10, 298, "Filter coeffs (lpf1, hpf, lpf2):");
     label_threshold                = std::make_shared<mygui::Label>(10, 358, "Threshold:");
     label_recorded_signals_counter = std::make_shared<mygui::Label>(120, 495, "Rec cnt: 0");
-    label_info_rx_id_avail         = std::make_shared<mygui::Label>(10, 840, "Rx cnt: 0 available: 0 bytes");
+    label_info_rx_id_avail         = std::make_shared<mygui::Label>(10, 840, "Rx id: 0 available: 0 bytes");
     label_info_rx_time_took_speed  = std::make_shared<mygui::Label>(10, 860, "Rx took: 0 ms at: 0 kB/s");
     label_info_parse_data_time     = std::make_shared<mygui::Label>(10, 880, "Parsing data took: 0 ms");
     label_info_detected_in_window  = std::make_shared<mygui::Label>(120, 527, "0");
@@ -782,13 +807,13 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
     label_detection_time->OnClick(std::bind(&MainWindow::label_detection_time_Clicked, this));
     label_window_time = std::make_shared<mygui::Label>(82, 647, "> win time >");
     label_window_time->OnClick(std::bind(&MainWindow::label_window_time_Clicked, this));
+    label_send_raw = std::make_shared<mygui::Label>(10, 728, "Send raw:");
+    label_recv_raw = std::make_shared<mygui::Label>(10, 785, "");
+    label_recv_raw->OnClick(std::bind(&MainWindow::label_recv_raw_Clicked, this));
 
     ////////////////
     // Checkboxes //
-    ////////////////
-    checkbox_transparent = std::make_shared<mygui::Checkbox>(120, 17, "Transparent");
-    checkbox_transparent->OnClick(std::bind(&MainWindow::checkbox_transparent_Clicked, this));
-
+    ///////////////
     checkbox_only_show_framed = std::make_shared<mygui::Checkbox>(10, 420, "Only show framed");
     checkbox_only_show_framed->OnClick(std::bind(&MainWindow::checkbox_only_show_framed_Clicked, this));
 
@@ -816,6 +841,9 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
     checkbox_window_time->OnClick(std::bind(&MainWindow::checkbox_window_time_Clicked, this));
     checkbox_window_time->Checked(false);
 
+    checkbox_transparent = std::make_shared<mygui::Checkbox>(10, 810, "Transparent");
+    checkbox_transparent->OnClick(std::bind(&MainWindow::checkbox_transparent_Clicked, this));
+
     /////////////////
     // Main window //
     /////////////////
@@ -834,9 +862,11 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
     Add(button_record);
     Add(button_info_windows);
     Add(button_clear_all);
+    Add(button_send_raw);
 
     // Texboxes
     Add(textbox_comport);
+    Add(textbox_notes);
     Add(textbox_frequency);
     Add(textbox_times);
     Add(textbox_filter_coeffs);
@@ -845,6 +875,7 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
     Add(textbox_detection_time_max);
     Add(textbox_window_time_min);
     Add(textbox_window_time_max);
+    Add(textbox_send_raw);
 
     // Labels
     Add(label_frequency);
@@ -860,6 +891,8 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
     Add(label_info_signal_missed);
     Add(label_detection_time);
     Add(label_window_time);
+    Add(label_send_raw);
+    Add(label_recv_raw);
 
     // Checkboxes
     Add(checkbox_transparent);
