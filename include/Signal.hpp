@@ -60,8 +60,8 @@ private:
 
     void SetIndicator(float const x, Signal::Event const ev);
 
-    const int N_TRIGGER_FRAME_POINTS = 90; // should be enough for ~ 90 / 3 = 30 windows
-    const int N_INDICATOR_POINTS     = 60; // should be enough for ~ 60 / 2 = 30 indicators
+    const int N_TRIGGER_FRAME_POINTS = 600; // should be enough for ~ 600 / 6 = 100 windows
+    const int N_INDICATOR_POINTS     = 200; // should be enough for ~ 200 / 2 = 100 indicators
 
     std::shared_ptr<uint32_t const> m_detection_time_min;
     std::shared_ptr<uint32_t const> m_detection_time_max;
