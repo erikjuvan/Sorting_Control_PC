@@ -167,8 +167,58 @@ void Application::Run()
     m_frameInfoWindow->Close();
 }
 
+static void ListPorts()
+{
+    Communication comm;
+
+    // Find only free ports
+    auto all_ports  = comm.ListAllPorts();
+    auto free_ports = comm.ListFreePorts();
+    for (auto it = all_ports.begin(); it != all_ports.end();) {
+        bool found = false;
+        for (auto fp = free_ports.begin(); fp != free_ports.end(); ++fp)
+            if (it->port == *fp)
+                found = true;
+
+        if (!found)
+            it = all_ports.erase(it);
+        else
+            ++it;
+    }
+
+    // Extract ports of valid STM32 devices by checking description
+    decltype(all_ports) ports;
+    for (auto it = all_ports.begin(); it != all_ports.end(); ++it)
+        if (it->description.find("STMicroelectronics Virtual COM Port") != std::string::npos) // found it
+            ports.push_back(*it);
+
+    if (ports.empty()) {
+        std::cout << "No available serial ports found!\n";
+        return;
+    }
+
+    std::map<int, std::pair<std::string, std::string>> port_map;
+
+    for (auto const& [p, desc, hw_id] : ports) {
+        if (comm.Connect(p)) {
+            comm.StopTransmissionAndSuperPurge();
+            auto tok = comm.WriteAndTokenizeResult("ID_G\n");
+            if (tok.size() == 1)
+                port_map[std::stoi(tok[0])] = std::make_pair(p, desc);
+
+            comm.Disconnect();
+        }
+    }
+
+    for (auto const& [id, pair] : port_map)
+        std::cout << pair.first << "(" << pair.second << "): ID_G," << id << std::endl;
+}
+
 Application::Application()
 {
+    // Display available COM ports on console
+    ListPorts();
+
     // Initial parameters from file init
     InitFromFile("config.txt");
 

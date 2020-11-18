@@ -24,13 +24,13 @@ void MainWindow::ImportSCParameters()
 {
     // Sample frequency
     ////////////////////////////////
-    auto tokens = m_communication->WriteAndTokenizeiResult("FRQG\n");
+    auto tokens = m_communication->WriteAndTokenizeResult("FRQG\n");
     textbox_frequency->SetText(tokens[0]);
     SetSampleFreq();
 
     // Sorting ticks
     ////////////////////////////////
-    tokens = m_communication->WriteAndTokenizeiResult("SRTG\n");
+    tokens = m_communication->WriteAndTokenizeResult("SRTG\n");
     if (tokens.size() < 3)
         std::cerr << "Received invalid ticks\n";
     else
@@ -49,7 +49,7 @@ void MainWindow::ImportSCParameters()
 
     // Filter coefficients
     ////////////////////////////////
-    tokens = m_communication->WriteAndTokenizeiResult("FILG\n");
+    tokens = m_communication->WriteAndTokenizeResult("FILG\n");
     if (tokens.size() < 3)
         std::cerr << "Received invalid filter coefficients\n";
     std::string txtbx_filter_coeffs;
@@ -60,7 +60,7 @@ void MainWindow::ImportSCParameters()
 
     // Threshold
     ////////////////////////////////
-    tokens = m_communication->WriteAndTokenizeiResult("THRG\n");
+    tokens = m_communication->WriteAndTokenizeResult("THRG\n");
     if (tokens.size() < 1)
         std::cerr << "Received invalid threshold\n";
     else
@@ -348,7 +348,7 @@ void MainWindow::button_set_frequency_Click()
         m_communication->ConfirmTransmission(cmd);
     } catch (std::runtime_error& er) {
         std::cout << er.what() << std::endl;
-        auto ret = m_communication->WriteAndTokenizeiResult("FRQG\n");
+        auto ret = m_communication->WriteAndTokenizeResult("FRQG\n");
         textbox_frequency->SetText(ret[0]);
     }
     SetSampleFreq();
