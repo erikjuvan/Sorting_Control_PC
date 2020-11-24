@@ -11,8 +11,6 @@ void MainWindow::SetSampleFreq()
 {
     try {
         *m_sample_freq_hz = std::stoi(textbox_frequency->GetText());
-        for (auto& s : signals)
-            s->SetSampleFreq(*m_sample_freq_hz);
     } catch (std::invalid_argument& ia) {
         std::cerr << ia.what() << std::endl;
     } catch (std::out_of_range& oor) {

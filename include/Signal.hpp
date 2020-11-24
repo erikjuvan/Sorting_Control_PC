@@ -43,7 +43,6 @@ public:
     void        SetColor(sf::Color const& col);
     bool        AnyEvents() const;
     void        ClearEvents();
-    void        SetSampleFreq(int sample_freq_hz) { m_sample_freq_hz = sample_freq_hz; }
     void        Edit(ProtocolDataType const* m_data, int start, int size, View view); // Return false if a signal never reached the threashold value when the window was on
     const auto& GetRXData() const { return m_rx_data; }
     void        ClearRXData() { m_rx_data.clear(); }
@@ -76,8 +75,6 @@ private:
 
     Threshold m_threshold = Threshold::IDLE;
     Event     m_events    = Event::NONE;
-
-    int m_sample_freq_hz = 0;
 
     std::vector<uint64_t> m_rx_data;
     sf::VertexArray       m_curve;
