@@ -166,7 +166,11 @@ void Communication::StopTransmissionAndSuperPurge()
 
     // Make sure we are really stopped by sending the command and checking for confirmation
     Write("VRBS,0\n");
-    ConfirmTransmission("VRBS,0\n");
+    try {
+        ConfirmTransmission("VRBS,0\n");
+    } catch (std::runtime_error& re) {
+        std::cout << "EXCEPTION: could not confirm transmission: " << re.what();
+    }
 }
 
 void Communication::ConfirmTransmission(std::string const& str)
@@ -176,19 +180,21 @@ void Communication::ConfirmTransmission(std::string const& str)
     auto tokens_ret = Help::TokenizeString(ret_str, ", \n");
     bool fault      = false;
     auto tmp_str    = str;
-    if (tmp_str.back() == '\n')
-        tmp_str.pop_back();
-    std::string error_msg = "Transmission failed when sending: \"" + tmp_str + "\": ";
 
-    // Command name
-    if (tokens_ret[0] != tokens[0]) {
-        error_msg += "Command name mismatch: expected: '" + tokens[0] + "' received: '" + tokens_ret[0] + "'\n";
-        throw std::runtime_error(error_msg);
-    }
+    std::string error_msg = "Transmission failed when sending: \"" + tmp_str + "\": ";
 
     // Check for number of tokens mismatch
     if (tokens.size() != tokens_ret.size()) {
-        error_msg += "Argument number mismatch: expected: " + std::to_string(tokens.size() - 1) + " received: " + std::to_string(tokens_ret.size() - 1) + "\n";
+        error_msg += "Token number mismatch: expected: " + std::to_string(tokens.size()) + " received: " + std::to_string(tokens_ret.size()) + "\n";
+        throw std::runtime_error(error_msg);
+    }
+
+    if (tmp_str.back() == '\n')
+        tmp_str.pop_back();
+
+    // Command name
+    if (tokens_ret.at(0) != tokens.at(0)) {
+        error_msg += "Command name mismatch: expected: '" + tokens.at(0) + "' received: '" + tokens_ret.at(0) + "'\n";
         throw std::runtime_error(error_msg);
     }
 
@@ -196,10 +202,10 @@ void Communication::ConfirmTransmission(std::string const& str)
     if (tokens.size() > 1) {
         for (int i = 1; i < tokens.size(); ++i) {
             // Arguments are always numeric
-            auto f     = std::stof(tokens[i]);
+            auto f     = std::stof(tokens.at(i));
             auto f_ret = std::stof(tokens_ret[i]);
             if (std::abs(f - f_ret) > 0.1) {
-                error_msg += "Argument number " + std::to_string(i) + " mismatch: expected: " + tokens[i] + " received: " + tokens_ret[i] + "\n";
+                error_msg += "Argument number " + std::to_string(i) + " mismatch: expected: " + tokens.at(i) + " received: " + tokens_ret.at(i) + "\n";
                 throw std::runtime_error(error_msg);
             }
         }

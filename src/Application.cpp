@@ -170,6 +170,7 @@ void Application::Run()
 static void ListPorts()
 {
     Communication comm;
+    comm.SetTimeout(100);
 
     // Find only free ports
     auto all_ports  = comm.ListAllPorts();
