@@ -65,7 +65,7 @@ void InfoWindow::Events()
 {
     while (m_window->pollEvent(*m_event)) {
         if (m_event->type == sf::Event::Closed) {
-            m_window->setVisible(false); // don't close, only hide window
+            SetVisible(false); // don't close, only hide window
         }
 
         for (auto& w : m_widgets) {

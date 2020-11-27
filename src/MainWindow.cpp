@@ -432,8 +432,15 @@ void MainWindow::button_record_Click()
 
 void MainWindow::button_info_Click()
 {
-    m_detectionInfoWindow->SetVisible(true);
-    m_frameInfoWindow->SetVisible(true);
+    if (m_detectionInfoWindow->IsVisible() && m_frameInfoWindow->IsVisible()) {
+        m_detectionInfoWindow->SetVisible(false);
+        m_frameInfoWindow->SetVisible(false);
+    } else {
+        if (!m_detectionInfoWindow->IsVisible())
+            m_detectionInfoWindow->SetVisible(true);
+        if (!m_frameInfoWindow->IsVisible())
+            m_frameInfoWindow->SetVisible(true);
+    }
 }
 
 void MainWindow::button_clear_all_Click()

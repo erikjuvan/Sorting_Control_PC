@@ -14,6 +14,8 @@ protected:
     std::unique_ptr<sf::Event>           m_event;
     std::vector<std::shared_ptr<Widget>> m_widgets;
 
+    bool m_visible{true};
+
     virtual void Events();
     virtual void Draw();
 
@@ -25,6 +27,7 @@ public:
     void         Add(std::shared_ptr<Widget> const& widget);
     void         Update();
     void         SetVisible(bool visible);
+    bool         IsVisible();
     bool         IsOpen() const;
     sf::Vector2i GetPosition() const;
     void         SetPosition(const sf::Vector2i& position);

@@ -55,7 +55,13 @@ void Window::Update()
 
 void Window::SetVisible(bool visible)
 {
+    m_visible = visible;
     m_window->setVisible(visible);
+}
+
+bool Window::IsVisible()
+{
+    return m_visible;
 }
 
 bool Window::IsOpen() const
