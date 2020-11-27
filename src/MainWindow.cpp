@@ -436,10 +436,18 @@ void MainWindow::button_info_Click()
         m_detectionInfoWindow->SetVisible(false);
         m_frameInfoWindow->SetVisible(false);
     } else {
-        if (!m_detectionInfoWindow->IsVisible())
+        if (!m_detectionInfoWindow->IsVisible()) {
             m_detectionInfoWindow->SetVisible(true);
-        if (!m_frameInfoWindow->IsVisible())
+            m_detectionInfoWindow->SetPosition(
+                {static_cast<int>(GetPosition().x + GetSize().x - m_detectionInfoWindow->GetSize().x - 10),
+                 GetPosition().y + 40});
+        }
+        if (!m_frameInfoWindow->IsVisible()) {
             m_frameInfoWindow->SetVisible(true);
+            m_frameInfoWindow->SetPosition(
+                {static_cast<int>(m_detectionInfoWindow->GetPosition().x - m_frameInfoWindow->GetSize().x - 5),
+                 m_detectionInfoWindow->GetPosition().y});
+        }
     }
 }
 

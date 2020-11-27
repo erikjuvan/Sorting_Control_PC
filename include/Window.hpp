@@ -27,9 +27,10 @@ public:
     void         Add(std::shared_ptr<Widget> const& widget);
     void         Update();
     void         SetVisible(bool visible);
-    bool         IsVisible();
+    bool         IsVisible() const;
     bool         IsOpen() const;
     sf::Vector2i GetPosition() const;
+    sf::Vector2u GetSize() const;
     void         SetPosition(const sf::Vector2i& position);
     void         AlwaysOnTop(bool top);
     void         MakeTransparent();

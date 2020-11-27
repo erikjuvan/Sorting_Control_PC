@@ -59,7 +59,7 @@ void Window::SetVisible(bool visible)
     m_window->setVisible(visible);
 }
 
-bool Window::IsVisible()
+bool Window::IsVisible() const
 {
     return m_visible;
 }
@@ -72,6 +72,11 @@ bool Window::IsOpen() const
 sf::Vector2i Window::GetPosition() const
 {
     return m_window->getPosition();
+}
+
+sf::Vector2u Window::GetSize() const
+{
+    return m_window->getSize();
 }
 
 void Window::SetPosition(const sf::Vector2i& position)
