@@ -22,13 +22,13 @@ void MainWindow::ImportSCParameters()
 {
     // Sample frequency
     ////////////////////////////////
-    auto tokens = m_communication->WriteAndTokenizeResult("FRQG\n");
+    auto tokens = m_communication1->WriteAndTokenizeResult("FRQG\n");
     textbox_frequency->SetText(tokens[0]);
     SetSampleFreq();
 
     // Sorting ticks
     ////////////////////////////////
-    tokens = m_communication->WriteAndTokenizeResult("SRTG\n");
+    tokens = m_communication1->WriteAndTokenizeResult("SRTG\n");
     if (tokens.size() < 3)
         std::cerr << "Received invalid ticks\n";
     else
@@ -47,7 +47,7 @@ void MainWindow::ImportSCParameters()
 
     // Filter coefficients
     ////////////////////////////////
-    tokens = m_communication->WriteAndTokenizeResult("FILG\n");
+    tokens = m_communication1->WriteAndTokenizeResult("FILG\n");
     if (tokens.size() < 3)
         std::cerr << "Received invalid filter coefficients\n";
     std::string txtbx_filter_coeffs;
@@ -58,7 +58,7 @@ void MainWindow::ImportSCParameters()
 
     // Threshold
     ////////////////////////////////
-    tokens = m_communication->WriteAndTokenizeResult("THRG\n");
+    tokens = m_communication1->WriteAndTokenizeResult("THRG\n");
     if (tokens.size() < 1)
         std::cerr << "Received invalid threshold\n";
     else
@@ -69,13 +69,13 @@ void MainWindow::ImportSCParameters()
 
 void MainWindow::button_connect_Click()
 {
-    if (!m_communication->IsConnected()) {
-        if (m_communication->Connect(textbox_comport->GetText())) {
+    if (!m_communication1->IsConnected()) {
+        if (m_communication1->Connect(textbox_comport->GetText())) {
 
             button_connect->SetText("Disconnect");
 
             // If we previously crashed we could still be receving m_data, so make sure we stop before configuring
-            m_communication->StopTransmissionAndSuperPurge();
+            m_communication1->StopTransmissionAndSuperPurge();
 
             ImportSCParameters();
 
@@ -98,7 +98,7 @@ void MainWindow::button_connect_Click()
     } else {
         if (*m_running)
             button_run_Click();
-        m_communication->Disconnect();
+        m_communication1->Disconnect();
         button_connect->SetText("Connect");
 
         textbox_comport->Enabled(true);
@@ -123,24 +123,24 @@ void MainWindow::button_connect_Click()
 
 void MainWindow::button_run_Click()
 {
-    if (!m_communication->IsConnected())
+    if (!m_communication1->IsConnected())
         return;
 
     if (!*m_running) {
 
         // Just to make sure serial buffers are clear before importing parameters
-        m_communication->StopTransmissionAndSuperPurge();
+        m_communication1->StopTransmissionAndSuperPurge();
 
         // Get the latest parameters that are actually on SC
         ImportSCParameters();
 
         // Make sure we enter sort mode
-        m_communication->Write("SORT\n");
-        m_communication->ConfirmTransmission("SORT\n"); // currently all ConfirmTransmissions are neccessary since they also clear the serial rx buffer
+        m_communication1->Write("SORT\n");
+        m_communication1->ConfirmTransmission("SORT\n"); // currently all ConfirmTransmissions are neccessary since they also clear the serial rx buffer
 
         // Set verbose mode, so we start receving data
-        m_communication->Write("VRBS,1\n");
-        m_communication->ConfirmTransmission("VRBS,1\n");
+        m_communication1->Write("VRBS,1\n");
+        m_communication1->ConfirmTransmission("VRBS,1\n");
 
         // Disable all textboxes and send buttons so as to not be able to overwrite any parameters (so savefile parameters are 100% sure to be correct)
         textbox_frequency->Enabled(false);
@@ -159,13 +159,13 @@ void MainWindow::button_run_Click()
         m_run_start_time = std::chrono::steady_clock::now();
 
         for (int i = 0; i < N_CHANNELS; ++i)
-            chart->ChangeSignal(i, signals[i]);
+            chart1->ChangeSignal(i, signals[i]);
 
         button_run->SetText("Running");
 
     } else {
         *m_running = false;
-        m_communication->StopTransmissionAndSuperPurge();
+        m_communication1->StopTransmissionAndSuperPurge();
 
         button_save->Enabled(true);
         button_send_raw->Enabled(true);
@@ -231,28 +231,28 @@ void MainWindow::button_save_Click()
         header.num_of_samples_per_ch = signals[0]->GetRXData().size();
 
         // First... super purge
-        m_communication->StopTransmissionAndSuperPurge();
+        m_communication1->StopTransmissionAndSuperPurge();
 
         // Get all sorting control parameters
-        m_communication->Write("STTG");
+        m_communication1->Write("STTG");
 
-        auto buf                               = m_communication->Readline();
+        auto buf                               = m_communication1->Readline();
         auto params                            = Help::TokenizeString(buf, " ,\n:");
         header.sort_params.sample_frequency_hz = std::stoi(params[1]);
 
-        buf                               = m_communication->Readline();
+        buf                               = m_communication1->Readline();
         params                            = Help::TokenizeString(buf, " ,\n:");
         header.sort_params.delay_ticks    = std::stoi(params[1]);
         header.sort_params.duration_ticks = std::stoi(params[2]);
         header.sort_params.blind_ticks    = std::stoi(params[3]);
 
-        buf                       = m_communication->Readline();
+        buf                       = m_communication1->Readline();
         params                    = Help::TokenizeString(buf, " ,\n:");
         header.sort_params.lpf1_K = std::stof(params[1]);
         header.sort_params.hpf_K  = std::stof(params[2]);
         header.sort_params.lpf2_K = std::stof(params[3]);
 
-        buf                          = m_communication->Readline();
+        buf                          = m_communication1->Readline();
         params                       = Help::TokenizeString(buf, " ,\n:");
         header.sort_params.threshold = std::stof(params[1]);
 
@@ -318,11 +318,11 @@ void MainWindow::button_trigger_frame_Click()
 {
     if (!m_triggerframe) {
         m_triggerframe = true;
-        chart->EnableTriggerFrame();
+        chart1->EnableTriggerFrame();
         button_trigger_frame->SetText("Frame ON");
     } else {
         m_triggerframe = false;
-        chart->DisableTriggerFrame();
+        chart1->DisableTriggerFrame();
         button_trigger_frame->SetText("Frame OFF");
     }
 }
@@ -341,12 +341,12 @@ void MainWindow::button_view_mode_Click()
 void MainWindow::button_set_frequency_Click()
 {
     std::string cmd = "FRQS," + textbox_frequency->GetText() + "\n";
-    m_communication->Write(cmd);
+    m_communication1->Write(cmd);
     try {
-        m_communication->ConfirmTransmission(cmd);
+        m_communication1->ConfirmTransmission(cmd);
     } catch (std::runtime_error& er) {
         std::cout << er.what() << std::endl;
-        auto ret = m_communication->WriteAndTokenizeResult("FRQG\n");
+        auto ret = m_communication1->WriteAndTokenizeResult("FRQG\n");
         textbox_frequency->SetText(ret[0]);
     }
     SetSampleFreq();
@@ -370,8 +370,8 @@ void MainWindow::button_set_times_Click()
     }
 
     std::string command = "SRTS," + std::to_string(ticks.at(0)) + "," + std::to_string(ticks.at(1)) + "," + std::to_string(ticks.at(2)) + "\n";
-    m_communication->Write(command);
-    m_communication->ConfirmTransmission(command);
+    m_communication1->Write(command);
+    m_communication1->ConfirmTransmission(command);
 
     // Set blind time for all signals
     std::vector<std::string> strings = Help::TokenizeString(textbox_times->GetText(), ",");
@@ -382,8 +382,8 @@ void MainWindow::button_set_times_Click()
 
 void MainWindow::button_set_filter_coeffs_Click()
 {
-    m_communication->Write("FILS," + textbox_filter_coeffs->GetText() + "\n");
-    m_communication->ConfirmTransmission("FILS," + textbox_filter_coeffs->GetText() + "\n");
+    m_communication1->Write("FILS," + textbox_filter_coeffs->GetText() + "\n");
+    m_communication1->ConfirmTransmission("FILS," + textbox_filter_coeffs->GetText() + "\n");
 
     // Set threashold for all signals
     std::vector<std::string> strings = Help::TokenizeString(textbox_filter_coeffs->GetText(), ",");
@@ -391,8 +391,8 @@ void MainWindow::button_set_filter_coeffs_Click()
 
 void MainWindow::button_set_threshold_Click()
 {
-    m_communication->Write("THRS," + textbox_threshold->GetText() + "\n");
-    m_communication->ConfirmTransmission("THRS," + textbox_threshold->GetText() + "\n");
+    m_communication1->Write("THRS," + textbox_threshold->GetText() + "\n");
+    m_communication1->ConfirmTransmission("THRS," + textbox_threshold->GetText() + "\n");
 
     // Set threashold for all signals
     std::vector<std::string> strings = Help::TokenizeString(textbox_threshold->GetText(), ",\n");
@@ -405,7 +405,7 @@ void MainWindow::button_record_Click()
 {
     auto const& ResetSignals = [this]() {
         for (int i = 0; i < N_CHANNELS; ++i)
-            chart->ChangeSignal(i, signals[i]);
+            chart1->ChangeSignal(i, signals[i]);
         m_chart_frame_idx = -1;
     };
 
@@ -455,7 +455,7 @@ void MainWindow::button_clear_all_Click()
 {
     auto const& ResetSignals = [this]() {
         for (int i = 0; i < N_CHANNELS; ++i)
-            chart->ChangeSignal(i, signals[i]);
+            chart1->ChangeSignal(i, signals[i]);
         m_chart_frame_idx = -1;
     };
 
@@ -488,8 +488,8 @@ void MainWindow::button_clear_all_Click()
 
 void MainWindow::button_send_raw_Click()
 {
-    m_communication->Write(textbox_send_raw->GetText() + "\n");
-    label_recv_raw->SetText(m_communication->Readline());
+    m_communication1->Write(textbox_send_raw->GetText() + "\n");
+    label_recv_raw->SetText(m_communication1->Readline());
 }
 
 void MainWindow::textbox_detection_time_min_KeyPress()
@@ -644,52 +644,52 @@ void MainWindow::chart_OnKeyPress(const sf::Event& event)
             if (m_chart_frame_idx > 0 && m_chart_frame_idx < size) {
                 m_chart_frame_idx--;
                 for (int i = 0; i < N_CHANNELS; ++i)
-                    chart->ChangeSignal(i, recorded_signals[m_chart_frame_idx * N_CHANNELS + i]);
+                    chart1->ChangeSignal(i, recorded_signals[m_chart_frame_idx * N_CHANNELS + i]);
             }
         }
         if (event.key.code == sf::Keyboard::Right) {
             if (m_chart_frame_idx < (size - 1)) {
                 m_chart_frame_idx++;
                 for (int i = 0; i < N_CHANNELS; ++i)
-                    chart->ChangeSignal(i, recorded_signals[m_chart_frame_idx * N_CHANNELS + i]);
+                    chart1->ChangeSignal(i, recorded_signals[m_chart_frame_idx * N_CHANNELS + i]);
             }
         }
     }
 
     switch (event.key.code) {
     case sf::Keyboard::Num0:
-        chart->ToggleDrawAllSignals();
+        chart1->ToggleDrawAllSignals();
         break;
     case sf::Keyboard::Num1:
-        chart->ToggleDrawSignal(1);
+        chart1->ToggleDrawSignal(1);
         break;
     case sf::Keyboard::Num2:
-        chart->ToggleDrawSignal(2);
+        chart1->ToggleDrawSignal(2);
         break;
     case sf::Keyboard::Num3:
-        chart->ToggleDrawSignal(3);
+        chart1->ToggleDrawSignal(3);
         break;
     case sf::Keyboard::Num4:
-        chart->ToggleDrawSignal(4);
+        chart1->ToggleDrawSignal(4);
         break;
     case sf::Keyboard::Num5:
-        chart->ToggleDrawSignal(5);
+        chart1->ToggleDrawSignal(5);
         break;
     case sf::Keyboard::Num6:
-        chart->ToggleDrawSignal(6);
+        chart1->ToggleDrawSignal(6);
         break;
     case sf::Keyboard::Num7:
-        chart->ToggleDrawSignal(7);
+        chart1->ToggleDrawSignal(7);
         break;
     case sf::Keyboard::Num8:
-        chart->ToggleDrawSignal(8);
+        chart1->ToggleDrawSignal(8);
         break;
     }
 }
 
-void MainWindow::CreateChart()
+void MainWindow::CreateChart(std::shared_ptr<Chart>& chart, int x, int y, int w, int h)
 {
-    chart = std::make_shared<Chart>(240, 10, 1600, 880, m_config_number_of_samples, 100.f);
+    chart = std::make_shared<Chart>(x, y, w, h, m_config_number_of_samples, 100.f);
     chart->CreateGrid(9);
     chart->OnKeyPress(std::bind(&MainWindow::chart_OnKeyPress, this, std::placeholders::_1));
     signals.clear();
@@ -723,7 +723,8 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
     m_detection_time_max = std::make_shared<uint32_t>(1000000);
     m_window_time_min    = std::make_shared<uint32_t>(0);
     m_window_time_max    = std::make_shared<uint32_t>(1000000);
-    CreateChart();
+    CreateChart(chart1, 240, 10, 1600, 420);
+    CreateChart(chart2, 240, 440, 1600, 420);
 
     /////////////
     // Buttons //
@@ -860,7 +861,8 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
     /////////////////
     // Main window //
     /////////////////
-    Add(chart);
+    Add(chart1);
+    Add(chart2);
 
     // Buttons
     Add(button_connect);
@@ -931,7 +933,7 @@ void MainWindow::ConnectCrossData(
     std::shared_ptr<bool>          running,
     std::shared_ptr<Record>        record)
 {
-    m_communication       = communication;
+    m_communication1      = communication;
     m_detectionInfoWindow = detectionInfoWindow;
     m_frameInfoWindow     = frameInfoWindow;
 

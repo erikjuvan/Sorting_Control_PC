@@ -54,6 +54,6 @@ public:
         std::shared_ptr<mygui::Label> label_cnt;
     };
 
-    std::array<InfoLabel, N_CHANNELS> infolabels_chs;
-    InfoLabel                         infolabel_all;
+    std::vector<InfoLabel> infolabels_chs;
+    InfoLabel              infolabel_all;
 };

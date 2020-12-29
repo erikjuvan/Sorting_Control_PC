@@ -30,7 +30,7 @@ private:
     bool m_triggerframe = true;
     View m_view         = View::FILTERED;
 
-    std::shared_ptr<Communication> m_communication;
+    std::shared_ptr<Communication> m_communication1;
     std::shared_ptr<InfoWindow>    m_detectionInfoWindow;
     std::shared_ptr<InfoWindow>    m_frameInfoWindow;
 
@@ -45,7 +45,7 @@ private:
 
     // Methods
     void RunClick();
-    void CreateChart();
+    void CreateChart(std::shared_ptr<Chart>& chart, int x, int y, int w, int h);
 
     void SetSampleFreq();
     void RecordEvent(Signal::Event e, bool on);
@@ -94,7 +94,7 @@ public:
     ~MainWindow();
 
     auto const& GetRunStartTime() { return m_run_start_time; }
-    void        ConnectCrossData(std::shared_ptr<Communication> m_communication,
+    void        ConnectCrossData(std::shared_ptr<Communication> m_communication1,
                                  std::shared_ptr<InfoWindow>    m_detectionInfoWindow,
                                  std::shared_ptr<InfoWindow>    m_frameInfoWindow,
                                  std::shared_ptr<bool>          m_running,
@@ -109,7 +109,7 @@ public:
     // Members
     //////////
 
-    std::shared_ptr<Chart> chart;
+    std::shared_ptr<Chart> chart1, chart2;
 
     // Button
     std::shared_ptr<mygui::Button> button_connect;

@@ -5,36 +5,24 @@
 
 Chart::Chart(int x, int y, int w, int h, int num_of_points, float max_val) :
     m_num_of_points(num_of_points), m_max_val(std::make_shared<float>(max_val)), m_background(sf::Vector2f(w, h)),
-    m_chart_region(sf::Vector2f(w - 6 * m_margin, h - 5 * m_margin))
+    m_chart_region(sf::Vector2f(w - 5 * m_margin, h - 3 * m_margin))
 {
     m_background.setPosition(x, y);
     m_background.setOutlineColor(sf::Color::Black);
     m_background.setOutlineThickness(1.f);
 
-    m_chart_region.setPosition(x + 4.f * m_margin, y + 2.f * m_margin);
+    m_chart_region.setPosition(x + 3.f * m_margin, y + 1.f * m_margin);
     m_chart_region.setOutlineColor(sf::Color::Black);
     m_chart_region.setOutlineThickness(1.f);
     m_chart_rect = m_chart_region.getGlobalBounds();
 
     m_font.loadFromFile(mygui::ResourceManager::GetSystemFontName());
-    m_title.setFont(m_font);
-
-    m_title.setFillColor(sf::Color::Black);
-    m_title.setString("Sorting control");
-    m_title.setPosition(sf::Vector2f(x + w / 2.f - m_title.getLocalBounds().width / 2.f, y));
 
     m_x_axis.setFont(m_font);
     m_x_axis.setFillColor(sf::Color::Black);
-    m_x_axis.setCharacterSize(24);
+    m_x_axis.setCharacterSize(16);
     m_x_axis.setString("Sample");
-    m_x_axis.setPosition(sf::Vector2f(x + w / 2.f - m_x_axis.getLocalBounds().width / 2.f, h - 1.25f * m_margin));
-
-    m_y_axis.setFont(m_font);
-    m_y_axis.setFillColor(sf::Color::Black);
-    m_y_axis.setCharacterSize(24);
-    m_y_axis.setRotation(-90.f);
-    m_y_axis.setString("ADC value");
-    m_y_axis.setPosition(sf::Vector2f(x + m_margin / 4.f, y + h / 2.f + m_y_axis.getLocalBounds().width / 2.f));
+    m_x_axis.setPosition(sf::Vector2f(x + w / 2.f - m_x_axis.getLocalBounds().width / 2.f, y - h + 1.25f * m_margin));
 }
 
 void Chart::draw(sf::RenderTarget& target, sf::RenderStates states) const
@@ -42,8 +30,6 @@ void Chart::draw(sf::RenderTarget& target, sf::RenderStates states) const
     target.draw(m_background, states);
     target.draw(m_chart_region, states);
     target.draw(m_x_axis);
-    target.draw(m_y_axis);
-    target.draw(m_title);
     target.draw(m_grid);
     for (auto& m : m_x_axis_markers)
         target.draw(m);

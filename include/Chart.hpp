@@ -18,8 +18,6 @@ private:
     sf::VertexArray    m_grid;
     int                m_num_grid_lines{0};
     sf::Text           m_x_axis;
-    sf::Text           m_y_axis;
-    sf::Text           m_title;
 
     sf::Font m_font;
 
@@ -28,13 +26,13 @@ private:
 
     std::vector<std::shared_ptr<Signal>> m_signals;
     std::vector<bool>                    m_draw_signal;
-    bool                                 m_draw_all_signals = true;
+    bool                                 m_draw_all_signals{true};
 
     std::shared_ptr<float> m_max_val;
 
-    int m_num_of_points;
+    int m_num_of_points{0};
 
-    bool m_mouseover;
+    bool m_mouseover{false};
 
     chart_callback_type m_onKeyPress{nullptr};
 

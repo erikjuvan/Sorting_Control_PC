@@ -1,5 +1,5 @@
 #include "Application.hpp"
-#include "Communication.hpp"
+#include "Device.hpp"
 #include "InfoWindow.hpp"
 #include "MainWindow.hpp"
 #include <fstream>
@@ -9,6 +9,54 @@
 #include <sstream>
 
 using namespace std::chrono_literals;
+
+static void ListPorts()
+{
+    Communication comm;
+    comm.SetTimeout(100);
+
+    // Find only free ports
+    auto all_ports  = comm.ListAllPorts();
+    auto free_ports = comm.ListFreePorts();
+    for (auto it = all_ports.begin(); it != all_ports.end();) {
+        bool found = false;
+        for (auto fp = free_ports.begin(); fp != free_ports.end(); ++fp)
+            if (it->port == *fp)
+                found = true;
+
+        if (!found)
+            it = all_ports.erase(it);
+        else
+            ++it;
+    }
+
+    // Extract ports of valid STM32 devices by checking description
+    decltype(all_ports) ports;
+    for (auto it = all_ports.begin(); it != all_ports.end(); ++it)
+        if (it->description.find("STMicroelectronics Virtual COM Port") != std::string::npos) // found it
+            ports.push_back(*it);
+
+    if (ports.empty()) {
+        std::cout << "No available serial ports found!\n";
+        return;
+    }
+
+    std::map<int, std::pair<std::string, std::string>> port_map;
+
+    for (auto const& [p, desc, hw_id] : ports) {
+        if (comm.Connect(p)) {
+            comm.StopTransmissionAndSuperPurge();
+            auto tok = comm.WriteAndTokenizeResult("ID_G\n");
+            if (tok.size() == 1)
+                port_map[std::stoi(tok[0])] = std::make_pair(p, desc);
+
+            comm.Disconnect();
+        }
+    }
+
+    for (auto const& [id, pair] : port_map)
+        std::cout << pair.first << "(" << pair.second << "): ID_G," << id << std::endl;
+}
 
 void Application::Information()
 {
@@ -67,14 +115,14 @@ void Application::GetData()
 
             header.delim = 0; // reset value
 
-            m_available_bytes = m_communication->GetRxBufferLen();
+            m_available_bytes = m_communication1->GetRxBufferLen();
 
-            m_communication->Read(&header, sizeof(header.delim));
+            m_communication1->Read(&header, sizeof(header.delim));
             // If start of new packet
             if (header.delim == 0xDEADBEEF) {
 
                 // Check header for valid packet ID
-                m_communication->Read(&header.packet_id, sizeof(header.packet_id));
+                m_communication1->Read(&header.packet_id, sizeof(header.packet_id));
                 if (header.packet_id != (prev_packet_id + 1)) // if we missed a packet
                     std::cerr << "Packet(s) lost: Should receive: " << prev_packet_id + 1 << " received: " << header.packet_id << ". Info: previous packet took: " << m_time_took_to_read_data_us / 1000 << " ms to read." << std::endl;
 
@@ -84,7 +132,7 @@ void Application::GetData()
 
                 auto start = std::chrono::high_resolution_clock::now();
 
-                size_t read = m_communication->Read(m_data, sizeof(m_data));
+                size_t read = m_communication1->Read(m_data, sizeof(m_data));
 
                 if (read == sizeof(m_data)) {
                     if (future.wait_for(0ms) == std::future_status::ready) {
@@ -126,30 +174,6 @@ void Application::GetData()
     }
 }
 
-void Application::InitFromFile(const std::string& file_name)
-{
-    std::ifstream            in_file(file_name);
-    std::string              str;
-    std::vector<std::string> tokens;
-    if (in_file.is_open()) {
-        while (std::getline(in_file, str)) {
-            tokens.push_back(str);
-        }
-        in_file.close();
-    }
-
-    for (int i = 0; i < tokens.size(); ++i) {
-        switch (i) {
-        case 0: // COM port
-            m_config_com_port = tokens[i];
-            break;
-        case 1: // number of samples
-            m_config_number_of_samples = std::stoi(tokens[i]);
-            break;
-        }
-    }
-}
-
 void Application::Run()
 {
     // Create threads that are the brains of the program
@@ -167,61 +191,9 @@ void Application::Run()
     m_frameInfoWindow->Close();
 }
 
-static void ListPorts()
-{
-    Communication comm;
-    comm.SetTimeout(100);
-
-    // Find only free ports
-    auto all_ports  = comm.ListAllPorts();
-    auto free_ports = comm.ListFreePorts();
-    for (auto it = all_ports.begin(); it != all_ports.end();) {
-        bool found = false;
-        for (auto fp = free_ports.begin(); fp != free_ports.end(); ++fp)
-            if (it->port == *fp)
-                found = true;
-
-        if (!found)
-            it = all_ports.erase(it);
-        else
-            ++it;
-    }
-
-    // Extract ports of valid STM32 devices by checking description
-    decltype(all_ports) ports;
-    for (auto it = all_ports.begin(); it != all_ports.end(); ++it)
-        if (it->description.find("STMicroelectronics Virtual COM Port") != std::string::npos) // found it
-            ports.push_back(*it);
-
-    if (ports.empty()) {
-        std::cout << "No available serial ports found!\n";
-        return;
-    }
-
-    std::map<int, std::pair<std::string, std::string>> port_map;
-
-    for (auto const& [p, desc, hw_id] : ports) {
-        if (comm.Connect(p)) {
-            comm.StopTransmissionAndSuperPurge();
-            auto tok = comm.WriteAndTokenizeResult("ID_G\n");
-            if (tok.size() == 1)
-                port_map[std::stoi(tok[0])] = std::make_pair(p, desc);
-
-            comm.Disconnect();
-        }
-    }
-
-    for (auto const& [id, pair] : port_map)
-        std::cout << pair.first << "(" << pair.second << "): ID_G," << id << std::endl;
-}
-
 Application::Application()
 {
-    // Display available COM ports on console
     ListPorts();
-
-    // Initial parameters from file init
-    InitFromFile("config.txt");
 
     // Set resource manager font name
     mygui::ResourceManager::SetSystemFontName("segoeui.ttf");
@@ -231,7 +203,8 @@ Application::Application()
     m_record  = std::make_shared<Record>(Record::NO);
 
     // Create communication
-    m_communication = std::make_shared<Communication>();
+    m_sc_top    = std::make_shared<Device>(2);
+    m_sc_bottom = std::make_shared<Device>(3);
 
     // Create main window
     m_mainWindow = std::make_unique<MainWindow>(1850, 900, "Sorting Control", m_config_com_port, m_config_number_of_samples, sf::Style::None | sf::Style::Close);
@@ -257,7 +230,7 @@ Application::Application()
     //m_frameInfoWindow->SetAll(Signal::GetTriggerWindowStatsAll());
 
     // Now that all objects are created pass all neccessary data to mainwindow
-    m_mainWindow->ConnectCrossData(m_communication, m_detectionInfoWindow, m_frameInfoWindow, m_running, m_record);
+    m_mainWindow->ConnectCrossData(m_communication1, m_detectionInfoWindow, m_frameInfoWindow, m_running, m_record);
 }
 
 Application::~Application()
