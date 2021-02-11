@@ -89,6 +89,15 @@ std::string Communication::Readline()
         return std::string("");
 }
 
+std::vector<std::string> Communication::Readlines()
+{
+    std::scoped_lock<std::mutex> sl(m_mtx);
+    if (IsConnected())
+        return m_serial.readlines();
+    else
+        return std::vector<std::string>();
+}
+
 void Communication::Flush()
 {
     std::scoped_lock<std::mutex> sl(m_mtx);
@@ -106,9 +115,7 @@ void Communication::Purge()
 void Communication::SetTimeout(int ms)
 {
     std::scoped_lock<std::mutex> sl(m_mtx);
-
-    auto to = serial::Timeout::simpleTimeout(ms);
-    m_serial.setTimeout(to);
+    m_serial.setTimeout(0, ms, 0, ms, 0); // SimpleTimeout(0) doesn't work, it somehow leaves blocking mode
 }
 
 std::vector<serial::PortInfo> Communication::ListAllPorts()
@@ -216,6 +223,9 @@ std::vector<std::string> Communication::WriteAndTokenizeResult(std::string const
 {
     Write(str);
     auto ret_data = Readline();
+    if (ret_data.size() <= 0)
+        throw std::runtime_error("ERROR (WriteAndTokenizeResult): no data received, expected: '" + str + "'\n");
+
     if (ret_data.back() == '\n')
         ret_data.pop_back();
 
