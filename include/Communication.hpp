@@ -17,6 +17,7 @@ public:
     size_t                        Write(const std::string& m_data);
     size_t                        Read(void* m_data, int size);
     std::string                   Readline();
+    std::vector<std::string>      Readlines();
     void                          Flush();
     void                          Purge();
     std::vector<serial::PortInfo> ListAllPorts();

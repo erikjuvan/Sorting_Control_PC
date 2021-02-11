@@ -344,6 +344,7 @@ void MainWindow::button_set_frequency_Click()
     m_communication->Write(cmd);
     try {
         m_communication->ConfirmTransmission(cmd);
+        std::cout << cmd;
     } catch (std::runtime_error& er) {
         std::cout << er.what() << std::endl;
         auto ret = m_communication->WriteAndTokenizeResult("FRQG\n");
@@ -372,6 +373,7 @@ void MainWindow::button_set_times_Click()
     std::string command = "SRTS," + std::to_string(ticks.at(0)) + "," + std::to_string(ticks.at(1)) + "," + std::to_string(ticks.at(2)) + "\n";
     m_communication->Write(command);
     m_communication->ConfirmTransmission(command);
+    std::cout << command;
 
     // Set blind time for all signals
     std::vector<std::string> strings = Help::TokenizeString(textbox_times->GetText(), ",");
@@ -382,8 +384,10 @@ void MainWindow::button_set_times_Click()
 
 void MainWindow::button_set_filter_coeffs_Click()
 {
-    m_communication->Write("FILS," + textbox_filter_coeffs->GetText() + "\n");
-    m_communication->ConfirmTransmission("FILS," + textbox_filter_coeffs->GetText() + "\n");
+    auto cmd = "FILS," + textbox_filter_coeffs->GetText() + "\n";
+    m_communication->Write(cmd);
+    m_communication->ConfirmTransmission(cmd);
+    std::cout << cmd;
 
     // Set threashold for all signals
     std::vector<std::string> strings = Help::TokenizeString(textbox_filter_coeffs->GetText(), ",");
@@ -391,8 +395,10 @@ void MainWindow::button_set_filter_coeffs_Click()
 
 void MainWindow::button_set_threshold_Click()
 {
-    m_communication->Write("THRS," + textbox_threshold->GetText() + "\n");
-    m_communication->ConfirmTransmission("THRS," + textbox_threshold->GetText() + "\n");
+    auto cmd = "THRS," + textbox_threshold->GetText() + "\n";
+    m_communication->Write(cmd);
+    m_communication->ConfirmTransmission(cmd);
+    std::cout << cmd;
 
     // Set threashold for all signals
     std::vector<std::string> strings = Help::TokenizeString(textbox_threshold->GetText(), ",\n");
@@ -489,7 +495,16 @@ void MainWindow::button_clear_all_Click()
 void MainWindow::button_send_raw_Click()
 {
     m_communication->Write(textbox_send_raw->GetText() + "\n");
-    label_recv_raw->SetText(m_communication->Readline());
+    m_communication->SetTimeout(100);
+    auto lines = m_communication->Readlines();
+    m_communication->SetTimeout(0); // Reset timeout (back to blocking mode)
+    for (const auto& l : lines)
+        std::cout << l;
+
+    try {
+        label_recv_raw->SetText(lines.at(0));
+    } catch (std::exception& ex) {
+    }
 }
 
 void MainWindow::textbox_detection_time_min_KeyPress()
