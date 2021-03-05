@@ -15,24 +15,17 @@ class MainWindow : public Window
 {
 private:
     // Members
-    const uint32_t m_Colors[10]{0xFF0000FF, 0x00FF00FF, 0x0000FFFF, 0xFFFF00FF, 0x00FFFFFF, 0xFF00FFFF, 0xFF8000FF, 0xC0C0C0FF, 0x800000FF, 0x808000FF};
+    const uint32_t m_Colors[10]{0xFF0000FF, 0x00FF00FF, 0x0000FFFF, 0x808000FF, 0x00FFFFFF, 0xFF00FFFF, 0xFF8000FF, 0x800080FF};
     int            m_chart_frame_idx = -1; // -1 so that when we first press right arrow we get the first [0] frame
 
     std::chrono::time_point<std::chrono::steady_clock> m_run_start_time;
 
-    bool m_transparent = false;
-
-    int m_config_number_of_samples = 0;
     int m_signal_update_cntr       = 0;
 
     std::shared_ptr<int> m_sample_freq_hz;
 
     bool m_triggerframe = true;
     View m_view         = View::FILTERED;
-
-    std::shared_ptr<Communication> m_communication1;
-    std::shared_ptr<InfoWindow>    m_detectionInfoWindow;
-    std::shared_ptr<InfoWindow>    m_frameInfoWindow;
 
     std::shared_ptr<bool>   m_running;
     std::shared_ptr<Record> m_record;
@@ -90,13 +83,13 @@ private:
 
 public:
     // Methods
-    MainWindow(int w, int h, std::string const& title, std::string const& com_port, uint32_t num_of_samples, sf::Uint32 style = sf::Style::Default);
+    MainWindow(int w, int h, std::string const& title, sf::Uint32 style = sf::Style::Default);
     ~MainWindow();
 
     auto const& GetRunStartTime() { return m_run_start_time; }
     void        ConnectCrossData(std::shared_ptr<Communication> m_communication1,
-                                 std::shared_ptr<InfoWindow>    m_detectionInfoWindow,
-                                 std::shared_ptr<InfoWindow>    m_frameInfoWindow,
+                                 std::shared_ptr<InfoWindow>    m_info_win_det_sc_top,
+                                 std::shared_ptr<InfoWindow>    m_info_win_frm_sc_top,
                                  std::shared_ptr<bool>          m_running,
                                  std::shared_ptr<Record>        m_record);
     void        UpdateSignals(ProtocolDataType* data);
@@ -109,7 +102,7 @@ public:
     // Members
     //////////
 
-    std::shared_ptr<Chart> chart1, chart2;
+    std::shared_ptr<Chart> chart_sc_top, chart_sc_bottom;
 
     // Button
     std::shared_ptr<mygui::Button> button_connect;

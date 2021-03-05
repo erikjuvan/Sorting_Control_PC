@@ -438,21 +438,21 @@ void MainWindow::button_record_Click()
 
 void MainWindow::button_info_Click()
 {
-    if (m_detectionInfoWindow->IsVisible() && m_frameInfoWindow->IsVisible()) {
-        m_detectionInfoWindow->SetVisible(false);
-        m_frameInfoWindow->SetVisible(false);
+    if (m_info_win_det_sc_top->IsVisible() && m_info_win_frm_sc_top->IsVisible()) {
+        m_info_win_det_sc_top->SetVisible(false);
+        m_info_win_frm_sc_top->SetVisible(false);
     } else {
-        if (!m_detectionInfoWindow->IsVisible()) {
-            m_detectionInfoWindow->SetVisible(true);
-            m_detectionInfoWindow->SetPosition(
-                {static_cast<int>(GetPosition().x + GetSize().x - m_detectionInfoWindow->GetSize().x - 10),
+        if (!m_info_win_det_sc_top->IsVisible()) {
+            m_info_win_det_sc_top->SetVisible(true);
+            m_info_win_det_sc_top->SetPosition(
+                {static_cast<int>(GetPosition().x + GetSize().x - m_info_win_det_sc_top->GetSize().x - 10),
                  GetPosition().y + 40});
         }
-        if (!m_frameInfoWindow->IsVisible()) {
-            m_frameInfoWindow->SetVisible(true);
-            m_frameInfoWindow->SetPosition(
-                {static_cast<int>(m_detectionInfoWindow->GetPosition().x - m_frameInfoWindow->GetSize().x - 5),
-                 m_detectionInfoWindow->GetPosition().y});
+        if (!m_info_win_frm_sc_top->IsVisible()) {
+            m_info_win_frm_sc_top->SetVisible(true);
+            m_info_win_frm_sc_top->SetPosition(
+                {static_cast<int>(m_info_win_det_sc_top->GetPosition().x - m_info_win_frm_sc_top->GetSize().x - 5),
+                 m_info_win_det_sc_top->GetPosition().y});
         }
     }
 }
@@ -465,8 +465,8 @@ void MainWindow::button_clear_all_Click()
         m_chart_frame_idx = -1;
     };
 
-    m_frameInfoWindow->Clear();
-    m_detectionInfoWindow->Clear();
+    m_info_win_frm_sc_top->Clear();
+    m_info_win_det_sc_top->Clear();
     label_info_detected_in_window_Clicked();
     label_info_detected_out_window_Clicked();
     label_info_signal_missed_Clicked();
@@ -725,8 +725,8 @@ void MainWindow::RunClick()
     button_run_Click();
 }
 
-MainWindow::MainWindow(int w, int h, std::string const& title, std::string const& com_port, uint32_t num_of_samples, sf::Uint32 style) :
-    Window(w, h, title, style), m_config_number_of_samples(num_of_samples)
+MainWindow::MainWindow(int w, int h, std::string const& title, sf::Uint32 style) :
+    Window(w, h, title, style)
 {
     m_sample_freq_hz = std::make_shared<int>(0);
 
@@ -949,8 +949,8 @@ void MainWindow::ConnectCrossData(
     std::shared_ptr<Record>        record)
 {
     m_communication1      = communication;
-    m_detectionInfoWindow = detectionInfoWindow;
-    m_frameInfoWindow     = frameInfoWindow;
+    m_info_win_det_sc_top = detectionInfoWindow;
+    m_info_win_frm_sc_top     = frameInfoWindow;
 
     m_running = running;
     m_record  = record;
@@ -993,9 +993,9 @@ void MainWindow::UpdateSignals(ProtocolDataType* data)
             }
         }
 
-        if (m_frameInfoWindow)
-            m_frameInfoWindow->RefreshTable();
-        if (m_detectionInfoWindow)
-            m_detectionInfoWindow->RefreshTable();
+        if (m_info_win_frm_sc_top)
+            m_info_win_frm_sc_top->RefreshTable();
+        if (m_info_win_det_sc_top)
+            m_info_win_det_sc_top->RefreshTable();
     }
 }

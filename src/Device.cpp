@@ -4,11 +4,9 @@
 
 void Device::Connect()
 {
-    m_comm.SetTimeout(100);
-
     // Find only free ports
-    auto all_ports  = m_comm.ListAllPorts();
-    auto free_ports = m_comm.ListFreePorts();
+    auto all_ports  = m_communication.ListAllPorts();
+    auto free_ports = m_communication.ListFreePorts();
     for (auto it = all_ports.begin(); it != all_ports.end();) {
         bool found = false;
         for (auto fp = free_ports.begin(); fp != free_ports.end(); ++fp)
@@ -34,13 +32,13 @@ void Device::Connect()
     std::map<int, std::pair<std::string, std::string>> port_map;
 
     for (auto const& [p, desc, hw_id] : ports) {
-        if (m_comm.Connect(p)) {
-            m_comm.StopTransmissionAndSuperPurge();
-            auto tok = m_comm.WriteAndTokenizeResult("ID_G\n");
+        if (m_communication.Connect(p)) {
+            m_communication.StopTransmissionAndSuperPurge();
+            auto tok = m_communication.WriteAndTokenizeResult("ID_G\n");
             if (tok.size() == 1)
                 port_map[std::stoi(tok[0])] = std::make_pair(p, desc);
 
-            m_comm.Disconnect();
+            m_communication.Disconnect();
         }
     }
 
@@ -48,7 +46,7 @@ void Device::Connect()
         if (id == m_id) {
             std::string port_name = pair.first;
 
-            if (m_comm.Connect(port_name))
+            if (m_communication.Connect(port_name))
                 m_com_port = port_name;
 
             break;

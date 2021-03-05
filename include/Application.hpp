@@ -23,10 +23,10 @@ class Application
 {
 private:
     // Members
-    std::unique_ptr<MainWindow> m_mainWindow;
-    std::shared_ptr<InfoWindow> m_detectionInfoWindow;
-    std::shared_ptr<InfoWindow> m_frameInfoWindow;
-    std::shared_ptr<Device>     m_sc_top, m_sc_bottom;
+    std::unique_ptr<MainWindow> m_main_window;
+    std::shared_ptr<InfoWindow> m_info_win_det_sc_top, m_info_win_det_sc_bottom;
+    std::shared_ptr<InfoWindow> m_info_win_frm_sc_top, m_info_win_frm_sc_bottom;
+    std::shared_ptr<Device>     m_dev_sc_top, m_dev_sc_bottom;
 
     std::shared_ptr<bool>   m_running;
     std::shared_ptr<Record> m_record;

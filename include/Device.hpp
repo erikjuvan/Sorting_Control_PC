@@ -37,13 +37,15 @@ public:
 private:
     void Connect();
 
-    Communication       m_comm;
+    Communication       m_communication;
     std::vector<Signal> m_signals;
 
     ProtocolDataType m_data[N_CHANNELS * DATA_PER_CHANNEL];
 
     int         m_id{-1};
     std::string m_com_port;
+
+    int m_sample_freq_hz;
 
     int m_rcv_packet_id              = 0; // it should be atomic but it is not neccessary since it's just informative counter
     int m_time_took_to_read_data_us  = 0;
