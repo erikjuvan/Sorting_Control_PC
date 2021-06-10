@@ -704,7 +704,7 @@ void MainWindow::chart_OnKeyPress(const sf::Event& event)
 
 void MainWindow::CreateChart()
 {
-    chart = std::make_shared<Chart>(240, 10, 1600, 880, m_config_number_of_samples, 100.f);
+    chart = std::make_shared<Chart>(190, 10, 1650, 880, m_config_number_of_samples, 100.f);
     chart->CreateGrid(9);
     chart->OnKeyPress(std::bind(&MainWindow::chart_OnKeyPress, this, std::placeholders::_1));
     signals.clear();
@@ -752,29 +752,29 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
     button_save = std::make_shared<mygui::Button>(10, 130, "Save");
     button_save->OnClick(std::bind(&MainWindow::button_save_Click, this));
 
-    button_trigger_frame = std::make_shared<mygui::Button>(120, 50, "Frame ON");
+    button_trigger_frame = std::make_shared<mygui::Button>(100, 50, "Frame ON");
     button_trigger_frame->OnClick(std::bind(&MainWindow::button_trigger_frame_Click, this));
 
-    button_view_mode = std::make_shared<mygui::Button>(120, 90, "Filtered");
+    button_view_mode = std::make_shared<mygui::Button>(100, 90, "Filtered");
     button_view_mode->OnClick(std::bind(&MainWindow::button_view_mode_Click, this));
 
-    button_info_windows = std::make_shared<mygui::Button>(120, 130, "Info");
+    button_info_windows = std::make_shared<mygui::Button>(100, 130, "Info");
     button_info_windows->OnClick(std::bind(&MainWindow::button_info_Click, this));
 
-    button_set_frequency = std::make_shared<mygui::Button>(150, 190, "Send", 50);
+    button_set_frequency = std::make_shared<mygui::Button>(120, 190, "Send", 50);
     button_set_frequency->OnClick(std::bind(&MainWindow::button_set_frequency_Click, this));
     button_set_frequency->Enabled(false);
 
     // Set times is correct since we will be inputing time in ms and then converting it to ticks to send to MCU
-    button_set_times = std::make_shared<mygui::Button>(150, 250, "Send", 50);
+    button_set_times = std::make_shared<mygui::Button>(120, 250, "Send", 50);
     button_set_times->OnClick(std::bind(&MainWindow::button_set_times_Click, this));
     button_set_times->Enabled(false);
 
-    button_set_filter_coeffs = std::make_shared<mygui::Button>(150, 310, "Send", 50);
+    button_set_filter_coeffs = std::make_shared<mygui::Button>(120, 310, "Send", 50);
     button_set_filter_coeffs->OnClick(std::bind(&MainWindow::button_set_filter_coeffs_Click, this));
     button_set_filter_coeffs->Enabled(false);
 
-    button_set_threshold = std::make_shared<mygui::Button>(150, 370, "Send", 50);
+    button_set_threshold = std::make_shared<mygui::Button>(120, 370, "Send", 50);
     button_set_threshold->OnClick(std::bind(&MainWindow::button_set_threshold_Click, this));
     button_set_threshold->Enabled(false);
 
@@ -784,7 +784,7 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
     button_clear_all = std::make_shared<mygui::Button>(10, 680, "Clear ALL");
     button_clear_all->OnClick(std::bind(&MainWindow::button_clear_all_Click, this));
 
-    button_send_raw = std::make_shared<mygui::Button>(150, 740, "Send", 50);
+    button_send_raw = std::make_shared<mygui::Button>(120, 740, "Send", 50);
     button_send_raw->OnClick(std::bind(&MainWindow::button_send_raw_Click, this));
     button_send_raw->Enabled(false);
 
@@ -793,24 +793,24 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
     //////////////
     textbox_comport = std::make_shared<mygui::Textbox>(10, 10, "COM");
     textbox_comport->SetText(com_port);
-    textbox_notes     = std::make_shared<mygui::Textbox>(120, 10, "");
-    textbox_frequency = std::make_shared<mygui::Textbox>(10, 190, "", 120);
+    textbox_notes     = std::make_shared<mygui::Textbox>(100, 10, "");
+    textbox_frequency = std::make_shared<mygui::Textbox>(10, 190, "", 100);
     textbox_frequency->Enabled(false);
-    textbox_times = std::make_shared<mygui::Textbox>(10, 250, "", 120);
+    textbox_times = std::make_shared<mygui::Textbox>(10, 250, "", 100);
     textbox_times->Enabled(false);
-    textbox_filter_coeffs = std::make_shared<mygui::Textbox>(10, 310, "", 120);
+    textbox_filter_coeffs = std::make_shared<mygui::Textbox>(10, 310, "", 100);
     textbox_filter_coeffs->Enabled(false);
-    textbox_threshold = std::make_shared<mygui::Textbox>(10, 370, "", 120);
+    textbox_threshold = std::make_shared<mygui::Textbox>(10, 370, "", 100);
     textbox_threshold->Enabled(false);
-    textbox_detection_time_min = std::make_shared<mygui::Textbox>(35, 605, "", 40, 25);
+    textbox_detection_time_min = std::make_shared<mygui::Textbox>(35, 605, "", 30);
     textbox_detection_time_min->OnKeyPress(std::bind(&MainWindow::textbox_detection_time_min_KeyPress, this));
-    textbox_detection_time_max = std::make_shared<mygui::Textbox>(165, 605, "", 40, 25);
+    textbox_detection_time_max = std::make_shared<mygui::Textbox>(145, 605, "", 30);
     textbox_detection_time_max->OnKeyPress(std::bind(&MainWindow::textbox_detection_time_max_KeyPress, this));
-    textbox_window_time_min = std::make_shared<mygui::Textbox>(35, 635, "", 40, 25);
+    textbox_window_time_min = std::make_shared<mygui::Textbox>(35, 635, "", 30);
     textbox_window_time_min->OnKeyPress(std::bind(&MainWindow::textbox_window_time_min_KeyPress, this));
-    textbox_window_time_max = std::make_shared<mygui::Textbox>(165, 635, "", 40, 25);
+    textbox_window_time_max = std::make_shared<mygui::Textbox>(145, 635, "", 30);
     textbox_window_time_max->OnKeyPress(std::bind(&MainWindow::textbox_window_time_max_KeyPress, this));
-    textbox_send_raw = std::make_shared<mygui::Textbox>(10, 740, "", 120);
+    textbox_send_raw = std::make_shared<mygui::Textbox>(10, 740, "", 100);
     textbox_send_raw->Enabled(false);
     textbox_send_raw->OnEnterPress(std::bind(&MainWindow::textbox_send_raw_EnterPress, this));
 
@@ -821,19 +821,19 @@ MainWindow::MainWindow(int w, int h, std::string const& title, std::string const
     label_times                    = std::make_shared<mygui::Label>(10, 238, "Times [ms] (dly, dur, blind):");
     label_filter_coeffs            = std::make_shared<mygui::Label>(10, 298, "Filter coeffs (lpf1, hpf, lpf2):");
     label_threshold                = std::make_shared<mygui::Label>(10, 358, "Threshold:");
-    label_recorded_signals_counter = std::make_shared<mygui::Label>(120, 495, "Rec cnt: 0");
+    label_recorded_signals_counter = std::make_shared<mygui::Label>(100, 495, "Rec cnt: 0");
     label_info_rx_id_avail         = std::make_shared<mygui::Label>(10, 840, "Rx id: 0 available: 0 bytes");
     label_info_rx_time_took_speed  = std::make_shared<mygui::Label>(10, 860, "Rx took: 0 ms at: 0 kB/s");
     label_info_parse_data_time     = std::make_shared<mygui::Label>(10, 880, "Parsing data took: 0 ms");
-    label_info_detected_in_window  = std::make_shared<mygui::Label>(120, 527, "0");
+    label_info_detected_in_window  = std::make_shared<mygui::Label>(100, 527, "0");
     label_info_detected_in_window->OnClick(std::bind(&MainWindow::label_info_detected_in_window_Clicked, this));
-    label_info_detected_out_window = std::make_shared<mygui::Label>(120, 557, "0");
+    label_info_detected_out_window = std::make_shared<mygui::Label>(100, 557, "0");
     label_info_detected_out_window->OnClick(std::bind(&MainWindow::label_info_detected_out_window_Clicked, this));
-    label_info_signal_missed = std::make_shared<mygui::Label>(120, 587, "0");
+    label_info_signal_missed = std::make_shared<mygui::Label>(100, 587, "0");
     label_info_signal_missed->OnClick(std::bind(&MainWindow::label_info_signal_missed_Clicked, this));
-    label_detection_time = std::make_shared<mygui::Label>(82, 617, "> det time >");
+    label_detection_time = std::make_shared<mygui::Label>(70, 617, "> det time >");
     label_detection_time->OnClick(std::bind(&MainWindow::label_detection_time_Clicked, this));
-    label_window_time = std::make_shared<mygui::Label>(82, 647, "> win time >");
+    label_window_time = std::make_shared<mygui::Label>(70, 647, "> win time >");
     label_window_time->OnClick(std::bind(&MainWindow::label_window_time_Clicked, this));
     label_send_raw = std::make_shared<mygui::Label>(10, 728, "Send raw:");
     label_recv_raw = std::make_shared<mygui::Label>(10, 785, "");
