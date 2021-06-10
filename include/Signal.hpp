@@ -7,12 +7,14 @@
 class Signal : public sf::Drawable
 {
 public:
-    enum Event { NONE           = 0x0,
-                 DETECTED_IN    = 0x1,
-                 DETECTED_OUT   = 0x2,
-                 MISSED         = 0x4,
-                 WINDOW_TIME    = 0x8,
-                 DETECTION_TIME = 0x10 };
+    enum Event { NONE                  = 0x0,
+                 DETECTED_IN           = 0x1,
+                 DETECTED_OUT          = 0x2,
+                 MISSED                = 0x4,
+                 WINDOW_TIME           = 0x8,
+                 DETECTION_TIME        = 0x10,
+                 THRESHOLD_READ_BY_PLC = 0x20,
+    };
 
     Signal();
     Signal(int n, sf::Color col, const sf::FloatRect& region, std::shared_ptr<float const> const& max_val);
@@ -92,8 +94,8 @@ private:
     bool                         m_draw_trigger_frame{true};
     bool                         m_draw_event_indicator{true};
 
-    int  m_diff{0};
     bool m_ejection_win_prev{false};
+    bool m_obj_det_prev{false};
 
     int m_detected_in_window_cnt{0};
     int m_detected_out_window_cnt{0};
