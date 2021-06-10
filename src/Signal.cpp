@@ -186,6 +186,11 @@ void Signal::SetIndicator(float const x, Event const ev)
             lambda_set_indicator(sf::Color(0, 255, 255, alpha));
         }
         break;
+    case Event::THRESHOLD_READ_BY_PLC:
+        if (*m_events_to_record & Event::DETECTED_IN) { // Don't have an actual checkbox, but instead piggy back on detection in (makes sense)
+            lambda_set_indicator(sf::Color(0, 0, 0, alpha));
+        }
+        break;
     }
 }
 
@@ -237,24 +242,26 @@ void Signal::Edit(ProtocolDataType const* m_data, int start, int size, View view
                 return;
             }
 
-            // Edge detection
+            // Ejection window edge detection
             /////////////////
-            m_diff              = ejection_win - m_ejection_win_prev;
+            int diff            = ejection_win - m_ejection_win_prev;
             m_ejection_win_prev = ejection_win;
             /////////////////
 
-            // Threshold detection
-            ///////////////////////
-            m_blind_ticks -= (m_blind_ticks > 0);
-            if (filt_data >= m_threashold_value && m_blind_ticks <= 0) {
-                m_threshold   = Threshold::REACHED;
-                m_blind_ticks = m_blind_ticks_param;
-            }
-            ///////////////////////
-
             const float x_position = m_curve[s].position.x;
 
-            if (m_diff == 1) { // rising edge
+            // Object detection
+            ///////////////////////
+            int edge_obj_det = obj_det - m_obj_det_prev;
+            m_obj_det_prev   = obj_det;
+
+            if (edge_obj_det > 0) // rising edge of object detected
+                m_threshold = Threshold::REACHED;
+            else if (edge_obj_det < 0)
+                SetIndicator(x_position, THRESHOLD_READ_BY_PLC);
+            ///////////////////////
+
+            if (diff == 1) { // rising edge
                 m_trigger_frame[m_trigger_frame_idx++].position = sf::Vector2f(x_position, y_zero);
                 m_trigger_frame[m_trigger_frame_idx++].position = sf::Vector2f(x_position, y_high);
                 m_trigger_frame[m_trigger_frame_idx++].position = sf::Vector2f(x_position, y_high);
@@ -264,7 +271,7 @@ void Signal::Edit(ProtocolDataType const* m_data, int start, int size, View view
                 m_threshold                  = Threshold::SEARCHING;
                 m_ejection_window_width_cntr = 0;
                 m_detection_time_cntr        = 0;
-            } else if (m_diff == -1) { // falling edge
+            } else if (diff == -1) { // falling edge
                 m_trigger_frame[m_trigger_frame_idx++].position = sf::Vector2f(x_position, y_high);
                 m_trigger_frame[m_trigger_frame_idx++].position = sf::Vector2f(x_position, y_high);
                 m_trigger_frame[m_trigger_frame_idx++].position = sf::Vector2f(x_position, y_zero);
