@@ -1,20 +1,22 @@
-#include "Chart.hpp"
+#include "Graph.hpp"
 #include <iomanip>
 #include <mygui/ResourceManager.hpp>
 #include <sstream>
 
-Chart::Chart(int x, int y, int w, int h, int num_of_points, float max_val) :
-    m_num_of_points(num_of_points), m_max_val(std::make_shared<float>(max_val)), m_background(sf::Vector2f(w, h)),
-    m_chart_region(sf::Vector2f(w - 5 * m_margin, h - 3 * m_margin))
+Graph::Graph(int x, int y, int w, int h, float max_val) :
+    m_max_val(std::make_shared<float>(max_val)), m_background(sf::Vector2f(w, h)),
+    m_graph_region(sf::Vector2f(w - 5 * m_margin, h - 3 * m_margin))
 {
     m_background.setPosition(x, y);
     m_background.setOutlineColor(sf::Color::Black);
     m_background.setOutlineThickness(1.f);
 
-    m_chart_region.setPosition(x + 3.f * m_margin, y + 1.f * m_margin);
-    m_chart_region.setOutlineColor(sf::Color::Black);
-    m_chart_region.setOutlineThickness(1.f);
-    m_chart_rect = m_chart_region.getGlobalBounds();
+    m_num_of_points = m_graph_region.getSize().x;
+
+    m_graph_region.setPosition(x + 3.f * m_margin, y + 1.f * m_margin);
+    m_graph_region.setOutlineColor(sf::Color::Black);
+    m_graph_region.setOutlineThickness(1.f);
+    m_graph_rect = m_graph_region.getGlobalBounds();
 
     m_font.loadFromFile(mygui::ResourceManager::GetSystemFontName());
 
@@ -25,10 +27,10 @@ Chart::Chart(int x, int y, int w, int h, int num_of_points, float max_val) :
     m_x_axis.setPosition(sf::Vector2f(x + w / 2.f - m_x_axis.getLocalBounds().width / 2.f, y - h + 1.25f * m_margin));
 }
 
-void Chart::draw(sf::RenderTarget& target, sf::RenderStates states) const
+void Graph::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
     target.draw(m_background, states);
-    target.draw(m_chart_region, states);
+    target.draw(m_graph_region, states);
     target.draw(m_x_axis);
     target.draw(m_grid);
     for (auto& m : m_x_axis_markers)
@@ -41,12 +43,12 @@ void Chart::draw(sf::RenderTarget& target, sf::RenderStates states) const
     }
 }
 
-void Chart::Handle(const sf::Event& event)
+void Graph::Handle(const sf::Event& event)
 {
     if (!Enabled())
         return;
 
-    //  && m_chart_region.getGlobalBounds().contains(sf::Vector2f(event.mouseButton.x, event.mouseButton.y))
+    //  && m_graph_region.getGlobalBounds().contains(sf::Vector2f(event.mouseButton.x, event.mouseButton.y))
     if (event.type == sf::Event::MouseWheelScrolled && m_mouseover) {
         if (event.mouseWheelScroll.wheel == sf::Mouse::VerticalWheel) {
             if (*m_max_val >= 100.f) {
@@ -63,7 +65,7 @@ void Chart::Handle(const sf::Event& event)
     } else if (event.type == sf::Event::KeyReleased && m_mouseover) {
         m_onKeyPress(event);
     } else if (event.type == sf::Event::MouseMoved) {
-        if (m_chart_region.getGlobalBounds().contains(sf::Vector2f(event.mouseMove.x, event.mouseMove.y))) {
+        if (m_graph_region.getGlobalBounds().contains(sf::Vector2f(event.mouseMove.x, event.mouseMove.y))) {
             m_mouseover = true;
         } else {
             m_mouseover = false;
@@ -71,7 +73,7 @@ void Chart::Handle(const sf::Event& event)
     }
 }
 
-void Chart::Enabled(bool enabled)
+void Graph::Enabled(bool enabled)
 {
     m_enabled = enabled;
     if (enabled) {
@@ -79,18 +81,18 @@ void Chart::Enabled(bool enabled)
     }
 }
 
-bool Chart::Enabled() const
+bool Graph::Enabled() const
 {
     return m_enabled;
 }
 
-void Chart::AddSignal(std::shared_ptr<Signal> const& signal)
+void Graph::AddSignal(std::shared_ptr<Signal> const& signal)
 {
     m_signals.push_back(signal);
     m_draw_signal.push_back(true);
 }
 
-void Chart::ChangeSignal(int idx, std::shared_ptr<Signal> const& signal)
+void Graph::ChangeSignal(int idx, std::shared_ptr<Signal> const& signal)
 {
     if (idx < m_signals.size()) {
         m_signals[idx] = signal;
@@ -98,7 +100,7 @@ void Chart::ChangeSignal(int idx, std::shared_ptr<Signal> const& signal)
 }
 
 // n_lines - number of one type of lines (vertical or horizontal), there are same number of other lines
-void Chart::CreateGrid(int n_lines)
+void Graph::CreateGrid(int n_lines)
 {
     m_num_grid_lines      = n_lines;
     m_grid                = sf::VertexArray(sf::PrimitiveType::Lines, n_lines * 4);
@@ -106,26 +108,26 @@ void Chart::CreateGrid(int n_lines)
 
     // vertical lines
     for (int i = 0; i < n_lines; ++i) {
-        m_grid[2 * i].position     = sf::Vector2f(m_chart_rect.left + (i + 1) * (m_chart_rect.width / (n_lines + 1)), m_chart_rect.top);
+        m_grid[2 * i].position     = sf::Vector2f(m_graph_rect.left + (i + 1) * (m_graph_rect.width / (n_lines + 1)), m_graph_rect.top);
         m_grid[2 * i].color        = color;
-        m_grid[2 * i + 1].position = sf::Vector2f(m_chart_rect.left + (i + 1) * (m_chart_rect.width / (n_lines + 1)), m_chart_rect.top + m_chart_rect.height);
+        m_grid[2 * i + 1].position = sf::Vector2f(m_graph_rect.left + (i + 1) * (m_graph_rect.width / (n_lines + 1)), m_graph_rect.top + m_graph_rect.height);
         m_grid[2 * i + 1].color    = color;
     }
 
     // horizontal lines
     for (int i = n_lines, j = 0; i < n_lines * 2; ++i, ++j) {
-        m_grid[2 * i].position     = sf::Vector2f(m_chart_rect.left, m_chart_rect.top + ((j + 1) * (m_chart_rect.height / (n_lines + 1))));
+        m_grid[2 * i].position     = sf::Vector2f(m_graph_rect.left, m_graph_rect.top + ((j + 1) * (m_graph_rect.height / (n_lines + 1))));
         m_grid[2 * i].color        = color;
-        m_grid[2 * i + 1].position = sf::Vector2f(m_chart_rect.left + m_chart_rect.width, m_chart_rect.top + ((j + 1) * (m_chart_rect.height / (n_lines + 1))));
+        m_grid[2 * i + 1].position = sf::Vector2f(m_graph_rect.left + m_graph_rect.width, m_graph_rect.top + ((j + 1) * (m_graph_rect.height / (n_lines + 1))));
         m_grid[2 * i + 1].color    = color;
     }
 
     CreateAxisMarkers();
 }
 
-void Chart::CreateAxisMarkers()
+void Graph::CreateAxisMarkers()
 {
-    sf::FloatRect rect = m_chart_region.getGlobalBounds();
+    sf::FloatRect rect = m_graph_region.getGlobalBounds();
     int           n    = m_num_grid_lines + 2; // + 2 is for 0 and max
 
     m_x_axis_markers.clear();
@@ -164,41 +166,87 @@ void Chart::CreateAxisMarkers()
     }
 }
 
-const sf::FloatRect& Chart::GraphRegion()
+const sf::FloatRect& Graph::GraphRegion()
 {
-    return m_chart_rect;
+    return m_graph_rect;
 }
 
-std::shared_ptr<float const> Chart::MaxVal()
+std::shared_ptr<float const> Graph::MaxVal()
 {
     return m_max_val;
 }
 
-void Chart::EnableTriggerFrame()
+void Graph::EnableTriggerFrame()
 {
     for (const auto& s : m_signals)
         s->EnableTriggerFrame();
 }
 
-void Chart::DisableTriggerFrame()
+void Graph::DisableTriggerFrame()
 {
     for (const auto& s : m_signals)
         s->DisableTriggerFrame();
 }
 
-void Chart::OnKeyPress(const chart_callback_type& f)
+void Graph::OnKeyPress(const graph_callback_type& f)
 {
     m_onKeyPress = f;
 }
 
-void Chart::ToggleDrawSignal(int idx)
+void Graph::ToggleDrawSignal(int idx)
 {
     if (idx > 0 && idx <= m_signals.size())
         m_draw_signal[idx - 1] = !m_draw_signal[idx - 1];
 }
 
-void Chart::ToggleDrawAllSignals()
+void Graph::ToggleDrawAllSignals()
 {
     m_draw_all_signals = !m_draw_all_signals;
     std::fill(m_draw_signal.begin(), m_draw_signal.end(), m_draw_all_signals);
+}
+
+void Graph::UpdateSignals(ProtocolDataType* data)
+{
+    // Update signals with new m_data
+    for (auto& s : signals) {
+        s->Edit(data, m_signal_update_cntr * DATA_PER_CHANNEL, DATA_PER_CHANNEL, m_view);
+        data += DATA_PER_CHANNEL;
+    }
+
+    // If we filled up char/signal
+    if (++m_signal_update_cntr >= (m_config_number_of_samples / DATA_PER_CHANNEL)) {
+        m_signal_update_cntr = 0;
+        if (*m_record == Record::ALL) {
+            for (auto const& s : signals)
+                recorded_signals.emplace_back(std::make_shared<Signal>(*s));
+            label_recorded_signals_counter->SetText(std::to_string(recorded_signals.size() / N_CHANNELS));
+        }
+        else if (*m_record == Record::EVENTS) {
+            bool event_happened = false;
+            for (auto const& s : signals) {
+                if (s->AnyEvents()) {
+                    event_happened = true;
+                    break;
+                }
+            }
+
+            if (event_happened) {
+                for (auto& s : signals) {
+                    if (s->AnyEvents()) {
+                        recorded_signals.push_back(std::make_shared<Signal>(*s));
+                        s->ClearEvents();
+                    }
+                    else {
+                        recorded_signals.push_back(std::make_shared<Signal>()); // push empty signal
+                    }
+                }
+                label_recorded_signals_counter->SetText(std::to_string(recorded_signals.size() / N_CHANNELS));
+            }
+        }
+
+        if (m_info_win_frm_sc_top)
+            m_info_win_frm_sc_top->RefreshTable();
+        if (m_info_win_det_sc_top)
+            m_info_win_det_sc_top->RefreshTable();
+    }
 }

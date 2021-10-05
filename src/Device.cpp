@@ -1,6 +1,17 @@
 #include "Device.hpp"
+
+#include <future>
 #include <iostream>
+#include <chrono>
 #include <map>
+
+Device::Device(int id) :
+    m_id(id)
+{
+    m_channels.resize(N_CHANNELS);
+
+    Connect();
+}
 
 void Device::Connect()
 {
@@ -54,10 +65,60 @@ void Device::Connect()
     }
 }
 
-Device::Device(int id) :
-    m_id(id)
-{
-    m_signals.resize(N_CHANNELS);
+void Device::GetData()
+{    
+    Header header = { 0, 0 };
 
-    Connect();
+    m_available_bytes = m_communication.GetRxBufferLen();
+    
+    // Find start of new packet by searching for the delimiter
+    bool delimiter_found = false;
+    do {
+        m_communication.Read(&header.delim, sizeof(header.delim));
+        
+        if (header.delim == 0xDEADBEEF) {
+            delimiter_found = true;
+            break;
+        }
+    } while (m_communication.GetRxBufferLen());
+
+    if (!delimiter_found) return;
+
+    // Read packet ID
+    auto len = m_communication.Read(&header.packet_id, sizeof(header.packet_id));
+
+    // Check received data for valid size
+    if (len != sizeof(header.packet_id)) {
+        std::cerr << "Can't extract packet_id! Insufficient number of bytes read: " << len << " vs " << sizeof(header.packet_id) << "\n";
+        return;
+    }
+
+    // Check header for valid packet ID
+    if (header.packet_id != (m_prev_packet_id + 1)) { // if we missed a packet
+        std::cerr << "Packet(s) lost: Should receive: " << m_prev_packet_id + 1 << " received: " << header.packet_id << ". Info: previous packet took: " << m_time_took_to_read_data_us / 1000 << " ms to read." << std::endl;
+    }
+
+    // Remember latest packet ID
+    m_prev_packet_id = header.packet_id;
+    m_rcv_packet_id = header.packet_id;
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    std::vector<ProtocolDataType> data(N_CHANNELS * DATA_PER_CHANNEL);
+
+    len = m_communication.Read(data.data(), data.size());
+
+    if (len == data.size()) {
+        for (size_t i = 0; i < m_channels.size(); ++i) {
+            m_channels[i].AppendData(data.begin() + i * DATA_PER_CHANNEL, DATA_PER_CHANNEL);
+        }
+        signal_new_data(m_channels);
+    }
+    else {
+        std::cerr << "Read insufficent bytes. Read " << len << " insted " << sizeof(data) << " bytes\n";
+    }
+
+    auto finished = std::chrono::high_resolution_clock::now();
+    m_time_took_to_read_data_us = std::chrono::duration_cast<std::chrono::microseconds>(finished - start).count();
+    m_comm_speed_kb_s = (len * 1000) / m_time_took_to_read_data_us; // kB/s
 }

@@ -85,7 +85,7 @@ void Application::Information()
         auto time_now  = std::chrono::steady_clock::now();
         auto alive_sec = std::chrono::duration_cast<std::chrono::seconds>(time_now - time_at_start).count();
 
-        if (*m_running)
+        if (m_running)
             run_sec = std::chrono::duration_cast<std::chrono::seconds>(time_now - m_main_window->GetRunStartTime()).count();
 
         int size     = m_main_window->signals.size() * m_main_window->signals[0]->GetRXData().size() * sizeof(m_main_window->signals[0]->GetRXData()[0]) / 1000000;
@@ -101,84 +101,10 @@ void Application::Information()
     }
 }
 
-void Application::GetData()
-{
-    Header header         = {0, 0};
-    auto   prev_packet_id = header.packet_id;
-
-    std::future<void> future           = std::async(std::launch::async, [] { return; }); // create a valid future
-    std::atomic_bool  parsing_too_slow = false;
-
-    while (m_main_window->IsOpen()) {
-
-        if (*m_running) {
-
-            header.delim = 0; // reset value
-
-            m_available_bytes = m_communication1->GetRxBufferLen();
-
-            m_communication1->Read(&header, sizeof(header.delim));
-            // If start of new packet
-            if (header.delim == 0xDEADBEEF) {
-
-                // Check header for valid packet ID
-                m_communication1->Read(&header.packet_id, sizeof(header.packet_id));
-                if (header.packet_id != (prev_packet_id + 1)) // if we missed a packet
-                    std::cerr << "Packet(s) lost: Should receive: " << prev_packet_id + 1 << " received: " << header.packet_id << ". Info: previous packet took: " << m_time_took_to_read_data_us / 1000 << " ms to read." << std::endl;
-
-                // Remember latest packet ID
-                prev_packet_id  = header.packet_id;
-                m_rcv_packet_id = header.packet_id;
-
-                auto start = std::chrono::high_resolution_clock::now();
-
-                size_t read = m_communication1->Read(m_data, sizeof(m_data));
-
-                if (read == sizeof(m_data)) {
-                    if (future.wait_for(0ms) == std::future_status::ready) {
-                        future = std::async(std::launch::async, [this, &parsing_too_slow] {
-                            // Time it
-                            auto start = std::chrono::steady_clock::now();
-                            // Internal tmp data buffer
-                            ProtocolDataType data_tmp_buf[sizeof(m_data)];
-                            // Copy to tmp buffer
-                            std::memcpy(data_tmp_buf, m_data, sizeof(m_data));
-                            // Update signals
-                            m_main_window->UpdateSignals(data_tmp_buf);
-                            // How long did it all take
-                            m_time_took_to_parse_data_us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count();
-                            // If parsing was too slow output how long it took
-                            if (parsing_too_slow) {
-                                parsing_too_slow = false;
-                                std::cerr << "Parsing took: " << m_time_took_to_parse_data_us << " us\n";
-                            }
-                            return;
-                        });
-                    } else {
-                        parsing_too_slow = true;
-                        std::cerr << "Data parsing too slow: overwritten previous packet.\n";
-                    }
-
-                } else {
-                    std::cerr << "Read insufficent bytes. Read " << read << " bytes insted " << sizeof(m_data) << "\n";
-                }
-
-                auto finished               = std::chrono::high_resolution_clock::now();
-                m_time_took_to_read_data_us = std::chrono::duration_cast<std::chrono::microseconds>(finished - start).count();
-                m_comm_speed_kb_s           = (read * 1000) / m_time_took_to_read_data_us; // kB/s
-            }
-        }
-
-        if (!*m_running)
-            prev_packet_id = 0;
-    }
-}
-
 void Application::Run()
 {
     // Create threads that are the brains of the program
     m_thread_info     = std::thread(std::bind(&Application::Information, this));
-    m_thread_get_data = std::thread(std::bind(&Application::GetData, this));
 
     while (m_main_window->IsOpen()) {
         m_main_window->Update();
@@ -198,43 +124,62 @@ Application::Application()
     // Set resource manager font name
     mygui::ResourceManager::SetSystemFontName("segoeui.ttf");
 
-    // Set state variables
-    m_running = std::make_shared<bool>(false);
-    m_record  = std::make_shared<Record>(Record::NO);
-
-    // Create communication
-    m_dev_sc_top    = std::make_shared<Device>(2);
-    m_dev_sc_bottom = std::make_shared<Device>(3);
+    // Create Devices
+    m_dev_sc_top    = std::make_shared<Device>(2 /* ID */);
+    m_dev_sc_bottom = std::make_shared<Device>(3 /* ID */);
 
     // Create main window
-    m_main_window = std::make_unique<MainWindow>(1850, 900, "Sorting Control", m_config_com_port, m_config_number_of_samples, sf::Style::None | sf::Style::Close);
+    m_main_window = std::make_unique<MainWindow>(1850, 900, "Sorting Control", sf::Style::None | sf::Style::Close);
 
-    // Create detection info window
-    m_info_win_det_sc_top = std::make_shared<InfoWindow>("Detection Info", "det.py");
+    // Create top detection info window
+    m_info_win_det_sc_top = std::make_shared<InfoWindow>("Top Detection Info", "top_det.py");
     m_info_win_det_sc_top->SetPosition(m_main_window->GetPosition() + sf::Vector2i(1850 - 480, 40));
     m_info_win_det_sc_top->SetSampleFrequency(m_main_window->GetSampleFreq());
     m_info_win_det_sc_top->SetVisible(false);
     for (auto& s : m_main_window->signals) {
         m_info_win_det_sc_top->push_back(s->GetDetectionStats());
     }
-    //m_detectionInfoWindow->SetAll(Signal::GetDetectionStatsAll());
 
-    // Create frame info window
-    m_info_win_frm_sc_top = std::make_shared<InfoWindow>("Frame Info", "win.py");
+    // Create top frame info window
+    m_info_win_frm_sc_top = std::make_shared<InfoWindow>("Top Frame Info", "top_win.py");
     m_info_win_frm_sc_top->SetPosition(m_main_window->GetPosition() + sf::Vector2i(1850 - 1000, 40));
     m_info_win_frm_sc_top->SetSampleFrequency(m_main_window->GetSampleFreq());
     m_info_win_frm_sc_top->SetVisible(false);
     for (auto& s : m_main_window->signals) {
         m_info_win_frm_sc_top->push_back(s->GetTriggerWindowStats());
     }
-    //m_frameInfoWindow->SetAll(Signal::GetTriggerWindowStatsAll());
 
-    // Now that all objects are created pass all neccessary data to mainwindow
-    m_main_window->ConnectCrossData(m_communication1, m_info_win_det_sc_top, m_info_win_frm_sc_top, m_running, m_record);
+    // Create bottom detection info window
+    m_info_win_det_sc_bottom = std::make_shared<InfoWindow>("Bottom Detection Info", "bot_det.py");
+    m_info_win_det_sc_bottom->SetPosition(m_main_window->GetPosition() + sf::Vector2i(1850 - 480, 440));
+    m_info_win_det_sc_bottom->SetSampleFrequency(m_main_window->GetSampleFreq());
+    m_info_win_det_sc_bottom->SetVisible(false);
+    for (auto& s : m_main_window->signals) {
+        m_info_win_det_sc_bottom->push_back(s->GetDetectionStats());
+    }
+
+    // Create bottom frame info window
+    m_info_win_frm_sc_bottom = std::make_shared<InfoWindow>("Bottom Frame Info", "bot_win.py");
+    m_info_win_frm_sc_bottom->SetPosition(m_main_window->GetPosition() + sf::Vector2i(1850 - 1000, 440));
+    m_info_win_frm_sc_bottom->SetSampleFrequency(m_main_window->GetSampleFreq());
+    m_info_win_frm_sc_bottom->SetVisible(false);
+    for (auto& s : m_main_window->signals) {
+        m_info_win_frm_sc_bottom->push_back(s->GetTriggerWindowStats());
+    }
+
+    // Connect signals
+    m_dev_sc_top->signal_new_data.connect([this](std::vector<Channel> const& channels) {
+        //m_main_window->graph_sc_top->
+        size_t start_idx = channels[0].GetData().size() - static_cast<size_t>(m_main_window->graph_sc_bottom->GraphRegion().width);
+        m_main_window->graph_sc_top->Draw()
+    });
+
+    m_dev_sc_bottom->signal_new_data.connect([this](std::vector<Channel> const& channels) {
+        //m_main_window->graph_sc_bottom->
+    });
 }
 
 Application::~Application()
 {
     m_thread_info.join();
-    m_thread_get_data.join();
 }

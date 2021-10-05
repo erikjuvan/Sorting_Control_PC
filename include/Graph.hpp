@@ -3,16 +3,16 @@
 #include "Signal.hpp"
 #include <mygui/Object.hpp>
 
-class Chart : public mygui::Object
+class Graph : public mygui::Object
 {
 private:
-    using chart_callback_type = std::function<void(const sf::Event&)>;
+    using graph_callback_type = std::function<void(const sf::Event&)>;
 
     const int m_margin{20};
 
     sf::RectangleShape m_background;
-    sf::RectangleShape m_chart_region;
-    sf::FloatRect      m_chart_rect;
+    sf::RectangleShape m_graph_region;
+    sf::FloatRect      m_graph_rect;
     sf::VertexArray    m_outline;
     sf::VertexArray    m_axes;
     sf::VertexArray    m_grid;
@@ -34,10 +34,10 @@ private:
 
     bool m_mouseover{false};
 
-    chart_callback_type m_onKeyPress{nullptr};
+    graph_callback_type m_onKeyPress{nullptr};
 
 public:
-    Chart(int x, int y, int w, int h, int num_of_points, float max_val);
+    Graph(int x, int y, int w, int h, float max_val);
 
     virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
     virtual void Handle(const sf::Event& event) override;
@@ -47,6 +47,7 @@ public:
 
     void AddSignal(std::shared_ptr<Signal> const& signal);
     void ChangeSignal(int idx, std::shared_ptr<Signal> const& signal);
+    void UpdateSignals(ProtocolDataType* data);
 
     // n_lines - number of one type of lines (vertical or horizontal), there are same number of other lines
     void                         CreateGrid(int n_lines);
@@ -59,5 +60,5 @@ public:
     void                         ToggleDrawAllSignals();
 
     // Actions
-    void OnKeyPress(const chart_callback_type& f);
+    void OnKeyPress(const graph_callback_type& f);
 };

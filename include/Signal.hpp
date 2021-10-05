@@ -49,8 +49,8 @@ public:
     const auto& GetRXData() const { return m_rx_data; }
     void        ClearRXData() { m_rx_data.clear(); }
     auto&       GetTriggerWindowStats() { return m_ejection_window_stats; }
-    auto&       GetDetectionStats() { return m_detection_stats; }
-
+    auto&       GetDetectionStats() { return m_detection_stats; }    
+    
 private:
     enum class Threshold {
         IDLE,

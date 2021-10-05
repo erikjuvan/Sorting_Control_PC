@@ -8,7 +8,7 @@
 #include <mygui/Textbox.hpp>
 
 #include "Application.hpp"
-#include "Chart.hpp"
+#include "Graph.hpp"
 #include "Window.hpp"
 
 class MainWindow : public Window
@@ -16,7 +16,7 @@ class MainWindow : public Window
 private:
     // Members
     const uint32_t m_Colors[10]{0xFF0000FF, 0x00FF00FF, 0x0000FFFF, 0x808000FF, 0x00FFFFFF, 0xFF00FFFF, 0xFF8000FF, 0x800080FF};
-    int            m_chart_frame_idx = -1; // -1 so that when we first press right arrow we get the first [0] frame
+    int            m_graph_frame_idx = -1; // -1 so that when we first press right arrow we get the first [0] frame
 
     std::chrono::time_point<std::chrono::steady_clock> m_run_start_time;
 
@@ -38,7 +38,7 @@ private:
 
     // Methods
     void RunClick();
-    void CreateChart(std::shared_ptr<Chart>& chart, int x, int y, int w, int h);
+    void CreateGraph(std::shared_ptr<Graph>& graph, int x, int y, int w, int h);
 
     void SetSampleFreq();
     void RecordEvent(Signal::Event e, bool on);
@@ -79,7 +79,7 @@ private:
     void checkbox_detection_time_Clicked();
     void checkbox_window_time_Clicked();
 
-    void chart_OnKeyPress(const sf::Event&);
+    void graph_OnKeyPress(const sf::Event&);
 
 public:
     // Methods
@@ -87,12 +87,6 @@ public:
     ~MainWindow();
 
     auto const& GetRunStartTime() { return m_run_start_time; }
-    void        ConnectCrossData(std::shared_ptr<Communication> m_communication1,
-                                 std::shared_ptr<InfoWindow>    m_info_win_det_sc_top,
-                                 std::shared_ptr<InfoWindow>    m_info_win_frm_sc_top,
-                                 std::shared_ptr<bool>          m_running,
-                                 std::shared_ptr<Record>        m_record);
-    void        UpdateSignals(ProtocolDataType* data);
 
     std::shared_ptr<int> GetSampleFreq() const { return m_sample_freq_hz; }
 
@@ -102,7 +96,7 @@ public:
     // Members
     //////////
 
-    std::shared_ptr<Chart> chart_sc_top, chart_sc_bottom;
+    std::shared_ptr<Graph> graph_sc_top, graph_sc_bottom;
 
     // Button
     std::shared_ptr<mygui::Button> button_connect;

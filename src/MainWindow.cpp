@@ -159,7 +159,7 @@ void MainWindow::button_run_Click()
         m_run_start_time = std::chrono::steady_clock::now();
 
         for (int i = 0; i < N_CHANNELS; ++i)
-            chart1->ChangeSignal(i, signals[i]);
+            graph_sc_top->ChangeSignal(i, signals[i]);
 
         button_run->SetText("Running");
 
@@ -318,11 +318,11 @@ void MainWindow::button_trigger_frame_Click()
 {
     if (!m_triggerframe) {
         m_triggerframe = true;
-        chart1->EnableTriggerFrame();
+        graph_sc_top->EnableTriggerFrame();
         button_trigger_frame->SetText("Frame ON");
     } else {
         m_triggerframe = false;
-        chart1->DisableTriggerFrame();
+        graph_sc_top->DisableTriggerFrame();
         button_trigger_frame->SetText("Frame OFF");
     }
 }
@@ -411,8 +411,8 @@ void MainWindow::button_record_Click()
 {
     auto const& ResetSignals = [this]() {
         for (int i = 0; i < N_CHANNELS; ++i)
-            chart1->ChangeSignal(i, signals[i]);
-        m_chart_frame_idx = -1;
+            graph_sc_top->ChangeSignal(i, signals[i]);
+        m_graph_frame_idx = -1;
     };
 
     if (*m_record == Record::NO) {
@@ -461,8 +461,8 @@ void MainWindow::button_clear_all_Click()
 {
     auto const& ResetSignals = [this]() {
         for (int i = 0; i < N_CHANNELS; ++i)
-            chart1->ChangeSignal(i, signals[i]);
-        m_chart_frame_idx = -1;
+            graph_sc_top->ChangeSignal(i, signals[i]);
+        m_graph_frame_idx = -1;
     };
 
     m_info_win_frm_sc_top->Clear();
@@ -650,70 +650,70 @@ void MainWindow::checkbox_window_time_Clicked()
     RecordEvent(Signal::Event::WINDOW_TIME, checkbox_window_time->Checked());
 }
 
-void MainWindow::chart_OnKeyPress(const sf::Event& event)
+void MainWindow::graph_OnKeyPress(const sf::Event& event)
 {
     if ((*m_record == Record::ALL || *m_record == Record::EVENTS) && !*m_running) {
         const int size = ((int)recorded_signals.size() / N_CHANNELS); // conversion from size_t to int (const int size) must be made or the bottom evaluation is wrong since comparing signed to unsigned, compiler promotes signed to unsigned converting -1 to maximum int value
 
         if (event.key.code == sf::Keyboard::Left) {
-            if (m_chart_frame_idx > 0 && m_chart_frame_idx < size) {
-                m_chart_frame_idx--;
+            if (m_graph_frame_idx > 0 && m_graph_frame_idx < size) {
+                m_graph_frame_idx--;
                 for (int i = 0; i < N_CHANNELS; ++i)
-                    chart1->ChangeSignal(i, recorded_signals[m_chart_frame_idx * N_CHANNELS + i]);
+                    graph_sc_top->ChangeSignal(i, recorded_signals[m_graph_frame_idx * N_CHANNELS + i]);
             }
         }
         if (event.key.code == sf::Keyboard::Right) {
-            if (m_chart_frame_idx < (size - 1)) {
-                m_chart_frame_idx++;
+            if (m_graph_frame_idx < (size - 1)) {
+                m_graph_frame_idx++;
                 for (int i = 0; i < N_CHANNELS; ++i)
-                    chart1->ChangeSignal(i, recorded_signals[m_chart_frame_idx * N_CHANNELS + i]);
+                    graph_sc_top->ChangeSignal(i, recorded_signals[m_graph_frame_idx * N_CHANNELS + i]);
             }
         }
     }
 
     switch (event.key.code) {
     case sf::Keyboard::Num0:
-        chart1->ToggleDrawAllSignals();
+        graph_sc_top->ToggleDrawAllSignals();
         break;
     case sf::Keyboard::Num1:
-        chart1->ToggleDrawSignal(1);
+        graph_sc_top->ToggleDrawSignal(1);
         break;
     case sf::Keyboard::Num2:
-        chart1->ToggleDrawSignal(2);
+        graph_sc_top->ToggleDrawSignal(2);
         break;
     case sf::Keyboard::Num3:
-        chart1->ToggleDrawSignal(3);
+        graph_sc_top->ToggleDrawSignal(3);
         break;
     case sf::Keyboard::Num4:
-        chart1->ToggleDrawSignal(4);
+        graph_sc_top->ToggleDrawSignal(4);
         break;
     case sf::Keyboard::Num5:
-        chart1->ToggleDrawSignal(5);
+        graph_sc_top->ToggleDrawSignal(5);
         break;
     case sf::Keyboard::Num6:
-        chart1->ToggleDrawSignal(6);
+        graph_sc_top->ToggleDrawSignal(6);
         break;
     case sf::Keyboard::Num7:
-        chart1->ToggleDrawSignal(7);
+        graph_sc_top->ToggleDrawSignal(7);
         break;
     case sf::Keyboard::Num8:
-        chart1->ToggleDrawSignal(8);
+        graph_sc_top->ToggleDrawSignal(8);
         break;
     }
 }
 
-void MainWindow::CreateChart(std::shared_ptr<Chart>& chart, int x, int y, int w, int h)
+void MainWindow::CreateGraph(std::shared_ptr<Graph>& graph, int x, int y, int w, int h)
 {
-    chart = std::make_shared<Chart>(x, y, w, h, m_config_number_of_samples, 100.f);
-    chart->CreateGrid(9);
-    chart->OnKeyPress(std::bind(&MainWindow::chart_OnKeyPress, this, std::placeholders::_1));
+    graph = std::make_shared<Graph>(x, y, w, h, 100.f);
+    graph->CreateGrid(9);
+    graph->OnKeyPress(std::bind(&MainWindow::graph_OnKeyPress, this, std::placeholders::_1));
     signals.clear();
     signals.reserve(N_CHANNELS);
     recorded_signals.reserve(N_CHANNELS * 10); // make an arbitrary reservation, just so there aren't so many reallocations when first recording
     for (int i = 0; i < N_CHANNELS; ++i) {
-        chart->AddSignal(
+        graph->AddSignal(
             signals.emplace_back(
-                std::make_shared<Signal>(m_config_number_of_samples, sf::Color(m_Colors[i]), chart->GraphRegion(), chart->MaxVal())));
+                std::make_shared<Signal>(m_config_number_of_samples, sf::Color(m_Colors[i]), graph->GraphRegion(), graph->MaxVal())));
         signals[i]->EventsToRecord(m_events_to_record);
         signals[i]->WindowAndDetectionTimeLimits(m_detection_time_min, m_detection_time_max, m_window_time_min, m_window_time_max);
     }
@@ -731,15 +731,15 @@ MainWindow::MainWindow(int w, int h, std::string const& title, sf::Uint32 style)
     m_sample_freq_hz = std::make_shared<int>(0);
 
     ///////////
-    // Chart //
+    // Graph //
     ///////////
     m_events_to_record   = std::make_shared<Signal::Event>();
     m_detection_time_min = std::make_shared<uint32_t>(0);
     m_detection_time_max = std::make_shared<uint32_t>(1000000);
     m_window_time_min    = std::make_shared<uint32_t>(0);
     m_window_time_max    = std::make_shared<uint32_t>(1000000);
-    CreateChart(chart1, 240, 10, 1600, 420);
-    CreateChart(chart2, 240, 440, 1600, 420);
+    CreateGraph(graph_sc_top, 240, 10, 1600, 420);
+    CreateGraph(graph_sc_bottom, 240, 440, 1600, 420);
 
     /////////////
     // Buttons //
@@ -876,8 +876,8 @@ MainWindow::MainWindow(int w, int h, std::string const& title, sf::Uint32 style)
     /////////////////
     // Main window //
     /////////////////
-    Add(chart1);
-    Add(chart2);
+    Add(graph_sc_top);
+    Add(graph_sc_bottom);
 
     // Buttons
     Add(button_connect);
@@ -939,63 +939,4 @@ MainWindow::~MainWindow()
 {
     if (*m_running)
         button_run_Click();
-}
-
-void MainWindow::ConnectCrossData(
-    std::shared_ptr<Communication> communication,
-    std::shared_ptr<InfoWindow>    detectionInfoWindow,
-    std::shared_ptr<InfoWindow>    frameInfoWindow,
-    std::shared_ptr<bool>          running,
-    std::shared_ptr<Record>        record)
-{
-    m_communication1      = communication;
-    m_info_win_det_sc_top = detectionInfoWindow;
-    m_info_win_frm_sc_top     = frameInfoWindow;
-
-    m_running = running;
-    m_record  = record;
-}
-
-void MainWindow::UpdateSignals(ProtocolDataType* data)
-{
-    // Update signals with new m_data
-    for (auto& s : signals) {
-        s->Edit(data, m_signal_update_cntr * DATA_PER_CHANNEL, DATA_PER_CHANNEL, m_view);
-        data += DATA_PER_CHANNEL;
-    }
-
-    // If we filled up char/signal
-    if (++m_signal_update_cntr >= (m_config_number_of_samples / DATA_PER_CHANNEL)) {
-        m_signal_update_cntr = 0;
-        if (*m_record == Record::ALL) {
-            for (auto const& s : signals)
-                recorded_signals.emplace_back(std::make_shared<Signal>(*s));
-            label_recorded_signals_counter->SetText(std::to_string(recorded_signals.size() / N_CHANNELS));
-        } else if (*m_record == Record::EVENTS) {
-            bool event_happened = false;
-            for (auto const& s : signals) {
-                if (s->AnyEvents()) {
-                    event_happened = true;
-                    break;
-                }
-            }
-
-            if (event_happened) {
-                for (auto& s : signals) {
-                    if (s->AnyEvents()) {
-                        recorded_signals.push_back(std::make_shared<Signal>(*s));
-                        s->ClearEvents();
-                    } else {
-                        recorded_signals.push_back(std::make_shared<Signal>()); // push empty signal
-                    }
-                }
-                label_recorded_signals_counter->SetText(std::to_string(recorded_signals.size() / N_CHANNELS));
-            }
-        }
-
-        if (m_info_win_frm_sc_top)
-            m_info_win_frm_sc_top->RefreshTable();
-        if (m_info_win_det_sc_top)
-            m_info_win_det_sc_top->RefreshTable();
-    }
 }
